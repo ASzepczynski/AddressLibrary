@@ -134,17 +134,17 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                         if (!miejscowosciDict.ContainsKey(simc.Symbol))
                         {
-                            int? rodzajMiejscowisciId = null;
+                            int? rodzajMiejscowosciId = null;
                             if (!string.IsNullOrEmpty(simc.RodzajMiasta) && rodzajeMiejscowosci.ContainsKey(simc.RodzajMiasta))
                             {
-                                rodzajMiejscowisciId = rodzajeMiejscowosci[simc.RodzajMiasta].Id;
+                                rodzajMiejscowosciId = rodzajeMiejscowosci[simc.RodzajMiasta].Id;
                             }
 
                             var miejscowosc = new Miejscowosc
                             {
                                 Symbol = simc.Symbol,
                                 Nazwa = simc.Nazwa,
-                                RodzajMiejscowosciId = rodzajMiejscowisciId ?? -1,
+                                RodzajMiejscowosciId = rodzajMiejscowosciId ?? -1,
                                 GminaId = gmina.Id
                             };
                             miejscowosciDict[simc.Symbol] = miejscowosc;

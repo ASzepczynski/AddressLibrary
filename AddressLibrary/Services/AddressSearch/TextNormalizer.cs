@@ -1,12 +1,13 @@
-// Copyright (c) 2025-2026 Andrzej SzepczyÒski. All rights reserved.
+Ôªø// Copyright (c) 2025-2026 Andrzej Szepczy≈Ñski. All rights reserved.
 
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace AddressLibrary.Services.AddressSearch
 {
     /// <summary>
-    /// Serwis do normalizacji tekstu (usuwanie akcentÛw, przedrostkÛw, etc.)
+    /// Serwis do normalizacji tekstu (usuwanie akcent√≥w, przedrostk√≥w, etc.)
     /// </summary>
     public class TextNormalizer
     {
@@ -16,19 +17,39 @@ namespace AddressLibrary.Services.AddressSearch
             "al.", "al", "aleja", "alei",
             "pl.", "pl", "plac", "placu",
             "os.", "os", "osiedle", "osiedla",
-            "oú.", "oú",
+            "o≈õ.", "o≈õ",
             "rondo",
             "skwer", "skweru",
             "park", "parku",
             "bulwar", "bulwaru",
             "droga",
             "szosa",
-            "úcieøka",
-            "pasaø", "pasaøu"
+            "≈õcie≈ºka",
+            "pasa≈º", "pasa≈ºu"
         };
 
+        // üöÄ OPTYMALIZACJA: Skompilowane regex (tylko raz!)
+        private static readonly Regex TitleAbbreviationsRegex;
+        private static readonly Regex RemoveDotsRegex;
+
+        static TextNormalizer()
+        {
+            // Lista skr√≥t√≥w bez kropek dla wzorca
+            var abbrs = new[] { "sw", "ks", "gen", "bp", "kpt", "pplk", "plk", "mjr", "por",
+                               "dr", "prof", "inz", "mgr", "abp", "kard", "o", "s", "br",
+                               "rotm", "rtm", "sierz", "marsz", "adm", "kmdr", "kr", "bl" };
+
+            // Wzorzec: (sw|ks|gen|...)\.([^\s]) - dodaj spacjƒô po kropce
+            var pattern1 = $@"({string.Join("|", abbrs)})\.([^\s])";
+            TitleAbbreviationsRegex = new Regex(pattern1, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+            // Wzorzec: (sw|ks|gen|...)\. - usu≈Ñ kropkƒô
+            var pattern2 = $@"({string.Join("|", abbrs)})\.";
+            RemoveDotsRegex = new Regex(pattern2, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        }
+
         /// <summary>
-        /// Normalizuje tekst: usuwa akcenty, ma≥e litery, usuwa przedrostki ulic
+        /// Normalizuje tekst: usuwa akcenty, ma≈Çe litery, usuwa przedrostki ulic
         /// </summary>
         public string Normalize(string text)
         {
@@ -37,16 +58,21 @@ namespace AddressLibrary.Services.AddressSearch
 
             var normalized = RemoveDiacritics(text.Trim());
             normalized = normalized.ToLowerInvariant();
+            
+            // üöÄ OPTYMALIZACJA: Jeden regex zamiast pƒôtli
+            normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2"); // Dodaj spacjƒô
+            normalized = RemoveDotsRegex.Replace(normalized, "$1"); // Usu≈Ñ kropkƒô
+            normalized = normalized.Replace('-', ' '); // Zamie≈Ñ my≈õlniki
+            
             normalized = RemoveStreetPrefixes(normalized);
-            // UsuÒ numery z nazwy ulicy (np. "Walerego Goetla 12" -> "Walerego Goetla")
             normalized = RemoveTrailingNumbers(normalized, out _);
-            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
+            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
 
             return normalized;
         }
 
         /// <summary>
-        /// Normalizuje nazwÍ ulicy i wyciπga z niej numer (jeúli wystÍpuje)
+        /// Normalizuje nazwƒô ulicy i wyciƒÖga z niej numer (je≈õli wystƒôpuje)
         /// </summary>
         public (string NormalizedStreet, string ExtractedNumber) NormalizeStreetWithNumber(string text)
         {
@@ -55,13 +81,37 @@ namespace AddressLibrary.Services.AddressSearch
 
             var normalized = RemoveDiacritics(text.Trim());
             normalized = normalized.ToLowerInvariant();
-            normalized = RemoveStreetPrefixes(normalized);
             
-            // UsuÒ numery i zwrÛÊ je
+            // üöÄ OPTYMALIZACJA: Jeden regex zamiast pƒôtli
+            normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2");
+            normalized = RemoveDotsRegex.Replace(normalized, "$1");
+            normalized = normalized.Replace('-', ' ');
+            
+            normalized = RemoveStreetPrefixes(normalized);
             normalized = RemoveTrailingNumbers(normalized, out string extractedNumber);
-            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
+            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
 
             return (normalized, extractedNumber);
+        }
+
+        /// <summary>
+        /// üÜï Usuwa skr√≥t imienia z poczƒÖtku nazwy ulicy (G.Zapolskiej -> Zapolskiej)
+        /// </summary>
+        public string RemoveNameInitial(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            // Wzorzec: jedna wielka litera, kropka, opcjonalnie spacja, nastƒôpnie reszta nazwy
+            // Przyk≈Çady: G.Zapolskiej, J.Lea, E.Kwiatkowskiego, J. Paw≈Ça II
+            var match = Regex.Match(text, @"^[A-ZƒÑƒÜƒò≈Å≈É√ì≈ö≈π≈ª]\.\s?(.+)$");
+
+            if (match.Success)
+            {
+                return match.Groups[1].Value;
+            }
+
+            return text;
         }
 
         /// <summary>
@@ -87,7 +137,7 @@ namespace AddressLibrary.Services.AddressSearch
         private string RemoveDiacritics(string text)
         {
             var normalizedString = text.Normalize(NormalizationForm.FormD);
-            var stringBuilder = new StringBuilder();
+            var stringBuilder = new StringBuilder(text.Length);
 
             foreach (var c in normalizedString)
             {
@@ -103,54 +153,42 @@ namespace AddressLibrary.Services.AddressSearch
 
         private string RemoveStreetPrefixes(string text)
         {
-            var sortedPrefixes = StreetPrefixes.OrderByDescending(p => p.Length);
-
-            foreach (var prefix in sortedPrefixes)
+            // üöÄ OPTYMALIZACJA: Sprawd≈∫ najd≈Çu≈ºsze prefiksy najpierw
+            foreach (var prefix in StreetPrefixes)
             {
-                // Obs≥uga prefiksu ze spacjπ (np. "ul. Krakowska")
-                if (text.StartsWith(prefix + " ", StringComparison.OrdinalIgnoreCase))
-                {
+                if (text.StartsWith(prefix + " "))
                     return text.Substring(prefix.Length + 1).Trim();
-                }
 
-                // NOWE: Obs≥uga prefiksu z kropkπ bez spacji (np. "ul.Krakowska")
-                if (prefix.EndsWith(".") && text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                if (prefix.EndsWith(".") && text.StartsWith(prefix))
                 {
                     var afterPrefix = text.Substring(prefix.Length);
-                    // Jeúli po prefiksie jest litera (nie spacja), usuÒ prefiks
                     if (afterPrefix.Length > 0 && char.IsLetter(afterPrefix[0]))
-                    {
                         return afterPrefix.Trim();
-                    }
                 }
 
-                // Obs≥uga samego prefiksu
                 if (text.Equals(prefix, StringComparison.OrdinalIgnoreCase))
-                {
                     return string.Empty;
-                }
             }
 
             return text;
         }
 
         /// <summary>
-        /// Usuwa koÒcowe numery z nazwy ulicy i zwraca je
+        /// Usuwa ko≈Ñcowe numery z nazwy ulicy i zwraca je
         /// </summary>
         private string RemoveTrailingNumbers(string text, out string extractedNumber)
         {
             extractedNumber = string.Empty;
 
-            // Znajdü ostatnie s≥owo - jeúli jest liczbπ lub zaczyna siÍ od liczby, wyciπgnij je
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length > 1)
             {
                 var lastWord = words[^1];
-                // Sprawdü czy ostatnie s≥owo to liczba lub zawiera cyfry na poczπtku
-                if (char.IsDigit(lastWord[0]) || lastWord.All(char.IsDigit))
+                // Sprawd≈∫ czy ostatnie s≈Çowo to liczba lub zawiera cyfry na poczƒÖtku
+                if (lastWord.Length > 0 && char.IsDigit(lastWord[0]))
                 {
                     extractedNumber = lastWord;
-                    return string.Join(" ", words.Take(words.Length - 1));
+                    return string.Join(" ", words.AsSpan(0, words.Length - 1).ToArray());
                 }
             }
 

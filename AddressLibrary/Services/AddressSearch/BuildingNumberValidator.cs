@@ -1,11 +1,11 @@
-// Copyright (c) 2025-2026 Andrzej Szepczy�ski. All rights reserved.
+﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using System.Text;
 
 namespace AddressLibrary.Services.AddressSearch
 {
     /// <summary>
-    /// Walidator numer�w budynk�w z obs�ug� zakres�w
+    /// Walidator numerów budynków z obsługą zakresów
     /// </summary>
     public class BuildingNumberValidator
     {
@@ -70,7 +70,8 @@ namespace AddressLibrary.Services.AddressSearch
                 var poczatek = czesci[0];
                 var koniec = czesci[1];
 
-                if (!int.TryParse(poczatek, out int numerPoczatek))
+                // Wyciągnij liczbę z początku (obsługa 52a, 115b itp.)
+                if (!ExtractNumber(poczatek, out int numerPoczatek))
                 {
                     return false;
                 }
@@ -80,7 +81,8 @@ namespace AddressLibrary.Services.AddressSearch
                     return numer >= numerPoczatek;
                 }
 
-                if (!int.TryParse(koniec, out int numerKoniec))
+                // Wyciągnij liczbę z końca (obsługa 52a, 115b itp.)
+                if (!ExtractNumber(koniec, out int numerKoniec))
                 {
                     return false;
                 }
@@ -88,7 +90,8 @@ namespace AddressLibrary.Services.AddressSearch
                 return numer >= numerPoczatek && numer <= numerKoniec;
             }
 
-            if (int.TryParse(zakres, out int pojedynczyNumer))
+            // Pojedynczy numer (może też mieć literkę, np. "52a")
+            if (ExtractNumber(zakres, out int pojedynczyNumer))
             {
                 return numer == pojedynczyNumer;
             }

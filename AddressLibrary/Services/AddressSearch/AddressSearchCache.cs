@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
+ï»¿// Copyright (c) 2025-2026 Andrzej SzepczyÅ„ski. All rights reserved.
 
 using AddressLibrary.Data;
 using AddressLibrary.Models;
@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AddressLibrary.Services.AddressSearch
 {
     /// <summary>
-    /// Cache s³owników dla szybkiego wyszukiwania adresów
+    /// Cache sÅ‚ownikÃ³w dla szybkiego wyszukiwania adresÃ³w
     /// </summary>
     public class AddressSearchCache
     {
@@ -15,7 +15,7 @@ namespace AddressLibrary.Services.AddressSearch
         private readonly TextNormalizer _normalizer;
         
         private Dictionary<string, List<Miejscowosc>>? _miejscowosciDict;
-        private Dictionary<int, List<Ulica>>? _uliceDict;
+        private Dictionary<int, List<UlicaCached>>? _uliceDict;
         private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweDict;
         private bool _isInitialized;
 
@@ -29,7 +29,7 @@ namespace AddressLibrary.Services.AddressSearch
         public bool IsInitialized => _isInitialized;
 
         /// <summary>
-        /// Inicjalizuje wszystkie s³owniki z bazy danych
+        /// Inicjalizuje wszystkie sÅ‚owniki z bazy danych
         /// </summary>
         public async Task InitializeAsync()
         {
@@ -38,7 +38,11 @@ namespace AddressLibrary.Services.AddressSearch
                 return;
             }
 
-            // Za³aduj wszystkie miejscowoœci z pe³n¹ hierarchi¹
+            Console.WriteLine("[AddressSearchCache] Rozpoczynam inicjalizacjÄ™ cache...");
+            var totalStartTime = DateTime.Now;
+
+            // ===== MIEJSCOWOÅšCI =====
+            var miejscowosciStartTime = DateTime.Now;
             var miejscowosci = await _context.Miejscowosci
                 .Include(m => m.Gmina)
                     .ThenInclude(g => g.Powiat)
@@ -46,40 +50,79 @@ namespace AddressLibrary.Services.AddressSearch
                 .Include(m => m.Gmina.RodzajGminy)
                 .Where(m => m.Id != -1)
                 .ToListAsync();
+            var miejscowosciTime = (DateTime.Now - miejscowosciStartTime).TotalSeconds;
 
-            // S³ownik: znormalizowana nazwa miejscowoœci -> lista miejscowoœci
+            Console.WriteLine($"[AddressSearchCache] ZaÅ‚adowano {miejscowosci.Count} miejscowoÅ›ci w {miejscowosciTime:F2}s");
+
+            // SÅ‚ownik: znormalizowana nazwa miejscowoÅ›ci -> lista miejscowoÅ›ci
             _miejscowosciDict = miejscowosci
                 .GroupBy(m => _normalizer.Normalize(m.Nazwa))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Za³aduj wszystkie ulice
+            // ===== ULICE =====
+            var uliceStartTime = DateTime.Now;
             var ulice = await _context.Ulice
                 .Include(u => u.Miejscowosc)
                 .Where(u => u.Id != -1)
                 .ToListAsync();
+            var uliceLoadTime = (DateTime.Now - uliceStartTime).TotalSeconds;
 
-            // S³ownik: miejscowoœæ ID -> lista ulic
-            _uliceDict = ulice
+            Console.WriteLine($"[AddressSearchCache] ZaÅ‚adowano {ulice.Count} ulic w {uliceLoadTime:F2}s");
+            
+            // ðŸš€ OPTYMALIZACJA: Znormalizuj nazwy ulic raz przy Å‚adowaniu
+            var normalizeStartTime = DateTime.Now;
+            var cachedUlice = ulice.Select(u => new UlicaCached
+            {
+                Id = u.Id,
+                MiejscowoscId = u.MiejscowoscId,
+                Cecha = u.Cecha,
+                Nazwa1 = u.Nazwa1,
+                Nazwa2 = u.Nazwa2,
+                Miejscowosc = u.Miejscowosc,
+                // Znormalizowane wersje - obliczone raz!
+                NormalizedNazwa1 = _normalizer.Normalize(u.Nazwa1),
+                NormalizedNazwa2 = string.IsNullOrEmpty(u.Nazwa2) ? null : _normalizer.Normalize(u.Nazwa2),
+                NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2) 
+                    ? null 
+                    : _normalizer.Normalize($"{u.Nazwa2} {u.Nazwa1}"),
+                NormalizedCombinedReverse = string.IsNullOrEmpty(u.Nazwa2)
+                    ? null
+                    : _normalizer.Normalize($"{u.Nazwa1} {u.Nazwa2}")
+            }).ToList();
+            
+            var normalizeTime = (DateTime.Now - normalizeStartTime).TotalSeconds;
+            Console.WriteLine($"[AddressSearchCache] Znormalizowano nazwy ulic w {normalizeTime:F2}s");
+
+            // SÅ‚ownik: miejscowoÅ›Ä‡ ID -> lista ulic (z cache)
+            _uliceDict = cachedUlice
                 .GroupBy(u => u.MiejscowoscId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Za³aduj wszystkie kody pocztowe
+            // ===== KODY POCZTOWE =====
+            var kodyStartTime = DateTime.Now;
             var kodyPocztowe = await _context.KodyPocztowe
                 .Include(k => k.Miejscowosc)
                 .Include(k => k.Ulica)
                 .Where(k => k.Id != -1)
                 .ToListAsync();
+            var kodyLoadTime = (DateTime.Now - kodyStartTime).TotalSeconds;
 
-            // S³ownik: miejscowoœæ ID -> lista kodów pocztowych
+            Console.WriteLine($"[AddressSearchCache] ZaÅ‚adowano {kodyPocztowe.Count} kodÃ³w pocztowych w {kodyLoadTime:F2}s");
+
+            // SÅ‚ownik: miejscowoÅ›Ä‡ ID -> lista kodÃ³w pocztowych
             _kodyPocztoweDict = kodyPocztowe
                 .GroupBy(k => k.MiejscowoscId)
                 .ToDictionary(g => g.Key, g => g.ToList());
+
+            var totalTime = (DateTime.Now - totalStartTime).TotalSeconds;
+            Console.WriteLine($"[AddressSearchCache] âœ“ Cache zainicjowany w {totalTime:F2}s " +
+                             $"(miejscowoÅ›ci: {miejscowosciTime:F1}s, ulice: {uliceLoadTime:F1}s + normalizacja: {normalizeTime:F1}s, kody: {kodyLoadTime:F1}s)");
 
             _isInitialized = true;
         }
 
         /// <summary>
-        /// Znajduje miejscowoœci o podanej znormalizowanej nazwie
+        /// Znajduje miejscowoÅ›ci o podanej znormalizowanej nazwie
         /// </summary>
         public bool TryGetMiejscowosci(string normalizedName, out List<Miejscowosc> miejscowosci)
         {
@@ -92,11 +135,11 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         /// <summary>
-        /// Znajduje ulice w podanej miejscowoœci
+        /// Znajduje ulice w podanej miejscowoÅ›ci (z cache'owanymi znormalizowanymi nazwami)
         /// </summary>
-        public bool TryGetUlice(int miejscowoscId, out List<Ulica> ulice)
+        public bool TryGetUlice(int miejscowoscId, out List<UlicaCached> ulice)
         {
-            ulice = new List<Ulica>();
+            ulice = new List<UlicaCached>();
             
             if (_uliceDict == null)
                 return false;
@@ -105,7 +148,7 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         /// <summary>
-        /// Znajduje kody pocztowe dla podanej miejscowoœci
+        /// Znajduje kody pocztowe dla podanej miejscowoÅ›ci
         /// </summary>
         public bool TryGetKodyPocztowe(int miejscowoscId, out List<KodPocztowy> kody)
         {
@@ -116,5 +159,48 @@ namespace AddressLibrary.Services.AddressSearch
 
             return _kodyPocztoweDict.TryGetValue(miejscowoscId, out kody!);
         }
+
+        /// <summary>
+        /// ðŸ†• Znajduje wszystkie miejscowoÅ›ci w podanej gminie
+        /// </summary>
+        public List<Miejscowosc> GetMiejscowosciInGmina(int gminaId)
+        {
+            if (_miejscowosciDict == null)
+                return new List<Miejscowosc>();
+
+            // Przeszukaj wszystkie miejscowoÅ›ci i zwrÃ³Ä‡ te z danej gminy
+            var result = new List<Miejscowosc>();
+            foreach (var kvp in _miejscowosciDict)
+            {
+                foreach (var miejscowosc in kvp.Value)
+                {
+                    if (miejscowosc.GminaId == gminaId)
+                    {
+                        result.Add(miejscowosc);
+                    }
+                }
+            }
+            
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// ðŸš€ Cached wersja Ulica z pre-znormalizowanymi nazwami
+    /// </summary>
+    public class UlicaCached
+    {
+        public int Id { get; set; }
+        public int MiejscowoscId { get; set; }
+        public string Cecha { get; set; } = string.Empty;
+        public string Nazwa1 { get; set; } = string.Empty;
+        public string? Nazwa2 { get; set; }
+        public Miejscowosc Miejscowosc { get; set; } = null!;
+
+        // ðŸš€ Pre-znormalizowane nazwy (obliczone raz przy inicjalizacji)
+        public string NormalizedNazwa1 { get; set; } = string.Empty;
+        public string? NormalizedNazwa2 { get; set; }
+        public string? NormalizedCombined { get; set; }
+        public string? NormalizedCombinedReverse { get; set; }
     }
 }
