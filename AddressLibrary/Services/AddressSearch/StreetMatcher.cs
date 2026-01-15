@@ -1,4 +1,6 @@
-﻿// Copyright (c) 2025 Andrzej Szepczyński. All rights reserved.
+﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
+
+using AddressLibrary.Services.AddressSearch;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -83,6 +85,56 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 🆕 Znajduje WSZYSTKIE ulice pasujące do wyszukiwanej nazwy (hierarchicznie)
+        /// </summary>
+        public List<UlicaCached> FindAllStreets(List<UlicaCached> ulice, string originalStreetName)
+        {
+            var results = new List<UlicaCached>();
+            var normalized = _normalizer.Normalize(originalStreetName);
+
+            // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
+            foreach (var ulica in ulice)
+            {
+                if (IsMatch(ulica, normalized))
+                    results.Add(ulica);
+            }
+
+            // Jeśli znaleziono dokładne dopasowania, zwróć je
+            if (results.Count > 0)
+                return results;
+
+            // ✅ KROK 2: Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
+            var withoutInitial = _normalizer.RemoveNameInitial(originalStreetName);
+
+            if (withoutInitial != originalStreetName)
+            {
+                var normalizedWithoutInitial = _normalizer.Normalize(withoutInitial);
+
+                foreach (var ulica in ulice)
+                {
+                    if (IsMatch(ulica, normalizedWithoutInitial))
+                        results.Add(ulica);
+                }
+            }
+
+            // Jeśli znaleziono po usunięciu inicjału, zwróć je
+            if (results.Count > 0)
+                return results;
+
+            // ⚠️ KROK 3: Dopasowanie częściowe (TYLKO gdy nie znaleziono dokładnego)
+            foreach (var ulica in ulice)
+            {
+                if (IsPartialMatch(ulica.NormalizedNazwa1, normalized) ||
+                    (ulica.NormalizedNazwa2 != null && IsPartialMatch(ulica.NormalizedNazwa2, normalized)))
+                {
+                    results.Add(ulica);
+                }
+            }
+
+            return results;
         }
 
         /// <summary>

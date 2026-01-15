@@ -32,6 +32,7 @@ namespace AddressLibrary.Services.AddressSearch
         // 🚀 OPTYMALIZACJA: Skompilowane regex (tylko raz!)
         private static readonly Regex TitleAbbreviationsRegex;
         private static readonly Regex RemoveDotsRegex;
+        private static readonly Regex RemoveGoSuffixRegex;
 
         static TextNormalizer()
         {
@@ -47,6 +48,9 @@ namespace AddressLibrary.Services.AddressSearch
             // Wzorzec: (sw|ks|gen|...)\. - usuń kropkę
             var pattern2 = $@"({string.Join("|", abbrs)})\.";
             RemoveDotsRegex = new Regex(pattern2, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+            // Wzorzec: (\d+)-go\s+ - usuń "-go " z dat (np. "3-go Maja" -> "3 Maja")
+            RemoveGoSuffixRegex = new Regex(@"(\d+)-go\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         }
 
         public string Normalize(string text)
@@ -60,6 +64,10 @@ namespace AddressLibrary.Services.AddressSearch
             // 🚀 OPTYMALIZACJA: Jeden regex zamiast pętli
             normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2");
             normalized = RemoveDotsRegex.Replace(normalized, "$1");
+            
+            // 🆕 USUŃ "-go " z nazw ulic (np. "3-go Maja" -> "3 Maja")
+            normalized = RemoveGoSuffixRegex.Replace(normalized, "$1 ");
+            
             normalized = normalized.Replace('-', ' ');
             
             normalized = RemoveStreetPrefixes(normalized);
@@ -83,6 +91,10 @@ namespace AddressLibrary.Services.AddressSearch
             
             normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2");
             normalized = RemoveDotsRegex.Replace(normalized, "$1");
+            
+            // 🆕 USUŃ "-go " z nazw ulic
+            normalized = RemoveGoSuffixRegex.Replace(normalized, "$1 ");
+            
             normalized = normalized.Replace('-', ' ');
             
             normalized = RemoveStreetPrefixes(normalized);
