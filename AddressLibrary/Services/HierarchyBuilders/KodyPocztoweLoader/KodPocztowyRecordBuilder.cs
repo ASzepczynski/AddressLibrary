@@ -14,9 +14,9 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// <summary>
         /// Sprawdza czy kombinacja Kod+Miejscowoœæ+Ulica ju¿ istnieje
         /// </summary>
-        public bool IsDuplicate(string kod, int miejscowoscId, int? ulicaId)
+        public bool IsDuplicate(string kod, int miastoId, int? ulicaId)
         {
-            var combinationKey = $"{kod}|{miejscowoscId}|{(ulicaId.HasValue ? ulicaId.ToString() : "NULL")}";
+            var combinationKey = $"{kod}|{miastoId}|{(ulicaId.HasValue ? ulicaId.ToString() : "NULL")}";
             
             if (_insertedCombinations.Contains(combinationKey))
             {
@@ -30,13 +30,13 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// <summary>
         /// Tworzy nowy rekord KodPocztowy
         /// </summary>
-        public KodPocztowy Build(Pna pna, Miejscowosc miejscowosc, Ulica? ulica)
+        public KodPocztowy Build(Pna pna, Miasto miasto, Ulica? ulica)
         {
             return new KodPocztowy
             {
                 Kod = pna.Kod,
                 Numery = pna.Numery,
-                MiejscowoscId = miejscowosc.Id,
+                MiastoId = miasto.Id,
                 UlicaId = ulica?.Id ?? -1
             };
         }

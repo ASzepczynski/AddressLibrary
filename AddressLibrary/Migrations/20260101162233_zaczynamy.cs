@@ -11,8 +11,8 @@ namespace AddressLibrary.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_Miejscowosci_RodzajeMiejscowosci_RodzajMiejscowosciId",
-                table: "Miejscowosci");
+                name: "FK_Miasta_RodzajeMiast_RodzajMiastaId",
+                table: "Miasta");
 
             migrationBuilder.DropIndex(
                 name: "IX_Ulice_Symbol",
@@ -49,8 +49,8 @@ namespace AddressLibrary.Migrations
                 oldMaxLength: 10);
 
             migrationBuilder.AlterColumn<int>(
-                name: "RodzajMiejscowosciId",
-                table: "Miejscowosci",
+                name: "RodzajMiastaId",
+                table: "Miasta",
                 type: "int",
                 nullable: false,
                 defaultValue: 0,
@@ -60,7 +60,7 @@ namespace AddressLibrary.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "Nazwa",
-                table: "Miejscowosci",
+                table: "Miasta",
                 type: "nvarchar(200)",
                 maxLength: 200,
                 nullable: false,
@@ -100,8 +100,8 @@ namespace AddressLibrary.Migrations
                 column: "Nazwa");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Miejscowosci_Nazwa",
-                table: "Miejscowosci",
+                name: "IX_Miasta_Nazwa",
+                table: "Miasta",
                 column: "Nazwa");
 
             migrationBuilder.CreateIndex(
@@ -110,10 +110,10 @@ namespace AddressLibrary.Migrations
                 column: "Nazwa");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Miejscowosci_RodzajeMiejscowosci_RodzajMiejscowosciId",
-                table: "Miejscowosci",
-                column: "RodzajMiejscowosciId",
-                principalTable: "RodzajeMiejscowosci",
+                name: "FK_Miasta_RodzajeMiast_RodzajMiastaId",
+                table: "Miasta",
+                column: "RodzajMiastaId",
+                principalTable: "RodzajeMiast",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
         }
@@ -122,8 +122,8 @@ namespace AddressLibrary.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_Miejscowosci_RodzajeMiejscowosci_RodzajMiejscowosciId",
-                table: "Miejscowosci");
+                name: "FK_Miasta_RodzajeMiast_RodzajMiastaId",
+                table: "Miasta");
 
             migrationBuilder.DropIndex(
                 name: "IX_Wojewodztwa_Nazwa",
@@ -142,8 +142,8 @@ namespace AddressLibrary.Migrations
                 table: "Powiaty");
 
             migrationBuilder.DropIndex(
-                name: "IX_Miejscowosci_Nazwa",
-                table: "Miejscowosci");
+                name: "IX_Miasta_Nazwa",
+                table: "Miasta");
 
             migrationBuilder.DropIndex(
                 name: "IX_Gminy_Nazwa",
@@ -184,8 +184,8 @@ namespace AddressLibrary.Migrations
                 oldNullable: true);
 
             migrationBuilder.AlterColumn<int>(
-                name: "RodzajMiejscowosciId",
-                table: "Miejscowosci",
+                name: "RodzajMiastaId",
+                table: "Miasta",
                 type: "int",
                 nullable: true,
                 oldClrType: typeof(int),
@@ -193,7 +193,7 @@ namespace AddressLibrary.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "Nazwa",
-                table: "Miejscowosci",
+                table: "Miasta",
                 type: "nvarchar(100)",
                 maxLength: 100,
                 nullable: false,
@@ -217,10 +217,10 @@ namespace AddressLibrary.Migrations
                 column: "Symbol");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Miejscowosci_RodzajeMiejscowosci_RodzajMiejscowosciId",
-                table: "Miejscowosci",
-                column: "RodzajMiejscowosciId",
-                principalTable: "RodzajeMiejscowosci",
+                name: "FK_Miasta_RodzajeMiast_RodzajMiastaId",
+                table: "Miasta",
+                column: "RodzajMiastaId",
+                principalTable: "RodzajeMiast",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.SetNull);
         }

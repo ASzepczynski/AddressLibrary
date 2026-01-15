@@ -56,11 +56,11 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             // Buduj słowniki
             var dictionaryBuilder = new KodyPocztoweDictionaryBuilder(_context);
             var gminyDict = await dictionaryBuilder.BuildGminyDictionaryAsync();
-            var miejscowosciDict = await dictionaryBuilder.BuildMiejscowosciDictionaryAsync();
+            var miastaDict = await dictionaryBuilder.BuildMiastaDictionaryAsync();
             var uliceDict = await dictionaryBuilder.BuildUliceDictionaryAsync();
 
             // Inicjalizuj matchery - PRZEKAŻ LOGGER
-            var miejscowoscMatcher = new MiejscowoscMatcher(gminyDict, miejscowosciDict, _logger);
+            var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger);
             var ulicaMatcher = new UlicaMatcher(uliceDict);
             var recordBuilder = new KodPocztowyRecordBuilder();
 
@@ -78,10 +78,10 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 try
                 {
                     // 1. Znajdź miejscowość
-                    var matchResult = miejscowoscMatcher.Match(pna, out bool isMultipleGmin);
-                    var miejscowosc = matchResult.miejscowosc;
+                    var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
+                    var miasto = matchResult.miasto;
                     var gmina = matchResult.gmina;
-                    var miastoNazwa = matchResult.miasto;
+                    var miastoNazwa = matchResult.miastoNazwa;
                     var gminaNazwa = matchResult.gminaNazwa;
 
                     if (isMultipleGmin)
@@ -89,7 +89,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                         stats.MultipleGminFound++;
                     }
 
-                    if (miejscowosc == null)
+                    if (miasto == null)
                     {
                         // POPRAWIONE KOMUNIKATY:
                         if (gmina == null)
@@ -117,18 +117,18 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 2. Znajdź ulicę (jeśli jest)
-                    var ulicaResult = ulicaMatcher.Match(pna.Ulica, miejscowosc, miastoNazwa, pna.Kod);
+                    var ulicaResult = ulicaMatcher.Match(pna.Ulica, miasto, miastoNazwa, pna.Kod);
                     var ulica = ulicaResult.ulica;
                     var ulicaNazwa = ulicaResult.ulicaNazwa;
 
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
                     {
-                        _logger.LogError(ulicaMatcher.GetNotFoundMessage(pna.Ulica, miejscowosc, miastoNazwa, ulicaNazwa) + $" dla kodu {pna.Kod}");
+                        _logger.LogError(ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, ulicaNazwa) + $" dla kodu {pna.Kod}");
                         stats.ErrorCount++;
                     }
 
                     // 3. Sprawdź duplikaty
-                    if (recordBuilder.IsDuplicate(pna.Kod, miejscowosc.Id, ulica?.Id))
+                    if (recordBuilder.IsDuplicate(pna.Kod, miasto.Id, ulica?.Id))
                     {
                         stats.DuplicateCount++;
                         stats.ProcessedCount++;
@@ -136,7 +136,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 4. Utwórz rekord
-                    var kodPocztowy = recordBuilder.Build(pna, miejscowosc, ulica);
+                    var kodPocztowy = recordBuilder.Build(pna, miasto, ulica);
                     pendingRecords.Add(kodPocztowy);
 
                     if (ulica != null || string.IsNullOrEmpty(pna.Ulica))
@@ -167,13 +167,13 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 // Raportuj postęp
                 if (stats.ProcessedCount % reportInterval == 0 || stats.ProcessedCount == pnaData.Count)
                 {
-                    stats.CorrectedMiejscowosciCount = miejscowoscMatcher.CorrectedCount;
+                    stats.CorrectedMiastaCount = miastoMatcher.CorrectedCount;
                     stats.CorrectedUliceCount = ulicaMatcher.CorrectedCount;
 
                     progressInfo.ProcessedCount = stats.ProcessedCount;
                     progressInfo.SuccessCount = stats.SuccessCount;
                     progressInfo.ErrorCount = stats.ErrorCount;
-                    progressInfo.CurrentOperation = $"Przetworzono {stats.ProcessedCount}/{pnaData.Count} (Sukces: {stats.SuccessCount}, Błędy: {stats.ErrorCount}, Korekty: M={stats.CorrectedMiejscowosciCount}, U={stats.CorrectedUliceCount})";
+                    progressInfo.CurrentOperation = $"Przetworzono {stats.ProcessedCount}/{pnaData.Count} (Sukces: {stats.SuccessCount}, Błędy: {stats.ErrorCount}, Korekty: M={stats.CorrectedMiastaCount}, U={stats.CorrectedUliceCount})";
                     progress?.Report(progressInfo);
                 }
             }
@@ -187,7 +187,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             await _logger.FlushAsync();
 
             // Raport końcowy
-            stats.CorrectedMiejscowosciCount = miejscowoscMatcher.CorrectedCount;
+            stats.CorrectedMiastaCount = miastoMatcher.CorrectedCount;
             stats.CorrectedUliceCount = ulicaMatcher.CorrectedCount;
 
             progressInfo.ProcessedCount = stats.ProcessedCount;
@@ -216,7 +216,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 for (int i = 0; i < Math.Min(5, pendingRecords.Count); i++)
                 {
                     var rec = pendingRecords[i];
-                    _logger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiejscowoscId={rec.MiejscowoscId}, UlicaId={rec.UlicaId}");
+                    _logger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}");
                 }
 
                 await _logger.FlushAsync();

@@ -32,11 +32,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
             // 4. Gmina "Brak"
             await SeedGminaAsync();
 
-            // 5. RodzajMiejscowosci "Brak"
-            await SeedRodzajMiejscowosciAsync();
+            // 5. RodzajMiasta "Brak"
+            await SeedRodzajMiastaAsync();
 
-            // 6. Miejscowosc "Brak"
-            await SeedMiejscowoscAsync();
+            // 6. Miasto "Brak"
+            await SeedMiastoAsync();
 
             // 7. Ulica "Brak"
             await SeedUlicaAsync();
@@ -97,29 +97,29 @@ namespace AddressLibrary.Services.HierarchyBuilders
             }
         }
 
-        private async Task SeedRodzajMiejscowosciAsync()
+        private async Task SeedRodzajMiastaAsync()
         {
-            if (!await _context.RodzajeMiejscowosci.AnyAsync(rm => rm.Id == -1))
+            if (!await _context.RodzajeMiast.AnyAsync(rm => rm.Id == -1))
             {
                 await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT RodzajeMiejscowosci ON;
-                    INSERT INTO RodzajeMiejscowosci (Id, Kod, Nazwa) VALUES (-1, '--', 'Brak');
-                    SET IDENTITY_INSERT RodzajeMiejscowosci OFF;
-                    DBCC CHECKIDENT ('RodzajeMiejscowosci', RESEED, 0);
+                    SET IDENTITY_INSERT RodzajeMiast ON;
+                    INSERT INTO RodzajeMiast (Id, Kod, Nazwa) VALUES (-1, '--', 'Brak');
+                    SET IDENTITY_INSERT RodzajeMiast OFF;
+                    DBCC CHECKIDENT ('RodzajeMiast', RESEED, 0);
                 ");
             }
         }
 
-        private async Task SeedMiejscowoscAsync()
+        private async Task SeedMiastoAsync()
         {
-            if (!await _context.Miejscowosci.AnyAsync(m => m.Id == -1))
+            if (!await _context.Miasta.AnyAsync(m => m.Id == -1))
             {
                 await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT Miejscowosci ON;
-                    INSERT INTO Miejscowosci (Id, Symbol, Nazwa, GminaId, RodzajMiejscowosciId) 
+                    SET IDENTITY_INSERT Miasta ON;
+                    INSERT INTO Miasta (Id, Symbol, Nazwa, GminaId, RodzajMiastaId) 
                     VALUES (-1, '0000000', 'Brak', -1, -1);
-                    SET IDENTITY_INSERT Miejscowosci OFF;
-                    DBCC CHECKIDENT ('Miejscowosci', RESEED, 0);
+                    SET IDENTITY_INSERT Miasta OFF;
+                    DBCC CHECKIDENT ('Miasta', RESEED, 0);
                 ");
             }
         }
@@ -130,7 +130,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             {
                 await _context.Database.ExecuteSqlRawAsync(@"
                     SET IDENTITY_INSERT Ulice ON;
-                    INSERT INTO Ulice (Id, Symbol, Nazwa1, Nazwa2, MiejscowoscId) 
+                    INSERT INTO Ulice (Id, Symbol, Nazwa1, Nazwa2, MiastoId) 
                     VALUES (-1, '00000', 'Brak', '', -1);
                     SET IDENTITY_INSERT Ulice OFF;
                     DBCC CHECKIDENT ('Ulice', RESEED, 0);
@@ -144,7 +144,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             {
                 await _context.Database.ExecuteSqlRawAsync(@"
                     SET IDENTITY_INSERT KodyPocztowe ON;
-                    INSERT INTO KodyPocztowe (Id, Kod, Numery, MiejscowoscId, UlicaId) 
+                    INSERT INTO KodyPocztowe (Id, Kod, Numery, MiastoId, UlicaId) 
                     VALUES (-1, '00-000', '', -1, -1);
                     SET IDENTITY_INSERT KodyPocztowe OFF;
                     DBCC CHECKIDENT ('KodyPocztowe', RESEED, 0);

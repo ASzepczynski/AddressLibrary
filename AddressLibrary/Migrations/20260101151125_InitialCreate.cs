@@ -46,7 +46,7 @@ namespace AddressLibrary.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "RodzajeMiejscowosci",
+                name: "RodzajeMiast",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -56,7 +56,7 @@ namespace AddressLibrary.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RodzajeMiejscowosci", x => x.Id);
+                    table.PrimaryKey("PK_RodzajeMiast", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -201,29 +201,29 @@ namespace AddressLibrary.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Miejscowosci",
+                name: "Miasta",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Symbol = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: false),
                     Nazwa = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    RodzajMiejscowosciId = table.Column<int>(type: "int", nullable: true),
+                    RodzajMiastaId = table.Column<int>(type: "int", nullable: true),
                     GminaId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Miejscowosci", x => x.Id);
+                    table.PrimaryKey("PK_Miasta", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Miejscowosci_Gminy_GminaId",
+                        name: "FK_Miasta_Gminy_GminaId",
                         column: x => x.GminaId,
                         principalTable: "Gminy",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Miejscowosci_RodzajeMiejscowosci_RodzajMiejscowosciId",
-                        column: x => x.RodzajMiejscowosciId,
-                        principalTable: "RodzajeMiejscowosci",
+                        name: "FK_Miasta_RodzajeMiast_RodzajMiastaId",
+                        column: x => x.RodzajMiastaId,
+                        principalTable: "RodzajeMiast",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                 });
@@ -238,15 +238,15 @@ namespace AddressLibrary.Migrations
                     Cecha = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     Nazwa1 = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Nazwa2 = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    MiejscowoscId = table.Column<int>(type: "int", nullable: false)
+                    MiastoId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Ulice", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Ulice_Miejscowosci_MiejscowoscId",
-                        column: x => x.MiejscowoscId,
-                        principalTable: "Miejscowosci",
+                        name: "FK_Ulice_Miasta_MiastoId",
+                        column: x => x.MiastoId,
+                        principalTable: "Miasta",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -259,16 +259,16 @@ namespace AddressLibrary.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Kod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
                     Numery = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    MiejscowoscId = table.Column<int>(type: "int", nullable: false),
+                    MiastoId = table.Column<int>(type: "int", nullable: false),
                     UlicaId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_KodyPocztowe", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_KodyPocztowe_Miejscowosci_MiejscowoscId",
-                        column: x => x.MiejscowoscId,
-                        principalTable: "Miejscowosci",
+                        name: "FK_KodyPocztowe_Miasta_MiastoId",
+                        column: x => x.MiastoId,
+                        principalTable: "Miasta",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -301,9 +301,9 @@ namespace AddressLibrary.Migrations
                 column: "Kod");
 
             migrationBuilder.CreateIndex(
-                name: "IX_KodyPocztowe_MiejscowoscId",
+                name: "IX_KodyPocztowe_MiastoId",
                 table: "KodyPocztowe",
-                column: "MiejscowoscId");
+                column: "MiastoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_KodyPocztowe_UlicaId",
@@ -311,18 +311,18 @@ namespace AddressLibrary.Migrations
                 column: "UlicaId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Miejscowosci_GminaId",
-                table: "Miejscowosci",
+                name: "IX_Miasta_GminaId",
+                table: "Miasta",
                 column: "GminaId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Miejscowosci_RodzajMiejscowosciId",
-                table: "Miejscowosci",
-                column: "RodzajMiejscowosciId");
+                name: "IX_Miasta_RodzajMiastaId",
+                table: "Miasta",
+                column: "RodzajMiastaId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Miejscowosci_Symbol",
-                table: "Miejscowosci",
+                name: "IX_Miasta_Symbol",
+                table: "Miasta",
                 column: "Symbol",
                 unique: true);
 
@@ -344,15 +344,15 @@ namespace AddressLibrary.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_RodzajeMiejscowosci_Kod",
-                table: "RodzajeMiejscowosci",
+                name: "IX_RodzajeMiast_Kod",
+                table: "RodzajeMiast",
                 column: "Kod",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Ulice_MiejscowoscId",
+                name: "IX_Ulice_MiastoId",
                 table: "Ulice",
-                column: "MiejscowoscId");
+                column: "MiastoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Ulice_Symbol",
@@ -391,13 +391,13 @@ namespace AddressLibrary.Migrations
                 name: "Ulice");
 
             migrationBuilder.DropTable(
-                name: "Miejscowosci");
+                name: "Miasta");
 
             migrationBuilder.DropTable(
                 name: "Gminy");
 
             migrationBuilder.DropTable(
-                name: "RodzajeMiejscowosci");
+                name: "RodzajeMiast");
 
             migrationBuilder.DropTable(
                 name: "Powiaty");

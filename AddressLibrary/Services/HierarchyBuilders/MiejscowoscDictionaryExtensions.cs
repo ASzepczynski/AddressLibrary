@@ -7,72 +7,72 @@ namespace AddressLibrary.Services.HierarchyBuilders
     /// <summary>
     /// Wynik wyszukiwania miejscowoœci z fuzzy matching
     /// </summary>
-    public class MiejscowoscMatchResult
+    public class MiastoMatchResult
     {
-        public Miejscowosc? Miejscowosc { get; set; }
+        public Miasto? Miasto { get; set; }
         public int Score { get; set; }
         public string SearchName { get; set; } = string.Empty;
-        public bool Found => Miejscowosc != null && Score >= 70;
+        public bool Found => Miasto != null && Score >= 70;
     }
 
     /// <summary>
     /// Metody rozszerzeñ dla s³ownika miejscowoœci - inteligentne wyszukiwanie z fuzzy matching
     /// </summary>
-    public static class MiejscowoscDictionaryExtensions
+    public static class MiastoDictionaryExtensions
     {
         /// <summary>
         /// Próbuje znaleŸæ najlepsze dopasowanie miejscowoœci na podstawie podobieñstwa tekstowego
         /// </summary>
-        /// <param name="miejscowosciDict">S³ownik miejscowoœci w gminie</param>
+        /// <param name="miastaDict">S³ownik miejscowoœci w gminie</param>
         /// <param name="searchName">Szukana nazwa miejscowoœci</param>
-        /// <param name="miejscowosc">Znaleziona miejscowoœæ (jeœli dopasowanie >= 70%)</param>
+        /// <param name="miasto">Znaleziona miejscowoœæ (jeœli dopasowanie >= 70%)</param>
         /// <returns>True jeœli znaleziono dopasowanie</returns>
-        public static bool TryGetValueAgain(this Dictionary<string, Miejscowosc> miejscowosciDict, string searchName, out Miejscowosc? miejscowosc)
+        public static bool TryGetValueAgain(this Dictionary<string, Miasto> miastaDict, string searchName, out Miasto? miasto)
         {
-            var result = TryGetValueAgainWithScore(miejscowosciDict, searchName);
-            miejscowosc = result.Miejscowosc;
+            var result = TryGetValueAgainWithScore(miastaDict, searchName);
+            miasto = result.Miasto;
             return result.Found;
         }
 
         /// <summary>
         /// Próbuje znaleŸæ najlepsze dopasowanie miejscowoœci z informacj¹ o wyniku (score)
         /// </summary>
-        public static MiejscowoscMatchResult TryGetValueAgainWithScore(this Dictionary<string, Miejscowosc> miejscowosciDict, string searchName)
+        public static MiastoMatchResult TryGetValueAgainWithScore(this Dictionary<string, Miasto> miastaDict, string searchName)
         {
-            if (string.IsNullOrWhiteSpace(searchName) || miejscowosciDict.Count == 0)
-                return new MiejscowoscMatchResult { SearchName = searchName, Score = 0 };
+            if (string.IsNullOrWhiteSpace(searchName) || miastaDict.Count == 0)
+                return new MiastoMatchResult { SearchName = searchName, Score = 0 };
 
             int bestScore = 0;
-            Miejscowosc? bestMatch = null;
+            Miasto? bestMatch = null;
 
-            foreach (var kvp in miejscowosciDict)
+            foreach (var kvp in miastaDict)
             {
-                var oMiejscowosc = kvp.Value;
+                var oMiasto = kvp.Value;
 
                 // SprawdŸ nazwê miejscowoœci
-                int score = PoliczPodobienstwo(searchName, oMiejscowosc.Nazwa);
+                int score = PoliczPodobienstwo(searchName, oMiasto.Nazwa);
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    bestMatch = oMiejscowosc;
+                    bestMatch = oMiasto;
                 }
             }
 
-            return new MiejscowoscMatchResult
+            return new MiastoMatchResult
             {
-                Miejscowosc = bestScore >= 70 ? bestMatch : null,
+                Miasto = bestScore >= 70 ? bestMatch : null,
                 Score = bestScore,
                 SearchName = searchName
             };
         }
 
-        private static int PoliczPodobienstwo(string searchName, string miejscowoscName)
+        private static int PoliczPodobienstwo(string searchName, string miastoName)
         {
             var searchNameNormalized = NormalizeName(searchName);
-            var miejscowoscNameNormalized = NormalizeName(miejscowoscName);
+            var miastoNameNormalized = NormalizeName(miastoName);
 
             // Oblicz punkty dopasowania
-            int score = CalculateSimilarityScore(searchNameNormalized, miejscowoscNameNormalized);
+            int score = CalculateSimilarityScore(searchNameNormalized, miastoNameNormalized);
 
             return score;
         }

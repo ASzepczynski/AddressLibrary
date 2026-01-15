@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
-    public class RodzajeMiejscowosciLoader
+    public class RodzajeMiastLoader
     {
         private readonly AddressDbContext _context;
 
-        public RodzajeMiejscowosciLoader(AddressDbContext context)
+        public RodzajeMiastLoader(AddressDbContext context)
         {
             _context = context;
         }
@@ -19,7 +19,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _context.ChangeTracker.Clear();
 
             // SprawdŸ czy tabela ju¿ zawiera PRAWDZIWE dane (nie tylko rekord -1)
-            var existingRealCount = await _context.RodzajeMiejscowosci.CountAsync(rm => rm.Id != -1);
+            var existingRealCount = await _context.RodzajeMiast.CountAsync(rm => rm.Id != -1);
             if (existingRealCount > 0)
             {
                 // Prawdziwe dane ju¿ istniej¹, nie dodawaj ponownie
@@ -36,19 +36,19 @@ namespace AddressLibrary.Services.HierarchyBuilders
             }
 
             // ZMIANA: Grupuj po Kod, aby unikn¹æ duplikatów i filtruj puste kody
-            var rodzajeMiejscowosci = wmRodzData
+            var rodzajeMiasta = wmRodzData
                 .Where(wmRodz => !string.IsNullOrWhiteSpace(wmRodz.RozdzajMiasta))
                 .GroupBy(wmRodz => wmRodz.RozdzajMiasta)
-                .Select(group => new RodzajMiejscowosci
+                .Select(group => new RodzajMiasta
                 {
                     Kod = group.Key,
                     Nazwa = group.First().Nazwa
                 })
                 .ToList();
 
-            if (rodzajeMiejscowosci.Any())
+            if (rodzajeMiasta.Any())
             {
-                await _context.RodzajeMiejscowosci.AddRangeAsync(rodzajeMiejscowosci);
+                await _context.RodzajeMiast.AddRangeAsync(rodzajeMiasta);
                 await _context.SaveChangesAsync();
                 
                 // Wyczyœæ ChangeTracker po zapisie

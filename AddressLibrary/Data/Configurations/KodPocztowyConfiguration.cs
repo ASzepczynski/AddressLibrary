@@ -12,9 +12,9 @@ namespace AddressLibrary.Data.Configurations
             builder.HasIndex(e => e.Kod);
 
             // DeleteBehavior.Restrict (nie da siê zrobiæ atrybutem)
-            builder.HasOne(e => e.Miejscowosc)
+            builder.HasOne(e => e.Miasto)
                   .WithMany(m => m.KodyPocztowe)
-                  .HasForeignKey(e => e.MiejscowoscId)
+                  .HasForeignKey(e => e.MiastoId)
                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(e => e.Ulica)

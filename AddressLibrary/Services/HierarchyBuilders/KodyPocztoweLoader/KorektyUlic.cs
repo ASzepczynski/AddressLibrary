@@ -8,10 +8,10 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         private class Korekta
         {
             public string UlicaPNA { get; set; } = string.Empty;
-            public string Miejscowosc { get; set; } = string.Empty;
+            public string Miasto { get; set; } = string.Empty;
             public string Kod { get; set; } = string.Empty;
             public string UlicaPoprawiona { get; set; } = string.Empty;
-            public string MiejscowoscPoprawiona { get; set; } = string.Empty;
+            public string MiastoPoprawiona { get; set; } = string.Empty;
         }
 
         private static readonly List<Korekta> _korekty = new()
@@ -19,328 +19,328 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             //???
             new Korekta
             {
-                UlicaPNA = "Archeologów", Miejscowosc = "Warszawa", Kod = "02-184",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Archeologów", Miasto = "Warszawa", Kod = "02-184",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //Zlikwidowana W Dzienniku Urzêdowym Województwa Œl¹skiego z dnia 5 marca 2018 r. ukaza³a siê ww. uchwa³a (Dz. Urz. Woj. Œl¹skiego poz. 1398)
             new Korekta
             {
-                UlicaPNA = "Arki Bo¿ka", Miejscowosc = "Ruda Œl¹ska", Kod = "41-711",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Arki Bo¿ka", Miasto = "Ruda Œl¹ska", Kod = "41-711",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "Borsucza", Miejscowosc = "£ódŸ", Kod = "92-327",
-                UlicaPoprawiona = "Kraszewskiego", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Borsucza", Miasto = "£ódŸ", Kod = "92-327",
+                UlicaPoprawiona = "Kraszewskiego", MiastoPoprawiona = ""
             },
             //Nie ma takiej ulicy w Warszawie, to b³¹d PNA
             new Korekta
             {
-                UlicaPNA = "Budziszyñska", Miejscowosc = "Warszawa", Kod = "01-261",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Budziszyñska", Miasto = "Warszawa", Kod = "01-261",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //Podobnie jak ulice Ciskaczy (Soœnica), Obrotycka (rejon Pszczyñskiej) i Rêbaczy (rejon Sztygarskiej), które zosta³y utworzone w wyniku przemianowania niemieckich nazw, a obecnie równie¿ trudno je zidentyfikowaæ w terenie.
             new Korekta
             {
-                UlicaPNA = "Ciskaczy", Miejscowosc = "Gliwice", Kod = "44-103",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Ciskaczy", Miasto = "Gliwice", Kod = "44-103",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Czarna", Miejscowosc = "£ódŸ", Kod = "91-306",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Czarna", Miasto = "£ódŸ", Kod = "91-306",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //W Poznaniu ulica Duszna, po³o¿ona na £azarzu, historycznie istnia³a od 1955 roku, ale zosta³a wyburzona w zwi¹zku z budow¹ centrum handlowego Metropolis, staj¹c siê czêœci¹ planowanej inwestycji, a jej nazwa zniknê³a z mapy miasta.
             new Korekta
             {
-                UlicaPNA = "Duszna", Miejscowosc = "Poznañ", Kod = "60-208",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Duszna", Miasto = "Poznañ", Kod = "60-208",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Dzia³ki Zerzeñ", Miejscowosc = "Warszawa", Kod = "04-871",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Dzia³ki Zerzeñ", Miasto = "Warszawa", Kod = "04-871",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Ekologów Skw.", Miejscowosc = "Dar³owo", Kod = "76-153",
-                UlicaPoprawiona = "Skw. Ekologów", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Ekologów Skw.", Miasto = "Dar³owo", Kod = "76-153",
+                UlicaPoprawiona = "Skw. Ekologów", MiastoPoprawiona = ""
             },
             // 2011: Do niedawna istnia³a uliczka Ewarysta Backiego, przy budowie mostu pó³nocnego zosta³a
             // calkowicie zlikwidowana, choæ nie by³o przy niej juz od dawna zadnych bydynków
             // ot taki kawa³ek asfaltowej drogi wsród traw.
             new Korekta
             {
-                UlicaPNA = "Ewarysta Bronis³awa Backiego", Miejscowosc = "Warszawa", Kod = "01-966",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Ewarysta Bronis³awa Backiego", Miasto = "Warszawa", Kod = "01-966",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "Franciszka ¯wirki i Stanis³awa Wigury", Miejscowosc = "Bêdzin", Kod = "42-500",
-                UlicaPoprawiona = "¯wirki i Wigury", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Franciszka ¯wirki i Stanis³awa Wigury", Miasto = "Bêdzin", Kod = "42-500",
+                UlicaPoprawiona = "¯wirki i Wigury", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "Franciszka ¯wirki i Stanis³awa Wigury", Miejscowosc = "Bieruñ", Kod = "43-150",
-                UlicaPoprawiona = "¯wirki i Wigury", MiejscowoscPoprawiona = ""
-            },
-            //???
-            new Korekta
-            {
-                UlicaPNA = "Henryka Sztompki", Miejscowosc = "Lublin", Kod = "20-862",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
-            },
-            new Korekta
-            {
-                UlicaPNA = "I Dywizji Al.", Miejscowosc = "£ódŸ", Kod = "91-836",
-                UlicaPoprawiona = "Al. Pierwszej Dywizji", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Franciszka ¯wirki i Stanis³awa Wigury", Miasto = "Bieruñ", Kod = "43-150",
+                UlicaPoprawiona = "¯wirki i Wigury", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Ilustracji", Miejscowosc = "Warszawa", Kod = "01-966",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Henryka Sztompki", Miasto = "Lublin", Kod = "20-862",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
+            },
+            new Korekta
+            {
+                UlicaPNA = "I Dywizji Al.", Miasto = "£ódŸ", Kod = "91-836",
+                UlicaPoprawiona = "Al. Pierwszej Dywizji", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Julija Beneszicia", Miejscowosc = "Warszawa", Kod = "03-127",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Ilustracji", Miasto = "Warszawa", Kod = "01-966",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Karola Krejczego", Miejscowosc = "Warszawa", Kod = "03-127",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Julija Beneszicia", Miasto = "Warszawa", Kod = "03-127",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Klechdy", Miejscowosc = "Warszawa", Kod = "03-782",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Karola Krejczego", Miasto = "Warszawa", Kod = "03-127",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Kolejowa", Miejscowosc = "Zabrze", Kod = "41-800",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Klechdy", Miasto = "Warszawa", Kod = "03-782",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Lelum", Miejscowosc = "Warszawa", Kod = "01-920",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Kolejowa", Miasto = "Zabrze", Kod = "41-800",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Leona Jana Landowskiego", Miejscowosc = "Warszawa", Kod = "03-720",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Lelum", Miasto = "Warszawa", Kod = "01-920",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Leona Rodala", Miejscowosc = "Warszawa", Kod = "00-215",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Leona Jana Landowskiego", Miasto = "Warszawa", Kod = "03-720",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
+            },
+            //???
+            new Korekta
+            {
+                UlicaPNA = "Leona Rodala", Miasto = "Warszawa", Kod = "00-215",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "Ma³ego Franka", Miejscowosc = "Warszawa", Kod = "01-115",
-                UlicaPoprawiona = "Siedzikówny \"Inki\"", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Ma³ego Franka", Miasto = "Warszawa", Kod = "01-115",
+                UlicaPoprawiona = "Siedzikówny \"Inki\"", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "Ma³ego Franka", Miejscowosc = "Warszawa", Kod = "01-449",
-                UlicaPoprawiona = "Siedzikówny \"Inki\"", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Ma³ego Franka", Miasto = "Warszawa", Kod = "01-449",
+                UlicaPoprawiona = "Siedzikówny \"Inki\"", MiastoPoprawiona = ""
             },
             //???
                         new Korekta
             {
-                UlicaPNA = "Melchiora Wañkowicza", Miejscowosc = "£ódŸ", Kod = "93-636",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Melchiora Wañkowicza", Miasto = "£ódŸ", Kod = "93-636",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Mestwina", Miejscowosc = "Warszawa", Kod = "03-175",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Mestwina", Miasto = "Warszawa", Kod = "03-175",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Na Prze³êczy", Miejscowosc = "Lublin", Kod = "20-564",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Na Prze³êczy", Miasto = "Lublin", Kod = "20-564",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "NiedŸwiedzia", Miejscowosc = "£ódŸ", Kod = "92-323",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "NiedŸwiedzia", Miasto = "£ódŸ", Kod = "92-323",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "ONZ Rondo", Miejscowosc = "Warszawa", Kod = "00-124",
-                UlicaPoprawiona = "Rondo Organizacji Narodów Zjednoczonych", MiejscowoscPoprawiona = ""
-            },
-            //???
-            new Korekta
-            {
-                UlicaPNA = "Oœwiêcimska", Miejscowosc = "£ódŸ", Kod = "93-542",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "ONZ Rondo", Miasto = "Warszawa", Kod = "00-124",
+                UlicaPoprawiona = "Rondo Organizacji Narodów Zjednoczonych", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Pa³¹k", Miejscowosc = "Warszawa", Kod = "02-268",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Oœwiêcimska", Miasto = "£ódŸ", Kod = "93-542",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Pantomimy", Miejscowosc = "Warszawa", Kod = "01-979",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
-            },
-            new Korekta
-            {
-                UlicaPNA = "PCK Al.", Miejscowosc = "£ódŸ", Kod = "90-456",
-                UlicaPoprawiona = "Aleja Polskiego Czerwonego Krzy¿a", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Pa³¹k", Miasto = "Warszawa", Kod = "02-268",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Piechoty Wybranieckiej", Miejscowosc = "£ódŸ", Kod = "92-438",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Pantomimy", Miasto = "Warszawa", Kod = "01-979",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "Pi³sudskiego Fort", Miejscowosc = "Warszawa", Kod = "02-704",
-                UlicaPoprawiona = "Fort Pi³sudskiego", MiejscowoscPoprawiona = ""
-            },
-            //???
-            new Korekta
-            {
-                UlicaPNA = "Piotra Kartina", Miejscowosc = "Warszawa", Kod = "03-597",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "PCK Al.", Miasto = "£ódŸ", Kod = "90-456",
+                UlicaPoprawiona = "Aleja Polskiego Czerwonego Krzy¿a", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Piotra Skuratowicza", Miejscowosc = "Warszawa", Kod = "03-982",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Piechoty Wybranieckiej", Miasto = "£ódŸ", Kod = "92-438",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
+            },
+            new Korekta
+            {
+                UlicaPNA = "Pi³sudskiego Fort", Miasto = "Warszawa", Kod = "02-704",
+                UlicaPoprawiona = "Fort Pi³sudskiego", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Podwale", Miejscowosc = "£ódŸ", Kod = "93-430",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Piotra Kartina", Miasto = "Warszawa", Kod = "03-597",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Poleg³ych", Miejscowosc = "Warszawa", Kod = "01-979",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Piotra Skuratowicza", Miasto = "Warszawa", Kod = "03-982",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Polelum", Miejscowosc = "Warszawa", Kod = "01-920",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Podwale", Miasto = "£ódŸ", Kod = "93-430",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Przystaniowa", Miejscowosc = "Warszawa", Kod = "00-408",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Poleg³ych", Miasto = "Warszawa", Kod = "01-979",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
+            },
+            //???
+            new Korekta
+            {
+                UlicaPNA = "Polelum", Miasto = "Warszawa", Kod = "01-920",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
+            },
+            //???
+            new Korekta
+            {
+                UlicaPNA = "Przystaniowa", Miasto = "Warszawa", Kod = "00-408",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //Podobnie jak ulice Ciskaczy (Soœnica), Obrotycka (rejon Pszczyñskiej) i Rêbaczy (rejon Sztygarskiej), które zosta³y utworzone w wyniku przemianowania niemieckich nazw, a obecnie równie¿ trudno je zidentyfikowaæ w terenie.
                         new Korekta
             {
-                UlicaPNA = "Rêbaczy", Miejscowosc = "Gliwice", Kod = "44-103",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Rêbaczy", Miasto = "Gliwice", Kod = "44-103",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "Rycerski Pl.", Miejscowosc = "£ódŸ", Kod = "92-441",
-                UlicaPoprawiona = "Pl. Rycerski", MiejscowoscPoprawiona = ""
-            },
-            //???
-            new Korekta
-            {
-                UlicaPNA = "Rytmy", Miejscowosc = "Warszawa", Kod = "01-966",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Rycerski Pl.", Miasto = "£ódŸ", Kod = "92-441",
+                UlicaPoprawiona = "Pl. Rycerski", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Serpentyna", Miejscowosc = "£ódŸ", Kod = "92-005",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Rytmy", Miasto = "Warszawa", Kod = "01-966",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Spawalnicza", Miejscowosc = "Warszawa", Kod = "03-869",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Serpentyna", Miasto = "£ódŸ", Kod = "92-005",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Szpitalna", Miejscowosc = "Lublin", Kod = "20-708",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Spawalnicza", Miasto = "Warszawa", Kod = "03-869",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Trubadurów", Miejscowosc = "Warszawa", Kod = "02-859",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Szpitalna", Miasto = "Lublin", Kod = "20-708",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Wajdeloty", Miejscowosc = "Warszawa", Kod = "01-916",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Trubadurów", Miasto = "Warszawa", Kod = "02-859",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Welwetowa", Miejscowosc = "Warszawa", Kod = "02-833",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Wajdeloty", Miasto = "Warszawa", Kod = "01-916",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Wiktora Pilicha", Miejscowosc = "Zabrze", Kod = "41-800",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Welwetowa", Miasto = "Warszawa", Kod = "02-833",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Wypoczynkowa", Miejscowosc = "Warszawa", Kod = "03-017",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Wiktora Pilicha", Miasto = "Zabrze", Kod = "41-800",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Zajêcza", Miejscowosc = "Konin", Kod = "62-510",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Wypoczynkowa", Miasto = "Warszawa", Kod = "03-017",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             //???
             new Korekta
             {
-                UlicaPNA = "Zgrzebna", Miejscowosc = "Warszawa", Kod = "03-869",
-                UlicaPoprawiona = "", MiejscowoscPoprawiona = ""
+                UlicaPNA = "Zajêcza", Miasto = "Konin", Kod = "62-510",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
+            },
+            //???
+            new Korekta
+            {
+                UlicaPNA = "Zgrzebna", Miasto = "Warszawa", Kod = "03-869",
+                UlicaPoprawiona = "", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "ZHP Al.", Miejscowosc = "£ódŸ", Kod = "90-440",
-                UlicaPoprawiona = "Zwi¹zku Harcerstwa Polskiego", MiejscowoscPoprawiona = ""
+                UlicaPNA = "ZHP Al.", Miasto = "£ódŸ", Kod = "90-440",
+                UlicaPoprawiona = "Zwi¹zku Harcerstwa Polskiego", MiastoPoprawiona = ""
             },
             new Korekta
             {
-                UlicaPNA = "ródliska I (Palmiarnia) Park", Miejscowosc = "£ódŸ", Kod = "90-329",
-                UlicaPoprawiona = "Park ródliska", MiejscowoscPoprawiona = ""
+                UlicaPNA = "ródliska I (Palmiarnia) Park", Miasto = "£ódŸ", Kod = "90-329",
+                UlicaPoprawiona = "Park ródliska", MiastoPoprawiona = ""
             }
         };
 
@@ -374,7 +374,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             return nazwa;
         }
 
-        public static string Popraw(string ulica, string miejscowosc, string kod)
+        public static string Popraw(string ulica, string miasto, string kod)
         {
             //if (ulica.Contains("PCK"))
             //{
@@ -382,7 +382,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             //}
             var korekta = _korekty.FirstOrDefault(k =>
                 k.UlicaPNA == ulica &&
-                k.Miejscowosc == miejscowosc &&
+                k.Miasto == miasto &&
                 k.Kod == kod);
 
             if (korekta != null && !string.IsNullOrEmpty(korekta.UlicaPoprawiona))
@@ -395,19 +395,19 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             return ulica;
         }
 
-        public static string PoprawMiejscowosc(string ulica, string miejscowosc, string kod)
+        public static string PoprawMiasto(string ulica, string miasto, string kod)
         {
             var korekta = _korekty.FirstOrDefault(k =>
                 k.UlicaPNA == ulica &&
-                k.Miejscowosc == miejscowosc &&
+                k.Miasto == miasto &&
                 k.Kod == kod);
 
-            if (korekta != null && !string.IsNullOrEmpty(korekta.MiejscowoscPoprawiona))
+            if (korekta != null && !string.IsNullOrEmpty(korekta.MiastoPoprawiona))
             {
-                return korekta.MiejscowoscPoprawiona;
+                return korekta.MiastoPoprawiona;
             }
 
-            return miejscowosc;
+            return miasto;
         }
     }
 }

@@ -30,6 +30,6 @@ namespace AddressLibrary.Models
         public RodzajGminy RodzajGminy { get; set; } = null!;
 
         // Relacja 1:N - jedna gmina ma wiele miejscowoœci
-        public ICollection<Miejscowosc> Miejscowosci { get; set; } = new List<Miejscowosc>();
+        public ICollection<Miasto> Miasta { get; set; } = new List<Miasto>();
     }
 }

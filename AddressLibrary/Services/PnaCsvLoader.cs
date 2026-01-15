@@ -103,8 +103,8 @@ namespace AddressLibrary.Services
                 }
 
                 // Format CSV: KOD;MIEJSCOWOŒÆ;ULICA;NUMERY;GMINA;POWIAT;WOJEWÓDZTWO
-                var miejscowoscRaw = parts[1].Trim();
-                var (miejscowosc, dzielnica) = ParseMiejscowoscZDzielnica(miejscowoscRaw);
+                var miastoRaw = parts[1].Trim();
+                var (miasto, dzielnica) = ParseMiastoZDzielnica(miastoRaw);
                 
                 if (!string.IsNullOrEmpty(dzielnica))
                 {
@@ -114,7 +114,7 @@ namespace AddressLibrary.Services
                 var pna = new Pna
                 {
                     Kod = parts[0].Trim(),
-                    Miasto = miejscowosc,               // MIEJSCOWOŒÆ (bez dzielnicy)
+                    Miasto = miasto,               // MIEJSCOWOŒÆ (bez dzielnicy)
                     Dzielnica = dzielnica,              // DZIELNICA (wyodrêbniona z nawiasów)
                     Ulica = parts[2].Trim(),            // ULICA
                     Numery = parts[3].Trim(),           // NUMERY
@@ -163,30 +163,30 @@ namespace AddressLibrary.Services
         /// <summary>
         /// Wyodrêbnia miejscowoœæ i dzielnicê z tekstu w formacie "Miejscowoœæ (Dzielnica)"
         /// </summary>
-        /// <param name="miejscowoscRaw">Surowy tekst miejscowoœci</param>
+        /// <param name="miastoRaw">Surowy tekst miejscowoœci</param>
         /// <returns>Krotka (miejscowoœæ, dzielnica)</returns>
-        private static (string miejscowosc, string dzielnica) ParseMiejscowoscZDzielnica(string miejscowoscRaw)
+        private static (string miasto, string dzielnica) ParseMiastoZDzielnica(string miastoRaw)
         {
-            if (string.IsNullOrWhiteSpace(miejscowoscRaw))
+            if (string.IsNullOrWhiteSpace(miastoRaw))
             {
                 return (string.Empty, string.Empty);
             }
 
             // Szukaj nawiasu otwieraj¹cego
-            var openParenIndex = miejscowoscRaw.IndexOf('(');
-            var closeParenIndex = miejscowoscRaw.IndexOf(')');
+            var openParenIndex = miastoRaw.IndexOf('(');
+            var closeParenIndex = miastoRaw.IndexOf(')');
 
             // Jeœli nie ma nawiasów lub s¹ nieprawid³owe, zwróæ oryginalny tekst
             if (openParenIndex == -1 || closeParenIndex == -1 || closeParenIndex <= openParenIndex)
             {
-                return (miejscowoscRaw, string.Empty);
+                return (miastoRaw, string.Empty);
             }
 
             // Wyodrêbnij miejscowoœæ (przed nawiasem) i dzielnicê (w nawiasie)
-            var miejscowosc = miejscowoscRaw.Substring(0, openParenIndex).Trim();
-            var dzielnica = miejscowoscRaw.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
+            var miasto = miastoRaw.Substring(0, openParenIndex).Trim();
+            var dzielnica = miastoRaw.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
 
-            return (miejscowosc, dzielnica);
+            return (miasto, dzielnica);
         }
 
         public class LoadProgressInfo

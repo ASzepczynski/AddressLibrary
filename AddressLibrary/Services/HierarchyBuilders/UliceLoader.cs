@@ -22,11 +22,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
         public async Task LoadAsync(
             List<TerytUlic> ulicData,
-            Dictionary<string, Miejscowosc> miejscowosciDict)
+            Dictionary<string, Miasto> miastaDict)
         {
             await LogControl("=== Rozpoczynam ładowanie ulic ===\n");
             await LogControl($"Liczba ulic do przetworzenia: {ulicData.Count}");
-            await LogControl($"Liczba miejscowości w słowniku: {miejscowosciDict.Count}");
+            await LogControl($"Liczba miejscowości w słowniku: {miastaDict.Count}");
 
             int przetworzono = 0;
             int brakujacych = 0;
@@ -35,7 +35,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             // Dla miast na prawach powiatu - załaduj raz na początku
             await LogControl("Przygotowuję mapowanie miast na prawach powiatu...");
-            var miastaNaPrawachPowiatuDict = new Dictionary<string, Miejscowosc>();
+            var miastaNaPrawachPowiatuDict = new Dictionary<string, Miasto>();
 
             // Załaduj wszystkie gminy z powiatami
             var gminyAll = await _context.Gminy
@@ -59,14 +59,14 @@ namespace AddressLibrary.Services.HierarchyBuilders
             {
                 // Klucz to pełny 4-cyfrowy kod powiatu (już jest w gmina.Powiat.Kod)
                 var kodPowiatu = gmina.Powiat.Kod; // np. "2261"
-                var miejscowosc = miejscowosciDict.Values.FirstOrDefault(m => m.GminaId == gmina.Id);
+                var miasto = miastaDict.Values.FirstOrDefault(m => m.GminaId == gmina.Id);
                 
-                if (miejscowosc != null)
+                if (miasto != null)
                 {
                     if (!miastaNaPrawachPowiatuDict.ContainsKey(kodPowiatu))
                     {
-                        miastaNaPrawachPowiatuDict[kodPowiatu] = miejscowosc;
-                        await LogControl($"Zarejestrowano miasto na prawach powiatu: {miejscowosc.Nazwa} (MiejscowoscId={miejscowosc.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
+                        miastaNaPrawachPowiatuDict[kodPowiatu] = miasto;
+                        await LogControl($"Zarejestrowano miasto na prawach powiatu: {miasto.Nazwa} (MiastoId={miasto.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
                     }
                 }
                 else
@@ -80,7 +80,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             // Wyświetl wszystkie wpisy
             foreach (var kvp in miastaNaPrawachPowiatuDict)
             {
-                await LogControl($"  [{kvp.Key}] => {kvp.Value.Nazwa} (MiejscowoscId={kvp.Value.Id})");
+                await LogControl($"  [{kvp.Key}] => {kvp.Value.Nazwa} (MiastoId={kvp.Value.Id})");
             }
             
             await LogControl("Przetwarzam ulice...");
@@ -107,13 +107,13 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" || 
                                             powiatCode == "63" || powiatCode == "64" || powiatCode == "65";
 
-                Miejscowosc? miejscowosc = null;
+                Miasto? miasto = null;
 
                 if (isCityWithPowiatRights)
                 {
                     if (miastaNaPrawachPowiatuDict.ContainsKey(kodPowiatu))
                     {
-                        miejscowosc = miastaNaPrawachPowiatuDict[kodPowiatu];
+                        miasto = miastaNaPrawachPowiatuDict[kodPowiatu];
                         cityWithRightsProcessed++;
 
                         // Diagnostyka dla Gdańska (22 = Pomorskie, 61 = Gdańsk)
@@ -122,7 +122,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                             gdanskUliceCount++;
                             if (gdanskUliceCount <= 5)
                             {
-                                await LogControl($"  Gdańsk: ulica {ulic.Nazwa1} => MiejscowoscId={miejscowosc.Id}");
+                                await LogControl($"  Gdańsk: ulica {ulic.Nazwa1} => MiastoId={miasto.Id}");
                             }
                         }
                     }
@@ -139,9 +139,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 }
                 else
                 {
-                    if (miejscowosciDict.ContainsKey(ulic.Symbol))
+                    if (miastaDict.ContainsKey(ulic.Symbol))
                     {
-                        miejscowosc = miejscowosciDict[ulic.Symbol];
+                        miasto = miastaDict[ulic.Symbol];
                         regularProcessed++;
                     }
                     else
@@ -158,7 +158,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     Cecha = ulic.Cecha,
                     Nazwa1 = ulic.Nazwa1,
                     Nazwa2 = ulic.Nazwa2,
-                    MiejscowoscId = miejscowosc.Id
+                    MiastoId = miasto.Id
                 };
 
                 allUlice.Add(ulica);
@@ -166,11 +166,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             await LogControl($"Zebrano {allUlice.Count} ulic");
             await LogControl($"W tym dla Gdańska: {gdanskUliceCount} ulic");
-            await LogControl("Usuwam duplikaty (Symbol + MiejscowoscId)...");
+            await LogControl("Usuwam duplikaty (Symbol + MiastoId)...");
 
             // Usuń duplikaty - ulice o tym samym Symbol w tej samej miejscowości
             var uniqueUlice = allUlice
-                .GroupBy(u => new { u.Symbol, u.MiejscowoscId })
+                .GroupBy(u => new { u.Symbol, u.MiastoId })
                 .Select(g => g.First())
                 .ToList();
 
@@ -180,10 +180,10 @@ namespace AddressLibrary.Services.HierarchyBuilders
             await LogControl($"Po usunięciu duplikatów: {uniqueUlice.Count} unikalnych ulic (pominięto {duplikaty} duplikatów)");
             
             // Sprawdź ile ulic dla Gdańska po deduplikacji
-            var gdanskMiejscowosc = miastaNaPrawachPowiatuDict.GetValueOrDefault("2261");
-            if (gdanskMiejscowosc != null)
+            var gdanskMiasto = miastaNaPrawachPowiatuDict.GetValueOrDefault("2261");
+            if (gdanskMiasto != null)
             {
-                var gdanskUliceUnique = uniqueUlice.Count(u => u.MiejscowoscId == gdanskMiejscowosc.Id);
+                var gdanskUliceUnique = uniqueUlice.Count(u => u.MiastoId == gdanskMiasto.Id);
                 await LogControl($"Po deduplikacji dla Gdańska: {gdanskUliceUnique} unikalnych ulic");
             }
 

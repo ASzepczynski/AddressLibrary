@@ -8,7 +8,7 @@ namespace AddressLibrary.Models
     public class KodPocztowyZAdresem
     {
         public KodPocztowy KodPocztowy { get; set; } = null!;
-        public Miejscowosc? Miejscowosc { get; set; }
+        public Miasto? Miasto { get; set; }
         public Ulica? Ulica { get; set; }
 
         /// <summary>
@@ -27,9 +27,9 @@ namespace AddressLibrary.Models
                 }
 
                 // Miejscowoœæ
-                if (!string.IsNullOrEmpty(Miejscowosc?.Nazwa))
+                if (!string.IsNullOrEmpty(Miasto?.Nazwa))
                 {
-                    parts.Add(Miejscowosc.Nazwa);
+                    parts.Add(Miasto.Nazwa);
                 }
 
                 // Ulica (z kombinacj¹ Nazwa2 + Nazwa1 jeœli istniej¹ obie)
@@ -53,17 +53,17 @@ namespace AddressLibrary.Models
 
                 // Województwo, Powiat, Gmina
                 var locationParts = new List<string>();
-                if (!string.IsNullOrEmpty(Miejscowosc?.Gmina?.Powiat?.Wojewodztwo?.Nazwa))
+                if (!string.IsNullOrEmpty(Miasto?.Gmina?.Powiat?.Wojewodztwo?.Nazwa))
                 {
-                    locationParts.Add($"woj. {Miejscowosc.Gmina.Powiat.Wojewodztwo.Nazwa}");
+                    locationParts.Add($"woj. {Miasto.Gmina.Powiat.Wojewodztwo.Nazwa}");
                 }
-                if (!string.IsNullOrEmpty(Miejscowosc?.Gmina?.Powiat?.Nazwa))
+                if (!string.IsNullOrEmpty(Miasto?.Gmina?.Powiat?.Nazwa))
                 {
-                    locationParts.Add($"pow. {Miejscowosc.Gmina.Powiat.Nazwa}");
+                    locationParts.Add($"pow. {Miasto.Gmina.Powiat.Nazwa}");
                 }
-                if (!string.IsNullOrEmpty(Miejscowosc?.Gmina?.Nazwa))
+                if (!string.IsNullOrEmpty(Miasto?.Gmina?.Nazwa))
                 {
-                    locationParts.Add($"gm. {Miejscowosc.Gmina.Nazwa}");
+                    locationParts.Add($"gm. {Miasto.Gmina.Nazwa}");
                 }
 
                 if (locationParts.Any())

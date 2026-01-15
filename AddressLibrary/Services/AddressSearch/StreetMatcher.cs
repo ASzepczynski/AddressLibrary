@@ -89,33 +89,64 @@ namespace AddressLibrary.Services.AddressSearch
         /// 🆕 Znajduje ulicę TYLKO metodą dokładnego dopasowania (bez partial match)
         /// Używane gdy priorytetem jest precyzja (np. "Powstańców" nie może znaleźć "Powstańców Śląskich")
         /// </summary>
-        public UlicaCached? FindStreetExact(List<UlicaCached> ulice, string originalStreetName)
+        public UlicaCached? FindStreetExact(List<UlicaCached> ulice, string searchTerm)
         {
-            // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
-            var normalized = _normalizer.Normalize(originalStreetName);
-            
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return null;
+
+            var normalizedSearch = _normalizer.Normalize(searchTerm);
+
             foreach (var ulica in ulice)
             {
-                if (IsMatch(ulica, normalized))
+                // 1. Sprawdź Nazwa1 (główna nazwa ulicy)
+                if (ulica.NormalizedNazwa1 == normalizedSearch)
                     return ulica;
-            }
 
-            // ✅ KROK 2: Retry bez skrótu imienia
-            var withoutInitial = _normalizer.RemoveNameInitial(originalStreetName);
-            
-            if (withoutInitial != originalStreetName)
-            {
-                var normalizedWithoutInitial = _normalizer.Normalize(withoutInitial);
-                
-                foreach (var ulica in ulice)
+                // 2. Sprawdź Combined (Nazwa2 + " " + Nazwa1)
+                if (!string.IsNullOrEmpty(ulica.NormalizedCombined) && 
+                    ulica.NormalizedCombined == normalizedSearch)
+                    return ulica;
+
+                // 3. Sprawdź CombinedReverse (Nazwa1 + " " + Nazwa2)
+                if (!string.IsNullOrEmpty(ulica.NormalizedCombinedReverse) && 
+                    ulica.NormalizedCombinedReverse == normalizedSearch)
+                    return ulica;
+
+                // 🆕 4. Sprawdź inicjał z Nazwa2 (np. "j lea" pasuje do Nazwa2="juliusza" + Nazwa1="lea")
+                if (!string.IsNullOrEmpty(ulica.Nazwa2))
                 {
-                    if (IsMatch(ulica, normalizedWithoutInitial))
+                    if (MatchesInitial(searchTerm, ulica.Nazwa2, ulica.Nazwa1))
                         return ulica;
                 }
             }
 
-            // ❌ BEZ dopasowania częściowego - tylko dokładne
             return null;
+        }
+
+        /// <summary>
+        /// Sprawdza czy searchTerm zawiera inicjał (np. "J.Lea" pasuje do "Juliusza Lea")
+        /// </summary>
+        private bool MatchesInitial(string searchTerm, string nazwa2, string nazwa1)
+        {
+            // Wzorzec: "J.Lea", "j.lea", "J. Lea"
+            var match = System.Text.RegularExpressions.Regex.Match(searchTerm, @"^([A-Za-z])\.?\s*(.+)$");
+            
+            if (!match.Success)
+                return false;
+
+            var initial = match.Groups[1].Value.ToLowerInvariant();
+            var restOfName = match.Groups[2].Value;
+
+            // Sprawdź czy inicjał pasuje do pierwszej litery Nazwa2
+            var nazwa2Normalized = _normalizer.Normalize(nazwa2);
+            if (!nazwa2Normalized.StartsWith(initial))
+                return false;
+
+            // Sprawdź czy reszta pasuje do Nazwa1
+            var restNormalized = _normalizer.Normalize(restOfName);
+            var nazwa1Normalized = _normalizer.Normalize(nazwa1);
+            
+            return restNormalized == nazwa1Normalized;
         }
 
         /// <summary>
@@ -126,6 +157,95 @@ namespace AddressLibrary.Services.AddressSearch
             // Split tylko raz, bez dodatkowej normalizacji
             var words = normalizedStreetName.Split(new[] { ' ', '-', '.' }, StringSplitOptions.RemoveEmptyEntries);
             return Array.IndexOf(words, searchTerm) >= 0;
+        }
+
+        /// <summary>
+        /// Znajduje najbardziej podobną ulicę (fuzzy matching) używając odległości Levenshteina
+        /// </summary>
+        public UlicaCached? FindMostSimilarStreet(List<UlicaCached> ulice, string searchTerm, int maxDistance = 2)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return null;
+
+            var normalizedSearch = _normalizer.Normalize(searchTerm);
+            
+            UlicaCached? bestMatch = null;
+            int bestDistance = int.MaxValue;
+
+            foreach (var ulica in ulice)
+            {
+                int distance1 = LevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
+                
+                int distanceCombined = int.MaxValue;
+                if (!string.IsNullOrEmpty(ulica.NormalizedCombined))
+                {
+                    distanceCombined = LevenshteinDistance(normalizedSearch, ulica.NormalizedCombined);
+                }
+
+                int distanceReverse = int.MaxValue;
+                if (!string.IsNullOrEmpty(ulica.NormalizedCombinedReverse))
+                {
+                    distanceReverse = LevenshteinDistance(normalizedSearch, ulica.NormalizedCombinedReverse);
+                }
+
+                int minDistance = Math.Min(distance1, Math.Min(distanceCombined, distanceReverse));
+
+                if (minDistance < bestDistance)
+                {
+                    bestDistance = minDistance;
+                    bestMatch = ulica;
+                }
+            }
+
+            if (bestMatch != null)
+            {
+                var referenceLength = Math.Max(normalizedSearch.Length, bestMatch.NormalizedNazwa1.Length);
+                var similarity = 1.0 - ((double)bestDistance / referenceLength);
+                
+                // 🔧 POPRAWKA: Wyższy próg dla krótkich słów
+                double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5; // 70% dla ≤5 znaków, 50% dla dłuższych
+                
+                if (bestDistance <= maxDistance && similarity >= minSimilarity)
+                    return bestMatch;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Oblicza odległość Levenshteina między dwoma stringami
+        /// </summary>
+        private int LevenshteinDistance(string s, string t)
+        {
+            if (string.IsNullOrEmpty(s))
+                return string.IsNullOrEmpty(t) ? 0 : t.Length;
+            
+            if (string.IsNullOrEmpty(t))
+                return s.Length;
+
+            int n = s.Length;
+            int m = t.Length;
+            int[,] d = new int[n + 1, m + 1];
+
+            for (int i = 0; i <= n; i++)
+                d[i, 0] = i;
+            
+            for (int j = 0; j <= m; j++)
+                d[0, j] = j;
+
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
+                    
+                    d[i, j] = Math.Min(
+                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+
+            return d[n, m];
         }
     }
 }

@@ -76,7 +76,7 @@ namespace AddressLibrary.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)");
 
-                    b.Property<int>("MiejscowoscId")
+                    b.Property<int>("MiastoId")
                         .HasColumnType("int");
 
                     b.Property<string>("Numery")
@@ -91,14 +91,14 @@ namespace AddressLibrary.Migrations
 
                     b.HasIndex("Kod");
 
-                    b.HasIndex("MiejscowoscId");
+                    b.HasIndex("MiastoId");
 
                     b.HasIndex("UlicaId");
 
                     b.ToTable("KodyPocztowe");
                 });
 
-            modelBuilder.Entity("AddressLibrary.Models.Miejscowosc", b =>
+            modelBuilder.Entity("AddressLibrary.Models.Miasto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -114,7 +114,7 @@ namespace AddressLibrary.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("RodzajMiejscowosciId")
+                    b.Property<int>("RodzajMiastaId")
                         .HasColumnType("int");
 
                     b.Property<string>("Symbol")
@@ -128,12 +128,12 @@ namespace AddressLibrary.Migrations
 
                     b.HasIndex("Nazwa");
 
-                    b.HasIndex("RodzajMiejscowosciId");
+                    b.HasIndex("RodzajMiastaId");
 
                     b.HasIndex("Symbol")
                         .IsUnique();
 
-                    b.ToTable("Miejscowosci");
+                    b.ToTable("Miasta");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Pna", b =>
@@ -240,7 +240,7 @@ namespace AddressLibrary.Migrations
                     b.ToTable("RodzajeGmin");
                 });
 
-            modelBuilder.Entity("AddressLibrary.Models.RodzajMiejscowosci", b =>
+            modelBuilder.Entity("AddressLibrary.Models.RodzajMiasta", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -263,7 +263,7 @@ namespace AddressLibrary.Migrations
                     b.HasIndex("Kod")
                         .IsUnique();
 
-                    b.ToTable("RodzajeMiejscowosci");
+                    b.ToTable("RodzajeMiast");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.TerytSimc", b =>
@@ -446,7 +446,7 @@ namespace AddressLibrary.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("MiejscowoscId")
+                    b.Property<int>("MiastoId")
                         .HasColumnType("int");
 
                     b.Property<string>("Nazwa1")
@@ -465,7 +465,7 @@ namespace AddressLibrary.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MiejscowoscId");
+                    b.HasIndex("MiastoId");
 
                     b.HasIndex("Nazwa1");
 
@@ -524,9 +524,9 @@ namespace AddressLibrary.Migrations
 
             modelBuilder.Entity("AddressLibrary.Models.KodPocztowy", b =>
                 {
-                    b.HasOne("AddressLibrary.Models.Miejscowosc", "Miejscowosc")
+                    b.HasOne("AddressLibrary.Models.Miasto", "Miasto")
                         .WithMany("KodyPocztowe")
-                        .HasForeignKey("MiejscowoscId")
+                        .HasForeignKey("MiastoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -535,28 +535,28 @@ namespace AddressLibrary.Migrations
                         .HasForeignKey("UlicaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("Miejscowosc");
+                    b.Navigation("Miasto");
 
                     b.Navigation("Ulica");
                 });
 
-            modelBuilder.Entity("AddressLibrary.Models.Miejscowosc", b =>
+            modelBuilder.Entity("AddressLibrary.Models.Miasto", b =>
                 {
                     b.HasOne("AddressLibrary.Models.Gmina", "Gmina")
-                        .WithMany("Miejscowosci")
+                        .WithMany("Miasta")
                         .HasForeignKey("GminaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("AddressLibrary.Models.RodzajMiejscowosci", "RodzajMiejscowosci")
-                        .WithMany("Miejscowosci")
-                        .HasForeignKey("RodzajMiejscowosciId")
+                    b.HasOne("AddressLibrary.Models.RodzajMiasta", "RodzajMiasta")
+                        .WithMany("Miasta")
+                        .HasForeignKey("RodzajMiastaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Gmina");
 
-                    b.Navigation("RodzajMiejscowosci");
+                    b.Navigation("RodzajMiasta");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Powiat", b =>
@@ -572,21 +572,21 @@ namespace AddressLibrary.Migrations
 
             modelBuilder.Entity("AddressLibrary.Models.Ulica", b =>
                 {
-                    b.HasOne("AddressLibrary.Models.Miejscowosc", "Miejscowosc")
+                    b.HasOne("AddressLibrary.Models.Miasto", "Miasto")
                         .WithMany("Ulice")
-                        .HasForeignKey("MiejscowoscId")
+                        .HasForeignKey("MiastoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Miejscowosc");
+                    b.Navigation("Miasto");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Gmina", b =>
                 {
-                    b.Navigation("Miejscowosci");
+                    b.Navigation("Miasta");
                 });
 
-            modelBuilder.Entity("AddressLibrary.Models.Miejscowosc", b =>
+            modelBuilder.Entity("AddressLibrary.Models.Miasto", b =>
                 {
                     b.Navigation("KodyPocztowe");
 
@@ -603,9 +603,9 @@ namespace AddressLibrary.Migrations
                     b.Navigation("Gminy");
                 });
 
-            modelBuilder.Entity("AddressLibrary.Models.RodzajMiejscowosci", b =>
+            modelBuilder.Entity("AddressLibrary.Models.RodzajMiasta", b =>
                 {
-                    b.Navigation("Miejscowosci");
+                    b.Navigation("Miasta");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Ulica", b =>

@@ -24,7 +24,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// </summary>
         public (Ulica? ulica, string ulicaNazwa) Match(
             string ulicaNazwa,
-            Miejscowosc miejscowosc,
+            Miasto miasto,
             string miastoNazwa,
             string kodPocztowy)
         {
@@ -38,7 +38,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             bool ulicaFound = false;
 
             // KROK 1: SprawdŸ czy miejscowoœæ ma jakiekolwiek ulice
-            if (_uliceDict.TryGetValue(miejscowosc.Id, out var ulice))
+            if (_uliceDict.TryGetValue(miasto.Id, out var ulice))
             {
                 // KROK 1a: Próba dok³adnego dopasowania (case-insensitive)
                 if (ulice.TryGetValue(currentUlica.ToLowerInvariant(), out ulica))
@@ -61,7 +61,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 if (correctedUlica != ulicaNazwa)
                 {
                     // KROK 2b: Spróbuj znaleŸæ skorygowan¹ ulicê
-                    if (_uliceDict.TryGetValue(miejscowosc.Id, out var ulice2))
+                    if (_uliceDict.TryGetValue(miasto.Id, out var ulice2))
                     {
                         if (ulice2.TryGetValue(correctedUlica.ToLowerInvariant(), out ulica))
                         {
@@ -79,14 +79,14 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// <summary>
         /// Generuje diagnostyczny komunikat o braku ulicy
         /// </summary>
-        public string GetNotFoundMessage(string ulicaNazwa, Miejscowosc miejscowosc, string miastoNazwa, string correctedUlica)
+        public string GetNotFoundMessage(string ulicaNazwa, Miasto miasto, string miastoNazwa, string correctedUlica)
         {
-            var miejscowoscInfo = $"{miastoNazwa} (MiejscowoscId={miejscowosc.Id})";
-            var uliceCountInfo = _uliceDict.ContainsKey(miejscowosc.Id)
-                ? $"{_uliceDict[miejscowosc.Id].Count} ulic w s³owniku"
+            var miastoInfo = $"{miastoNazwa} (MiastoId={miasto.Id})";
+            var uliceCountInfo = _uliceDict.ContainsKey(miasto.Id)
+                ? $"{_uliceDict[miasto.Id].Count} ulic w s³owniku"
                 : "brak ulic w s³owniku";
 
-            var message = $"Nie znaleziono ulicy: '{ulicaNazwa}' w {miejscowoscInfo} ({uliceCountInfo})";
+            var message = $"Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
             
             if (correctedUlica != ulicaNazwa)
             {

@@ -3,6 +3,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -48,9 +49,6 @@ namespace AddressLibrary.Services.AddressSearch
             RemoveDotsRegex = new Regex(pattern2, RegexOptions.Compiled | RegexOptions.IgnoreCase);
         }
 
-        /// <summary>
-        /// Normalizuje tekst: usuwa akcenty, małe litery, usuwa przedrostki ulic
-        /// </summary>
         public string Normalize(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -60,20 +58,21 @@ namespace AddressLibrary.Services.AddressSearch
             normalized = normalized.ToLowerInvariant();
             
             // 🚀 OPTYMALIZACJA: Jeden regex zamiast pętli
-            normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2"); // Dodaj spację
-            normalized = RemoveDotsRegex.Replace(normalized, "$1"); // Usuń kropkę
-            normalized = normalized.Replace('-', ' '); // Zamień myślniki
+            normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2");
+            normalized = RemoveDotsRegex.Replace(normalized, "$1");
+            normalized = normalized.Replace('-', ' ');
             
             normalized = RemoveStreetPrefixes(normalized);
             normalized = RemoveTrailingNumbers(normalized, out _);
+            
+            // 🆕 USUŃ TYTUŁY WOJSKOWE/RELIGIJNE/NAUKOWE
+            normalized = RemoveTitles(normalized);
+            
             normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
 
             return normalized;
         }
 
-        /// <summary>
-        /// Normalizuje nazwę ulicy i wyciąga z niej numer (jeśli występuje)
-        /// </summary>
         public (string NormalizedStreet, string ExtractedNumber) NormalizeStreetWithNumber(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -82,7 +81,6 @@ namespace AddressLibrary.Services.AddressSearch
             var normalized = RemoveDiacritics(text.Trim());
             normalized = normalized.ToLowerInvariant();
             
-            // 🚀 OPTYMALIZACJA: Jeden regex zamiast pętli
             normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2");
             normalized = RemoveDotsRegex.Replace(normalized, "$1");
             normalized = normalized.Replace('-', ' ');
@@ -94,16 +92,11 @@ namespace AddressLibrary.Services.AddressSearch
             return (normalized, extractedNumber);
         }
 
-        /// <summary>
-        /// 🆕 Usuwa skrót imienia z początku nazwy ulicy (G.Zapolskiej -> Zapolskiej)
-        /// </summary>
         public string RemoveNameInitial(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return text;
 
-            // Wzorzec: jedna wielka litera, kropka, opcjonalnie spacja, następnie reszta nazwy
-            // Przykłady: G.Zapolskiej, J.Lea, E.Kwiatkowskiego, J. Pawła II
             var match = Regex.Match(text, @"^[A-ZĄĆĘŁŃÓŚŹŻ]\.\s?(.+)$");
 
             if (match.Success)
@@ -114,9 +107,6 @@ namespace AddressLibrary.Services.AddressSearch
             return text;
         }
 
-        /// <summary>
-        /// Normalizuje kod pocztowy do formatu XX-XXX
-        /// </summary>
         public string NormalizePostalCode(string kod)
         {
             if (string.IsNullOrWhiteSpace(kod))
@@ -136,6 +126,10 @@ namespace AddressLibrary.Services.AddressSearch
 
         private string RemoveDiacritics(string text)
         {
+            // ✅ Użyj scentralizowanej metody dla polskich znaków
+            text = PolishCharacterHelper.RemovePolishDiacritics(text);
+    
+            // Potem usuń pozostałe znaki diakrytyczne (akcenty międzynarodowe)
             var normalizedString = text.Normalize(NormalizationForm.FormD);
             var stringBuilder = new StringBuilder(text.Length);
 
@@ -153,7 +147,6 @@ namespace AddressLibrary.Services.AddressSearch
 
         private string RemoveStreetPrefixes(string text)
         {
-            // 🚀 OPTYMALIZACJA: Sprawdź najdłuższe prefiksy najpierw
             foreach (var prefix in StreetPrefixes)
             {
                 if (text.StartsWith(prefix + " "))
@@ -173,9 +166,6 @@ namespace AddressLibrary.Services.AddressSearch
             return text;
         }
 
-        /// <summary>
-        /// Usuwa końcowe numery z nazwy ulicy i zwraca je
-        /// </summary>
         private string RemoveTrailingNumbers(string text, out string extractedNumber)
         {
             extractedNumber = string.Empty;
@@ -184,7 +174,6 @@ namespace AddressLibrary.Services.AddressSearch
             if (words.Length > 1)
             {
                 var lastWord = words[^1];
-                // Sprawdź czy ostatnie słowo to liczba lub zawiera cyfry na początku
                 if (lastWord.Length > 0 && char.IsDigit(lastWord[0]))
                 {
                     extractedNumber = lastWord;
@@ -193,6 +182,52 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             return text;
+        }
+        
+        /// <summary>
+        /// Usuwa tytuły wojskowe, religijne, naukowe z tekstu
+        /// </summary>
+        private string RemoveTitles(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+            // Lista tytułów do usunięcia (znormalizowane)
+            var titles = new[] { 
+                // wojskowe
+                "plk","pulkownika",
+                "mjr","majora",
+                "kpt", "kapitana",
+                "por", "porucznika",
+                "gen", "generala",
+                "pplk", "podpulkownika",
+                "rotm", "rtm", "rotmistrza",
+                "sierz", "sierzanta",
+                "marsz", "marszalka",
+                "adm", "admirala",
+                "kmdr", "komandora",
+                // religijne
+                "sw","swietego",
+                "ks", "ksiedza","ksiecia",
+                "bp", "biskupa",
+                "abp", "arcybiskupa",
+                "kard", "kardynala",
+                "br", "brata",
+                "o", "ojca",
+                "s", "siostry",
+                "bl","blogoslawionego",
+                // naukowe
+                "dr", "doktora",
+                "prof", "profesora",
+                "inz", "inzyniera",
+                "mgr", "magistra",
+                // szlacheckie
+                "kr", "krolowej","krola"
+            };
+
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var filtered = words.Where(w => !titles.Contains(w)).ToList();
+            
+            return string.Join(" ", filtered);
         }
     }
 }

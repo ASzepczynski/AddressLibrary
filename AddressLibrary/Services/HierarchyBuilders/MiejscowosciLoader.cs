@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
-    public class MiejscowosciLoader
+    public class MiastaLoader
     {
         private readonly AddressDbContext _context;
         private readonly string? _appDataPath;
         private readonly string _controlLogPath;
 
-        public MiejscowosciLoader(AddressDbContext context, string? appDataPath = null)
+        public MiastaLoader(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
             _appDataPath = appDataPath;
@@ -21,12 +21,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _controlLogPath = Path.Combine(logsDir, "Control.txt");
         }
 
-        public async Task<Dictionary<string, Miejscowosc>> LoadAsync(
+        public async Task<Dictionary<string, Miasto>> LoadAsync(
             List<TerytSimc> simcData,
             Dictionary<string, Gmina> gminyDict,
-            Dictionary<string, RodzajMiejscowosci> rodzajeMiejscowosci)
+            Dictionary<string, RodzajMiasta> rodzajeMiasta)
         {
-            var miejscowosciDict = new Dictionary<string, Miejscowosc>();
+            var miastaDict = new Dictionary<string, Miasto>();
 
             // Wyczyść poprzedni log kontrolny
             await File.WriteAllTextAsync(_controlLogPath, $"=== Log kontrolny budowania miejscowości - {DateTime.Now} ===\n\n");
@@ -40,13 +40,13 @@ namespace AddressLibrary.Services.HierarchyBuilders
             int skippedDistrictsCount = 0;
 
             // Zgrupuj miejscowści według gminy
-            var miejscowosciByGmina = simcData
+            var miastaByGmina = simcData
                 .GroupBy(s => new { s.Wojewodztwo, s.Powiat, s.Gmina, s.RodzajGminy })
                 .ToList();
 
-            await LogControl($"Liczba grup miejscowości według gmin: {miejscowosciByGmina.Count}");
+            await LogControl($"Liczba grup miejscowości według gmin: {miastaByGmina.Count}");
 
-            foreach (var gminaGroup in miejscowosciByGmina)
+            foreach (var gminaGroup in miastaByGmina)
             {
                 // POPRAWIONO: Użyj tego samego formatu klucza co w GminyLoader (z separatorami |)
                 var kodGminy = $"{gminaGroup.Key.Wojewodztwo}|{gminaGroup.Key.Powiat}|{gminaGroup.Key.Gmina}|{gminaGroup.Key.RodzajGminy}";
@@ -90,25 +90,25 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                     if (glowneMiasto != null)
                     {
-                        int? rodzajMiejscowosciId = null;
-                        if (!string.IsNullOrEmpty(glowneMiasto.RodzajMiasta) && rodzajeMiejscowosci.ContainsKey(glowneMiasto.RodzajMiasta))
+                        int? rodzajMiastaId = null;
+                        if (!string.IsNullOrEmpty(glowneMiasto.RodzajMiasta) && rodzajeMiasta.ContainsKey(glowneMiasto.RodzajMiasta))
                         {
-                            rodzajMiejscowosciId = rodzajeMiejscowosci[glowneMiasto.RodzajMiasta].Id;
+                            rodzajMiastaId = rodzajeMiasta[glowneMiasto.RodzajMiasta].Id;
                         }
 
-                        var miejscowosc = new Miejscowosc
+                        var miasto = new Miasto
                         {
                             Symbol = glowneMiasto.Symbol,
                             Nazwa = glowneMiasto.Nazwa,
-                            RodzajMiejscowosciId = rodzajMiejscowosciId ?? -1,
+                            RodzajMiastaId = rodzajMiastaId ?? -1,
                             GminaId = gmina.Id
                         };
 
-                        miejscowosciDict[glowneMiasto.Symbol] = miejscowosc;
-                        await _context.Miejscowosci.AddAsync(miejscowosc);
+                        miastaDict[glowneMiasto.Symbol] = miasto;
+                        await _context.Miasta.AddAsync(miasto);
                         cityWithRightsCount++;
 
-                        await LogControl($"Dodano miasto na prawach powiatu: {miejscowosc.Nazwa}, Symbol: {miejscowosc.Symbol}, Gmina: {gmina.Nazwa}");
+                        await LogControl($"Dodano miasto na prawach powiatu: {miasto.Nazwa}, Symbol: {miasto.Symbol}, Gmina: {gmina.Nazwa}");
                     }
                     else
                     {
@@ -132,23 +132,23 @@ namespace AddressLibrary.Services.HierarchyBuilders
                             continue;
                         }
 
-                        if (!miejscowosciDict.ContainsKey(simc.Symbol))
+                        if (!miastaDict.ContainsKey(simc.Symbol))
                         {
-                            int? rodzajMiejscowosciId = null;
-                            if (!string.IsNullOrEmpty(simc.RodzajMiasta) && rodzajeMiejscowosci.ContainsKey(simc.RodzajMiasta))
+                            int? rodzajMiastaId = null;
+                            if (!string.IsNullOrEmpty(simc.RodzajMiasta) && rodzajeMiasta.ContainsKey(simc.RodzajMiasta))
                             {
-                                rodzajMiejscowosciId = rodzajeMiejscowosci[simc.RodzajMiasta].Id;
+                                rodzajMiastaId = rodzajeMiasta[simc.RodzajMiasta].Id;
                             }
 
-                            var miejscowosc = new Miejscowosc
+                            var miasto = new Miasto
                             {
                                 Symbol = simc.Symbol,
                                 Nazwa = simc.Nazwa,
-                                RodzajMiejscowosciId = rodzajMiejscowosciId ?? -1,
+                                RodzajMiastaId = rodzajMiastaId ?? -1,
                                 GminaId = gmina.Id
                             };
-                            miejscowosciDict[simc.Symbol] = miejscowosc;
-                            await _context.Miejscowosci.AddAsync(miejscowosc);
+                            miastaDict[simc.Symbol] = miasto;
+                            await _context.Miasta.AddAsync(miasto);
                             regularCount++;
                         }
                     }
@@ -172,7 +172,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             
             await _context.SaveChangesAsync();
 
-            return miejscowosciDict;
+            return miastaDict;
         }
 
         private async Task LogControl(string message)

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {
-    public class Miejscowosc
+    public class Miasto
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -25,9 +25,9 @@ namespace AddressLibrary.Models
 
         // Klucz obcy do rodzaju miejscowoœci
         [Required]
-        [ForeignKey(nameof(RodzajMiejscowosci))]
-        public int RodzajMiejscowosciId { get; set; }
-        public RodzajMiejscowosci RodzajMiejscowosci { get; set; } = null!;
+        [ForeignKey(nameof(RodzajMiasta))]
+        public int RodzajMiastaId { get; set; }
+        public RodzajMiasta RodzajMiasta { get; set; } = null!;
 
         // Relacja 1:N - jedna miejscowoœæ ma wiele ulic
         public ICollection<Ulica> Ulice { get; set; } = new List<Ulica>();

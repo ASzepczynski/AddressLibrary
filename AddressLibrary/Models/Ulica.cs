@@ -25,9 +25,9 @@ namespace AddressLibrary.Models
 
         // Klucz obcy do miejscowoœci
         [Required]
-        [ForeignKey(nameof(Miejscowosc))]
-        public int MiejscowoscId { get; set; }
-        public Miejscowosc Miejscowosc { get; set; } = null!;
+        [ForeignKey(nameof(Miasto))]
+        public int MiastoId { get; set; }
+        public Miasto Miasto { get; set; } = null!;
 
         // Relacja 1:N - jedna ulica ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();

@@ -15,9 +15,9 @@ namespace AddressLibrary.Migrations
                 table: "Ulice");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Ulice_Symbol_MiejscowoscId",
+                name: "IX_Ulice_Symbol_MiastoId",
                 table: "Ulice",
-                columns: new[] { "Symbol", "MiejscowoscId" },
+                columns: new[] { "Symbol", "MiastoId" },
                 unique: true);
         }
 
@@ -25,7 +25,7 @@ namespace AddressLibrary.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
-                name: "IX_Ulice_Symbol_MiejscowoscId",
+                name: "IX_Ulice_Symbol_MiastoId",
                 table: "Ulice");
 
             migrationBuilder.CreateIndex(

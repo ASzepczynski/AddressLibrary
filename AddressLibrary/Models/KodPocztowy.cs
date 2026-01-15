@@ -23,9 +23,9 @@ namespace AddressLibrary.Models
 
         // Klucz obcy do miejscowoœci
         [Required]
-        [ForeignKey(nameof(Miejscowosc))]
-        public int MiejscowoscId { get; set; }
-        public Miejscowosc Miejscowosc { get; set; } = null!;
+        [ForeignKey(nameof(Miasto))]
+        public int MiastoId { get; set; }
+        public Miasto Miasto { get; set; } = null!;
 
         // Klucz obcy do ulicy (opcjonalny - niektóre kody dotycz¹ ca³ych miejscowoœci bez konkretnej ulicy)
         [ForeignKey(nameof(Ulica))]

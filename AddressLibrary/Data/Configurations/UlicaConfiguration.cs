@@ -8,16 +8,16 @@ namespace AddressLibrary.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Ulica> builder)
         {
-            // Indeks unikalny na Symbol + MiejscowoscId (symbol ulicy jest unikalny w kontekœcie miejscowoœci)
-            builder.HasIndex(e => new { e.Symbol, e.MiejscowoscId }).IsUnique();
+            // Indeks unikalny na Symbol + MiastoId (symbol ulicy jest unikalny w kontekœcie miejscowoœci)
+            builder.HasIndex(e => new { e.Symbol, e.MiastoId }).IsUnique();
             
             // Indeks na Nazwa1 dla wyszukiwania
             builder.HasIndex(e => e.Nazwa1);
 
             // DeleteBehavior
-            builder.HasOne(e => e.Miejscowosc)
+            builder.HasOne(e => e.Miasto)
                   .WithMany(m => m.Ulice)
-                  .HasForeignKey(e => e.MiejscowoscId)
+                  .HasForeignKey(e => e.MiastoId)
                   .OnDelete(DeleteBehavior.Restrict);
         }
     }

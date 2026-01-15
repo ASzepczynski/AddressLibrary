@@ -45,13 +45,13 @@ namespace AddressLibrary
             // Usuñ dane z tabel hierarchicznych (w odpowiedniej kolejnoœci - od dzieci do rodziców)
             _context.KodyPocztowe.RemoveRange(await _context.KodyPocztowe.ToListAsync());
             _context.Ulice.RemoveRange(await _context.Ulice.ToListAsync());
-            _context.Miejscowosci.RemoveRange(await _context.Miejscowosci.ToListAsync());
+            _context.Miasta.RemoveRange(await _context.Miasta.ToListAsync());
             _context.Gminy.RemoveRange(await _context.Gminy.ToListAsync());
             _context.Powiaty.RemoveRange(await _context.Powiaty.ToListAsync());
             _context.Wojewodztwa.RemoveRange(await _context.Wojewodztwa.ToListAsync());
 
             // Usuñ dane ze s³owników
-            _context.RodzajeMiejscowosci.RemoveRange(await _context.RodzajeMiejscowosci.ToListAsync());
+            _context.RodzajeMiast.RemoveRange(await _context.RodzajeMiast.ToListAsync());
             _context.RodzajeGmin.RemoveRange(await _context.RodzajeGmin.ToListAsync());
 
             // Usuñ dane z tabel TERYT
@@ -132,8 +132,8 @@ namespace AddressLibrary
             await rodzajeGminLoader.LoadAsync();
 
             // 2b. Za³aduj rodzaje miejscowoœci z TerytWmRodz
-            var rodzajeMiejscowosciLoader = new RodzajeMiejscowosciLoader(_context);
-            await rodzajeMiejscowosciLoader.LoadAsync();
+            var rodzajeMiastaLoader = new RodzajeMiastLoader(_context);
+            await rodzajeMiastaLoader.LoadAsync();
 
             // KROK 3: Za³aduj dane z tabel TERYT
             var tercData = await _context.TerytTerc.ToListAsync();
@@ -142,7 +142,7 @@ namespace AddressLibrary
 
             // KROK 4: Za³aduj s³owniki do pamiêci
             var rodzajeGmin = await _context.RodzajeGmin.ToDictionaryAsync(r => r.Kod, r => r);
-            var rodzajeMiejscowosci = await _context.RodzajeMiejscowosci.ToDictionaryAsync(r => r.Kod, r => r);
+            var rodzajeMiasta = await _context.RodzajeMiast.ToDictionaryAsync(r => r.Kod, r => r);
 
             // KROK 5: Utwórz województwa (bez seedowania - ju¿ zrobione w kroku 1.5)
             var wojewodztwaLoader = new WojewodztwaLoader(_context);
@@ -157,12 +157,12 @@ namespace AddressLibrary
             var gminyDict = await gminyLoader.LoadAsync(tercData, powiatyDict, rodzajeGmin);
 
             // KROK 8: Utwórz miejscowoœci
-            var miejscowosciLoader = new MiejscowosciLoader(_context, _appDataPath);
-            var miejscowosciDict = await miejscowosciLoader.LoadAsync(simcData, gminyDict, rodzajeMiejscowosci);
+            var miastaLoader = new MiastaLoader(_context, _appDataPath);
+            var miastaDict = await miastaLoader.LoadAsync(simcData, gminyDict, rodzajeMiasta);
 
             // KROK 9: Utwórz ulice
             var uliceLoader = new UliceLoader(_context, _appDataPath);
-            await uliceLoader.LoadAsync(ulicData, miejscowosciDict);
+            await uliceLoader.LoadAsync(ulicData, miastaDict);
         }
 
         /// <summary>
@@ -204,26 +204,26 @@ namespace AddressLibrary
                     -- Wy³¹cz sprawdzanie kluczy obcych
                     ALTER TABLE KodyPocztowe NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Ulice NOCHECK CONSTRAINT ALL;
-                    ALTER TABLE Miejscowosci NOCHECK CONSTRAINT ALL;
+                    ALTER TABLE Miasta NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Gminy NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Powiaty NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Wojewodztwa NOCHECK CONSTRAINT ALL;
 
                     -- Usuñ dane (zachowaj rekordy z Id = -1)
-                    -- WA¯NE: KodyPocztowe NAJPIERW (ma FK do Ulice i Miejscowosci)
+                    -- WA¯NE: KodyPocztowe NAJPIERW (ma FK do Ulice i Miasta)
                     DELETE FROM KodyPocztowe WHERE Id != -1;
                     DELETE FROM Ulice WHERE Id != -1;
-                    DELETE FROM Miejscowosci WHERE Id != -1;
+                    DELETE FROM Miasta WHERE Id != -1;
                     DELETE FROM Gminy WHERE Id != -1;
                     DELETE FROM Powiaty WHERE Id != -1;
                     DELETE FROM Wojewodztwa WHERE Id != -1;
-                    DELETE FROM RodzajeMiejscowosci WHERE Id != -1;
+                    DELETE FROM RodzajeMiast WHERE Id != -1;
                     DELETE FROM RodzajeGmin WHERE Id != -1;
 
                     -- W³¹cz z powrotem sprawdzanie kluczy obcych
                     ALTER TABLE KodyPocztowe CHECK CONSTRAINT ALL;
                     ALTER TABLE Ulice CHECK CONSTRAINT ALL;
-                    ALTER TABLE Miejscowosci CHECK CONSTRAINT ALL;
+                    ALTER TABLE Miasta CHECK CONSTRAINT ALL;
                     ALTER TABLE Gminy CHECK CONSTRAINT ALL;
                     ALTER TABLE Powiaty CHECK CONSTRAINT ALL;
                     ALTER TABLE Wojewodztwa CHECK CONSTRAINT ALL;

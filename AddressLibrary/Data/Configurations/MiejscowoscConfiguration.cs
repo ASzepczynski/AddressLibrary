@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AddressLibrary.Data.Configurations
 {
-    public class MiejscowoscConfiguration : IEntityTypeConfiguration<Miejscowosc>
+    public class MiastoConfiguration : IEntityTypeConfiguration<Miasto>
     {
-        public void Configure(EntityTypeBuilder<Miejscowosc> builder)
+        public void Configure(EntityTypeBuilder<Miasto> builder)
         {
             // Indeksy
             builder.HasIndex(e => e.Symbol).IsUnique();
@@ -14,13 +14,13 @@ namespace AddressLibrary.Data.Configurations
 
             // DeleteBehavior
             builder.HasOne(e => e.Gmina)
-                  .WithMany(g => g.Miejscowosci)
+                  .WithMany(g => g.Miasta)
                   .HasForeignKey(e => e.GminaId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(e => e.RodzajMiejscowosci)
-                  .WithMany(r => r.Miejscowosci)
-                  .HasForeignKey(e => e.RodzajMiejscowosciId)
+            builder.HasOne(e => e.RodzajMiasta)
+                  .WithMany(r => r.Miasta)
+                  .HasForeignKey(e => e.RodzajMiastaId)
                   .OnDelete(DeleteBehavior.Restrict);
         }
     }

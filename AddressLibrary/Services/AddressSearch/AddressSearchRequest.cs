@@ -15,7 +15,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// <summary>
         /// Nazwa miejscowoœci (wymagana)
         /// </summary>
-        public string Miejscowosc { get; init; } = string.Empty;
+        public string Miasto { get; init; } = string.Empty;
 
         /// <summary>
         /// Nazwa ulicy (opcjonalna)

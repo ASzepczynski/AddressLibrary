@@ -39,13 +39,13 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         }
 
         /// <summary>
-        /// Tworzy s³ownik miejscowoœci: GminaId -> Dictionary[Nazwa -> Miejscowosc]
+        /// Tworzy s³ownik miejscowoœci: GminaId -> Dictionary[Nazwa -> Miasto]
         /// </summary>
-        public async Task<Dictionary<int, Dictionary<string, Miejscowosc>>> BuildMiejscowosciDictionaryAsync()
+        public async Task<Dictionary<int, Dictionary<string, Miasto>>> BuildMiastaDictionaryAsync()
         {
-            var miejscowosciList = await _context.Miejscowosci.ToListAsync();
+            var miastaList = await _context.Miasta.ToListAsync();
 
-            return miejscowosciList
+            return miastaList
                 .GroupBy(m => m.GminaId)
                 .ToDictionary(
                     g => g.Key,
@@ -59,7 +59,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         }
 
         /// <summary>
-        /// Tworzy s³ownik ulic: MiejscowoscId -> Dictionary[Nazwa -> Ulica]
+        /// Tworzy s³ownik ulic: MiastoId -> Dictionary[Nazwa -> Ulica]
         /// Obs³uguje zarówno Nazwa1 jak i "Nazwa2 Nazwa1"
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, Ulica>>> BuildUliceDictionaryAsync()
@@ -69,12 +69,12 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
             foreach (var ulica in uliceAllList)
             {
-                if (!uliceDict.ContainsKey(ulica.MiejscowoscId))
+                if (!uliceDict.ContainsKey(ulica.MiastoId))
                 {
-                    uliceDict[ulica.MiejscowoscId] = new Dictionary<string, Ulica>(StringComparer.OrdinalIgnoreCase);
+                    uliceDict[ulica.MiastoId] = new Dictionary<string, Ulica>(StringComparer.OrdinalIgnoreCase);
                 }
 
-                var ulice = uliceDict[ulica.MiejscowoscId];
+                var ulice = uliceDict[ulica.MiastoId];
 
                 // Dodaj wpis dla Nazwa1
                 var nazwa1Lower = ulica.Nazwa1.ToLowerInvariant();

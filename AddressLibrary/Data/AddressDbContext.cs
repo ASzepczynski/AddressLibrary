@@ -21,13 +21,13 @@ namespace AddressLibrary.Data
 
         // S³owniki
         public DbSet<RodzajGminy> RodzajeGmin { get; set; }
-        public DbSet<RodzajMiejscowosci> RodzajeMiejscowosci { get; set; }
+        public DbSet<RodzajMiasta> RodzajeMiast { get; set; }
 
         // Tabele hierarchiczne
         public DbSet<Wojewodztwo> Wojewodztwa { get; set; }
         public DbSet<Powiat> Powiaty { get; set; }
         public DbSet<Gmina> Gminy { get; set; }
-        public DbSet<Miejscowosc> Miejscowosci { get; set; }
+        public DbSet<Miasto> Miasta { get; set; }
         public DbSet<Ulica> Ulice { get; set; }
         public DbSet<KodPocztowy> KodyPocztowe { get; set; }
 

@@ -33,7 +33,7 @@ namespace AddressLibrary.Services
             /// <summary>
             /// Nazwa miejscowoœci (opcjonalna, ale wymagana jeœli nie podano kodu)
             /// </summary>
-            public string? Miejscowosc { get; set; }
+            public string? Miasto { get; set; }
 
             /// <summary>
             /// Nazwa ulicy (opcjonalna)
@@ -62,13 +62,13 @@ namespace AddressLibrary.Services
             }
 
             // Walidacja - musi byæ podany kod lub miejscowoœæ
-            if (string.IsNullOrWhiteSpace(parameters.Kod) && string.IsNullOrWhiteSpace(parameters.Miejscowosc))
+            if (string.IsNullOrWhiteSpace(parameters.Kod) && string.IsNullOrWhiteSpace(parameters.Miasto))
             {
                 throw new ArgumentException("Nale¿y podaæ kod pocztowy lub nazwê miejscowoœci");
             }
 
             IQueryable<KodPocztowy> query = _context.KodyPocztowe
-                .Include(k => k.Miejscowosc)
+                .Include(k => k.Miasto)
                     .ThenInclude(m => m.Gmina)
                         .ThenInclude(g => g.Powiat)
                             .ThenInclude(p => p.Wojewodztwo)
@@ -85,12 +85,12 @@ namespace AddressLibrary.Services
             var results = await query.ToListAsync();
 
             // Filtruj po miejscowoœci (w pamiêci z normalizacj¹)
-            if (!string.IsNullOrWhiteSpace(parameters.Miejscowosc))
+            if (!string.IsNullOrWhiteSpace(parameters.Miasto))
             {
-                var miejscowoscNorm = NormalizeText(parameters.Miejscowosc);
+                var miastoNorm = NormalizeText(parameters.Miasto);
                 results = results
-                    .Where(k => k.Miejscowosc != null && 
-                               NormalizeText(k.Miejscowosc.Nazwa) == miejscowoscNorm)
+                    .Where(k => k.Miasto != null && 
+                               NormalizeText(k.Miasto.Nazwa) == miastoNorm)
                     .ToList();
             }
 
@@ -120,7 +120,7 @@ namespace AddressLibrary.Services
             return results.Select(k => new KodPocztowyZAdresem
             {
                 KodPocztowy = k,
-                Miejscowosc = k.Miejscowosc,
+                Miasto = k.Miasto,
                 Ulica = k.Ulica
             }).ToList();
         }
@@ -269,7 +269,7 @@ namespace AddressLibrary.Services
         /// <summary>
         /// Wyszukuje kody pocztowe pasuj¹ce do podanego adresu (stara metoda dla kompatybilnoœci)
         /// </summary>
-        public async Task<List<KodPocztowy>> SzukajKodowPocztowychAsync(int miejscowoscId, int ulicaId, string numerBudynku)
+        public async Task<List<KodPocztowy>> SzukajKodowPocztowychAsync(int miastoId, int ulicaId, string numerBudynku)
         {
             List<KodPocztowy> kandydaci;
 
@@ -277,14 +277,14 @@ namespace AddressLibrary.Services
             {
                 // Szukaj z ulic¹
                 kandydaci = await _context.KodyPocztowe
-                    .Where(k => k.MiejscowoscId == miejscowoscId && k.UlicaId == ulicaId)
+                    .Where(k => k.MiastoId == miastoId && k.UlicaId == ulicaId)
                     .ToListAsync();
             }
             else
             {
                 // ZMIENIONO: Szukaj z UlicaId == -1 zamiast null
                 kandydaci = await _context.KodyPocztowe
-                    .Where(k => k.MiejscowoscId == miejscowoscId && k.UlicaId == -1)
+                    .Where(k => k.MiastoId == miastoId && k.UlicaId == -1)
                     .ToListAsync();
             }
 
@@ -429,19 +429,19 @@ namespace AddressLibrary.Services
         /// <summary>
         /// Wyszukuje kody pocztowe z za³adowanymi relacjami
         /// </summary>
-        public async Task<List<KodPocztowyZAdresem>> SzukajKodowZAdresemAsync(int miejscowoscId, int ulicaId, string numerBudynku)
+        public async Task<List<KodPocztowyZAdresem>> SzukajKodowZAdresemAsync(int miastoId, int ulicaId, string numerBudynku)
         {
-            var kody = await SzukajKodowPocztowychAsync(miejscowoscId, ulicaId, numerBudynku);
+            var kody = await SzukajKodowPocztowychAsync(miastoId, ulicaId, numerBudynku);
 
             var wyniki = new List<KodPocztowyZAdresem>();
 
             foreach (var kod in kody)
             {
-                var miejscowosc = await _context.Miejscowosci
+                var miasto = await _context.Miasta
                     .Include(m => m.Gmina)
                         .ThenInclude(g => g.Powiat)
                             .ThenInclude(p => p.Wojewodztwo)
-                    .FirstOrDefaultAsync(m => m.Id == kod.MiejscowoscId);
+                    .FirstOrDefaultAsync(m => m.Id == kod.MiastoId);
 
                 Ulica? ulica = null;
                 if (kod.UlicaId.HasValue && kod.UlicaId.Value != -1)
@@ -452,7 +452,7 @@ namespace AddressLibrary.Services
                 wyniki.Add(new KodPocztowyZAdresem
                 {
                     KodPocztowy = kod,
-                    Miejscowosc = miejscowosc,
+                    Miasto = miasto,
                     Ulica = ulica
                 });
             }

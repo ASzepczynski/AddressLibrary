@@ -11,7 +11,7 @@ namespace AddressLibrary.Services.AddressSearch
     {
         Success,              // Znaleziono dok³adny adres
         MultipleMatches,      // Znaleziono wiele pasuj¹cych adresów
-        MiejscowoscNotFound,  // Nie znaleziono miejscowoœci
+        MiastoNotFound,  // Nie znaleziono miejscowoœci
         UlicaNotFound,        // Nie znaleziono ulicy
         KodPocztowyNotFound,  // Nie znaleziono kodu pocztowego
         ValidationError       // B³¹d walidacji danych wejœciowych
@@ -27,7 +27,7 @@ namespace AddressLibrary.Services.AddressSearch
 
         // Znalezione dane
         public KodPocztowy? KodPocztowy { get; set; }
-        public Miejscowosc? Miejscowosc { get; set; }
+        public Miasto? Miasto { get; set; }
         public Ulica? Ulica { get; set; }
 
         // Znormalizowane numery (z uwzglêdnieniem numerów wyci¹gniêtych z nazwy ulicy)
