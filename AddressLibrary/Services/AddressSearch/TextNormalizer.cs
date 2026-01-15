@@ -170,14 +170,41 @@ namespace AddressLibrary.Services.AddressSearch
         {
             extractedNumber = string.Empty;
 
+            // Znajdź ostatnie słowo - jeśli jest liczbą lub zaczyna się od liczby, wyciągnij je
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length > 1)
             {
                 var lastWord = words[^1];
-                if (lastWord.Length > 0 && char.IsDigit(lastWord[0]))
+                
+                // Sprawdź czy ostatnie słowo to liczba lub zawiera cyfry na początku
+                if (char.IsDigit(lastWord[0]) || lastWord.All(char.IsDigit))
                 {
+                    // WYJĄTEK: Nie usuwaj numerów z nazw jednostek wojskowych
+                    // np. "Dywizjonu 303", "Pułku 72", "Batalionu 101"
+                    if (words.Length >= 2)
+                    {
+                        var secondLastWord = words[^2].ToLowerInvariant();
+                        
+                        // Lista słów kluczowych jednostek wojskowych
+                        var militaryUnits = new[]
+                        {
+                            "dywizjonu", "dywizjon",
+                            "pulku", "pułku", "pułk", "pulk",
+                            "batalionu", "batalion",
+                            "regimentu", "regiment",
+                            "brygady",
+                            "kompanii"
+                        };
+
+                        if (militaryUnits.Contains(secondLastWord))
+                        {
+                            // Nie wyciągaj numeru - jest częścią nazwy ulicy
+                            return text;
+                        }
+                    }
+                    
                     extractedNumber = lastWord;
-                    return string.Join(" ", words.AsSpan(0, words.Length - 1).ToArray());
+                    return string.Join(" ", words.Take(words.Length - 1));
                 }
             }
 

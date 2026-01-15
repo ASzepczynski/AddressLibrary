@@ -21,7 +21,7 @@ namespace AddressLibrary.Services.AddressSearch
         public bool IsMatch(UlicaCached ulica, string normalizedSearchTerm)
         {
             // ✅ Dokładne dopasowania (equality only)
-            
+
             // Sprawdź główną nazwę
             if (ulica.NormalizedNazwa1 == normalizedSearchTerm)
                 return true;
@@ -50,7 +50,7 @@ namespace AddressLibrary.Services.AddressSearch
         {
             // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
             var normalized = _normalizer.Normalize(originalStreetName);
-            
+
             foreach (var ulica in ulice)
             {
                 if (IsMatch(ulica, normalized))
@@ -59,11 +59,11 @@ namespace AddressLibrary.Services.AddressSearch
 
             // ✅ KROK 2: Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
             var withoutInitial = _normalizer.RemoveNameInitial(originalStreetName);
-            
+
             if (withoutInitial != originalStreetName)
             {
                 var normalizedWithoutInitial = _normalizer.Normalize(withoutInitial);
-                
+
                 foreach (var ulica in ulice)
                 {
                     if (IsMatch(ulica, normalizedWithoutInitial))
@@ -103,12 +103,12 @@ namespace AddressLibrary.Services.AddressSearch
                     return ulica;
 
                 // 2. Sprawdź Combined (Nazwa2 + " " + Nazwa1)
-                if (!string.IsNullOrEmpty(ulica.NormalizedCombined) && 
+                if (!string.IsNullOrEmpty(ulica.NormalizedCombined) &&
                     ulica.NormalizedCombined == normalizedSearch)
                     return ulica;
 
                 // 3. Sprawdź CombinedReverse (Nazwa1 + " " + Nazwa2)
-                if (!string.IsNullOrEmpty(ulica.NormalizedCombinedReverse) && 
+                if (!string.IsNullOrEmpty(ulica.NormalizedCombinedReverse) &&
                     ulica.NormalizedCombinedReverse == normalizedSearch)
                     return ulica;
 
@@ -130,7 +130,7 @@ namespace AddressLibrary.Services.AddressSearch
         {
             // Wzorzec: "J.Lea", "j.lea", "J. Lea"
             var match = System.Text.RegularExpressions.Regex.Match(searchTerm, @"^([A-Za-z])\.?\s*(.+)$");
-            
+
             if (!match.Success)
                 return false;
 
@@ -145,18 +145,30 @@ namespace AddressLibrary.Services.AddressSearch
             // Sprawdź czy reszta pasuje do Nazwa1
             var restNormalized = _normalizer.Normalize(restOfName);
             var nazwa1Normalized = _normalizer.Normalize(nazwa1);
-            
+
             return restNormalized == nazwa1Normalized;
         }
 
         /// <summary>
-        /// Dopasowanie częściowe - sprawdza czy searchTerm jest CAŁYM SŁOWEM w nazwie ulicy
+        /// Dopasowanie częściowe - sprawdza czy searchTerm jest CAŁYM SŁOWEM lub OSTATNIM SŁOWEM w nazwie ulicy
+        /// Obsługuje nazwy patronów (np. "Łokietka" znajdzie "Władysława Łokietka")
         /// </summary>
         private bool IsPartialMatch(string normalizedStreetName, string searchTerm)
         {
             // Split tylko raz, bez dodatkowej normalizacji
             var words = normalizedStreetName.Split(new[] { ' ', '-', '.' }, StringSplitOptions.RemoveEmptyEntries);
-            return Array.IndexOf(words, searchTerm) >= 0;
+
+            // ✅ KROK 1: Sprawdź dokładne dopasowanie do któregokolwiek słowa
+            if (Array.IndexOf(words, searchTerm) >= 0)
+                return true;
+
+            // ✅ KROK 2: Sprawdź czy nazwa ulicy kończy się na " " + searchTerm (dla patronów)
+            // Przykład: "wladyslawa lokietka" kończy się na " lokietka" ✅
+            //          "lowiecka" NIE kończy się na " lokietka" ❌
+            if (normalizedStreetName.EndsWith(" " + searchTerm))
+                return true;
+
+            return false;
         }
 
         /// <summary>
@@ -168,14 +180,14 @@ namespace AddressLibrary.Services.AddressSearch
                 return null;
 
             var normalizedSearch = _normalizer.Normalize(searchTerm);
-            
+
             UlicaCached? bestMatch = null;
             int bestDistance = int.MaxValue;
 
             foreach (var ulica in ulice)
             {
                 int distance1 = LevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
-                
+
                 int distanceCombined = int.MaxValue;
                 if (!string.IsNullOrEmpty(ulica.NormalizedCombined))
                 {
@@ -201,10 +213,10 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 var referenceLength = Math.Max(normalizedSearch.Length, bestMatch.NormalizedNazwa1.Length);
                 var similarity = 1.0 - ((double)bestDistance / referenceLength);
-                
+
                 // 🔧 POPRAWKA: Wyższy próg dla krótkich słów
                 double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5; // 70% dla ≤5 znaków, 50% dla dłuższych
-                
+
                 if (bestDistance <= maxDistance && similarity >= minSimilarity)
                     return bestMatch;
             }
@@ -219,7 +231,7 @@ namespace AddressLibrary.Services.AddressSearch
         {
             if (string.IsNullOrEmpty(s))
                 return string.IsNullOrEmpty(t) ? 0 : t.Length;
-            
+
             if (string.IsNullOrEmpty(t))
                 return s.Length;
 
@@ -229,7 +241,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             for (int i = 0; i <= n; i++)
                 d[i, 0] = i;
-            
+
             for (int j = 0; j <= m; j++)
                 d[0, j] = j;
 
@@ -238,7 +250,7 @@ namespace AddressLibrary.Services.AddressSearch
                 for (int j = 1; j <= m; j++)
                 {
                     int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
-                    
+
                     d[i, j] = Math.Min(
                         Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
                         d[i - 1, j - 1] + cost);
