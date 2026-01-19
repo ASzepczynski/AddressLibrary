@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AddressLibrary.Services.AddressSearch
 {
     /// <summary>
-    /// Cache słowników dla szybkiego wyszukiwania adresów
+    /// Cache słowników dla szybkiego wyszukiwania adresów (z pre-znormalizowanymi danymi)
     /// </summary>
     public class AddressSearchCache
     {
@@ -17,10 +17,6 @@ namespace AddressLibrary.Services.AddressSearch
         private Dictionary<string, List<Miasto>>? _miastaDict;
         private Dictionary<int, List<UlicaCached>>? _uliceDict;
         private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweDict;
-        
-        // 🆕 Globalny indeks: znormalizowana nazwa ulicy -> lista miejscowości gdzie występuje
-        private Dictionary<string, List<(int MiastoId, string MiastoNazwa, string UlicaNazwa)>>? _globalStreetIndex;
-        
         private bool _isInitialized;
 
         public AddressSearchCache(AddressDbContext context, TextNormalizer normalizer)
@@ -42,11 +38,7 @@ namespace AddressLibrary.Services.AddressSearch
                 return;
             }
 
-            Console.WriteLine("[AddressSearchCache] Rozpoczynam inicjalizację cache...");
-            var totalStartTime = DateTime.Now;
-
-            // ===== MIEJSCOWOŚCI =====
-            var miastaStartTime = DateTime.Now;
+            // Załaduj wszystkie miasta z pełną hierarchią
             var miasta = await _context.Miasta
                 .Include(m => m.Gmina)
                     .ThenInclude(g => g.Powiat)
@@ -54,27 +46,20 @@ namespace AddressLibrary.Services.AddressSearch
                 .Include(m => m.Gmina.RodzajGminy)
                 .Where(m => m.Id != -1)
                 .ToListAsync();
-            var miastaTime = (DateTime.Now - miastaStartTime).TotalSeconds;
 
-            Console.WriteLine($"[AddressSearchCache] Załadowano {miasta.Count} miejscowości w {miastaTime:F2}s");
-
-            // Słownik: znormalizowana nazwa miejscowości -> lista miejscowości
+            // Słownik: znormalizowana nazwa miasta -> lista miast
             _miastaDict = miasta
                 .GroupBy(m => _normalizer.Normalize(m.Nazwa))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // ===== ULICE =====
-            var uliceStartTime = DateTime.Now;
+            // Załaduj wszystkie ulice i stwórz cached wersje
             var ulice = await _context.Ulice
                 .Include(u => u.Miasto)
                 .Where(u => u.Id != -1)
                 .ToListAsync();
-            var uliceLoadTime = (DateTime.Now - uliceStartTime).TotalSeconds;
 
-            Console.WriteLine($"[AddressSearchCache] Załadowano {ulice.Count} ulic w {uliceLoadTime:F2}s");
-            
-            var normalizeStartTime = DateTime.Now;
-            var cachedUlice = ulice.Select(u => new UlicaCached
+            // Konwertuj na UlicaCached z pre-znormalizowanymi nazwami
+            var uliceCached = ulice.Select(u => new UlicaCached
             {
                 Id = u.Id,
                 MiastoId = u.MiastoId,
@@ -82,76 +67,40 @@ namespace AddressLibrary.Services.AddressSearch
                 Nazwa1 = u.Nazwa1,
                 Nazwa2 = u.Nazwa2,
                 Miasto = u.Miasto,
+                
+                // Pre-znormalizowane nazwy
                 NormalizedNazwa1 = _normalizer.Normalize(u.Nazwa1),
                 NormalizedNazwa2 = string.IsNullOrEmpty(u.Nazwa2) ? null : _normalizer.Normalize(u.Nazwa2),
-                
-                // 🔧 POPRAWKA: Normalizuj BEZ cechy/tytułu
                 NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2) 
                     ? null 
-                    : _normalizer.Normalize($"{u.Nazwa2} {u.Nazwa1}"), // np. "plk francesco nullo"
-                
+                    : _normalizer.Normalize($"{u.Nazwa2} {u.Nazwa1}"),
                 NormalizedCombinedReverse = string.IsNullOrEmpty(u.Nazwa2)
                     ? null
-                    : _normalizer.Normalize($"{u.Nazwa1} {u.Nazwa2}") // np. "nullo plk francesco"
+                    : _normalizer.Normalize($"{u.Nazwa1} {u.Nazwa2}")
             }).ToList();
-            
-            var normalizeTime = (DateTime.Now - normalizeStartTime).TotalSeconds;
-            Console.WriteLine($"[AddressSearchCache] Znormalizowano nazwy ulic w {normalizeTime:F2}s");
 
-            _uliceDict = cachedUlice
+            // Słownik: miasto ID -> lista ulic (cached)
+            _uliceDict = uliceCached
                 .GroupBy(u => u.MiastoId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // 🆕 BUDUJ GLOBALNY INDEKS ULIC
-            var indexStartTime = DateTime.Now;
-            _globalStreetIndex = new Dictionary<string, List<(int, string, string)>>();
-            
-            foreach (var ulica in cachedUlice)
-            {
-                var miastoNazwa = ulica.Miasto?.Nazwa ?? "?";
-                var ulicaNazwa = $"{ulica.Cecha} {ulica.Nazwa1}";
-                
-                // Indeksuj po NormalizedNazwa1
-                if (!_globalStreetIndex.ContainsKey(ulica.NormalizedNazwa1))
-                    _globalStreetIndex[ulica.NormalizedNazwa1] = new List<(int, string, string)>();
-                _globalStreetIndex[ulica.NormalizedNazwa1].Add((ulica.MiastoId, miastoNazwa, ulicaNazwa));
-                
-                // Indeksuj po NormalizedNazwa2
-                if (ulica.NormalizedNazwa2 != null)
-                {
-                    if (!_globalStreetIndex.ContainsKey(ulica.NormalizedNazwa2))
-                        _globalStreetIndex[ulica.NormalizedNazwa2] = new List<(int, string, string)>();
-                    _globalStreetIndex[ulica.NormalizedNazwa2].Add((ulica.MiastoId, miastoNazwa, ulicaNazwa));
-                }
-            }
-            
-            var indexTime = (DateTime.Now - indexStartTime).TotalSeconds;
-            Console.WriteLine($"[AddressSearchCache] Zbudowano globalny indeks ulic ({_globalStreetIndex.Count} unikalnych nazw) w {indexTime:F2}s");
-
-            // ===== KODY POCZTOWE =====
-            var kodyStartTime = DateTime.Now;
+            // Załaduj wszystkie kody pocztowe
             var kodyPocztowe = await _context.KodyPocztowe
                 .Include(k => k.Miasto)
                 .Include(k => k.Ulica)
                 .Where(k => k.Id != -1)
                 .ToListAsync();
-            var kodyLoadTime = (DateTime.Now - kodyStartTime).TotalSeconds;
 
-            Console.WriteLine($"[AddressSearchCache] Załadowano {kodyPocztowe.Count} kodów pocztowych w {kodyLoadTime:F2}s");
-
-            // Słownik: miejscowość ID -> lista kodów pocztowych
+            // Słownik: miasto ID -> lista kodów pocztowych
             _kodyPocztoweDict = kodyPocztowe
                 .GroupBy(k => k.MiastoId)
                 .ToDictionary(g => g.Key, g => g.ToList());
-
-            var totalTime = (DateTime.Now - totalStartTime).TotalSeconds;
-            Console.WriteLine($"[AddressSearchCache] ✓ Cache zainicjowany w {totalTime:F2}s");
 
             _isInitialized = true;
         }
 
         /// <summary>
-        /// Znajduje miejscowości o podanej znormalizowanej nazwie
+        /// Znajduje miasta o podanej znormalizowanej nazwie
         /// </summary>
         public bool TryGetMiasta(string normalizedName, out List<Miasto> miasta)
         {
@@ -164,7 +113,7 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         /// <summary>
-        /// Znajduje ulice w podanej miejscowości (z cache'owanymi znormalizowanymi nazwami)
+        /// Znajduje ulice (cached) w podanym mieście
         /// </summary>
         public bool TryGetUlice(int miastoId, out List<UlicaCached> ulice)
         {
@@ -177,7 +126,7 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         /// <summary>
-        /// Znajduje kody pocztowe dla podanej miejscowości
+        /// Znajduje kody pocztowe dla podanego miasta
         /// </summary>
         public bool TryGetKodyPocztowe(int miastoId, out List<KodPocztowy> kody)
         {
@@ -190,41 +139,60 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         /// <summary>
-        /// 🆕 Znajduje wszystkie miejscowości w podanej gminie
+        /// 🆕 Zwraca oryginalną nazwę ulicy (z cechą, jeśli istnieje)
+        /// Używane do wyświetlania nieznormalizowanych nazw w komunikatach
         /// </summary>
-        public List<Miasto> GetMiastaInGmina(int gminaId)
+        public string GetOriginalStreetName(UlicaCached ulica)
         {
-            if (_miastaDict == null)
-                return new List<Miasto>();
-
-            // Przeszukaj wszystkie miejscowości i zwróć te z danej gminy
-            var result = new List<Miasto>();
-            foreach (var kvp in _miastaDict)
+            if (!string.IsNullOrEmpty(ulica.Cecha))
             {
-                foreach (var miasto in kvp.Value)
+                // Jeśli jest Nazwa2 (np. "Księcia" w "Księcia Józefa")
+                if (!string.IsNullOrEmpty(ulica.Nazwa2))
                 {
-                    if (miasto.GminaId == gminaId)
+                    return $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1}".Trim();
+                }
+                return $"{ulica.Cecha} {ulica.Nazwa1}".Trim();
+            }
+            
+            // Bez cechy
+            if (!string.IsNullOrEmpty(ulica.Nazwa2))
+            {
+                return $"{ulica.Nazwa2} {ulica.Nazwa1}".Trim();
+            }
+            
+            return ulica.Nazwa1;
+        }
+
+        /// <summary>
+        /// 🆕 Znajduje ulicę globalnie we WSZYSTKICH miastach (dla diagnostyki)
+        /// Zwraca listę lokalizacji, gdzie dana ulica istnieje
+        /// </summary>
+        public List<(string MiastoNazwa, string UlicaNazwa)> FindStreetGlobally(string normalizedStreetName)
+        {
+            var locations = new List<(string MiastoNazwa, string UlicaNazwa)>();
+
+            if (_uliceDict == null || string.IsNullOrWhiteSpace(normalizedStreetName))
+                return locations;
+
+            // Przeszukaj wszystkie miasta
+            foreach (var (miastoId, ulice) in _uliceDict)
+            {
+                foreach (var ulica in ulice)
+                {
+                    // Sprawdź czy którakolwiek znormalizowana nazwa pasuje
+                    if (ulica.NormalizedNazwa1 == normalizedStreetName ||
+                        ulica.NormalizedCombined == normalizedStreetName ||
+                        ulica.NormalizedCombinedReverse == normalizedStreetName)
                     {
-                        result.Add(miasto);
+                        var miastoNazwa = ulica.Miasto?.Nazwa ?? "?";
+                        var ulicaNazwa = GetOriginalStreetName(ulica);
+                        
+                        locations.Add((miastoNazwa, ulicaNazwa));
                     }
                 }
             }
-            
-            return result;
-        }
 
-        // 🆕 NOWA METODA: Znajdź miejscowości gdzie występuje ulica o podanej nazwie
-        public List<(int MiastoId, string MiastoNazwa, string UlicaNazwa)> FindStreetGlobally(string normalizedStreetName)
-        {
-            if (_globalStreetIndex == null)
-                return new List<(int, string, string)>();
-
-            if (_globalStreetIndex.TryGetValue(normalizedStreetName, out var locations))
-            {
-                return locations.Take(5).ToList(); // Max 5 przykładów
-            }
-
-            return new List<(int, string, string)>();
+            return locations.Distinct().Take(10).ToList(); // Maksymalnie 10 lokalizacji
         }
     }
 

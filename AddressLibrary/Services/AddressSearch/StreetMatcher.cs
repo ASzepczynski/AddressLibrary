@@ -19,23 +19,23 @@ namespace AddressLibrary.Services.AddressSearch
         /// <summary>
         /// 🚀 ZOPTYMALIZOWANA: Sprawdza czy ulica pasuje (używa pre-znormalizowanych nazw)
         /// Tylko dokładne dopasowanie (equality) - BEZ partial match
+        /// NIGDY nie porównuj z samą Nazwa2!
         /// </summary>
         public bool IsMatch(UlicaCached ulica, string normalizedSearchTerm)
         {
-            // ✅ Dokładne dopasowania (equality only)
-
-            // Sprawdź główną nazwę
+            // ✅ Sprawdź główną nazwę (Nazwa1) - TYLKO bez Nazwa2 lub z pełną kombinacją!
             if (ulica.NormalizedNazwa1 == normalizedSearchTerm)
                 return true;
 
-            // Sprawdź alternatywną nazwę
-            if (ulica.NormalizedNazwa2 != null && ulica.NormalizedNazwa2 == normalizedSearchTerm)
-                return true;
+            // ❌ USUNIĘTO: Sprawdzanie samej Nazwa2 (to było źródłem błędu!)
+            // if (ulica.NormalizedNazwa2 != null && ulica.NormalizedNazwa2 == normalizedSearchTerm)
+            //     return true;
 
-            // Sprawdź kombinacje
+            // ✅ Sprawdź kombinacje (Nazwa2 + " " + Nazwa1)
             if (ulica.NormalizedCombined != null && ulica.NormalizedCombined == normalizedSearchTerm)
                 return true;
 
+            // ✅ Sprawdź kombinacje odwrotne (Nazwa1 + " " + Nazwa2)
             if (ulica.NormalizedCombinedReverse != null && ulica.NormalizedCombinedReverse == normalizedSearchTerm)
                 return true;
 

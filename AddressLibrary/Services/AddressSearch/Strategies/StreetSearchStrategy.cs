@@ -73,34 +73,39 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 return HandleStreetNotFound(request, miasta, normalizedStreet, diagnostic);
             }
 
-            // 🆕 KROK 2: Jeśli jest WIĘCEJ NIŻ JEDNA ulica - zwróć błąd z listą
+            // 🆕 KROK 2: Jeśli jest WIĘCEJ NIŻ JEDNA ulica - pokaż WSZYSTKIE UNIKALNE nazwy
             if (matchingStreets.Count > 1)
             {
                 diagnostic?.Log($"⚠ Znaleziono {matchingStreets.Count} pasujących ulic - niejednoznaczność!");
-                
-                var streetNames = matchingStreets
-                    .Select(s => $"{s.street.Cecha} {s.street.Nazwa1}".Trim())
+
+                // 🆕 Zbierz UNIKALNE oryginalne nazwy ulic
+                var uniqueStreetNames = matchingStreets
+                    .Select(s => _cache.GetOriginalStreetName(s.street))
                     .Distinct()
                     .OrderBy(n => n)
                     .ToList();
 
-                var streetList = string.Join(", ", streetNames);
-                var message = $"Znaleziono wiele dopasowań ({matchingStreets.Count}): {streetList}";
+                diagnostic?.Log($"  Unikalne nazwy ulic ({uniqueStreetNames.Count}):");
+                foreach (var name in uniqueStreetNames)
+                {
+                    diagnostic?.Log($"    - {name}");
+                }
 
-                diagnostic?.Log($"  Lista ulic: {streetList}");
+                var streetList = string.Join(", ", uniqueStreetNames);
+                var message = $"Znaleziono wiele dopasowań ({uniqueStreetNames.Count}): {streetList}";
 
                 return new AddressSearchResult
                 {
                     Status = AddressSearchStatus.MultipleMatches,
                     Message = message,
-                    Miasto = matchingStreets.Count == 1 ? matchingStreets[0].miasto : null,
+                    Miasto = miasta.Count == 1 ? miasta[0] : null,
                     DiagnosticInfo = diagnostic?.GetLog()
                 };
             }
 
             // 🆕 KROK 3: Dokładnie jedna ulica - kontynuuj normalnie
             var (foundUlica, foundMiasto) = matchingStreets[0];
-            diagnostic?.Log($"✓ Znaleziono dokładnie jedną ulicę: {foundUlica.Cecha} {foundUlica.Nazwa1}");
+            diagnostic?.Log($"✓ Znaleziono dokładnie jedną ulicę: {_cache.GetOriginalStreetName(foundUlica)}");
 
             // Przekształć UlicaCached na Ulica
             var ulica = new Ulica
@@ -168,29 +173,17 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 {
                     diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
 
-                    // ✅ KROK 1: Szukaj DOKŁADNEGO dopasowania
-                    var exactMatch = _streetMatcher.FindStreetExact(ulice, request.Ulica);
-                    if (exactMatch != null)
-                    {
-                        diagnostic?.Log($"  ✓ Dokładne dopasowanie: {exactMatch.Cecha} {exactMatch.Nazwa1}");
-                        matchingStreets.Add((exactMatch, miasto));
-                    }
+                    // 🆕 ZMIANA: Użyj FindAllStreets() zamiast FindStreetExact()
+                    // To zwróci WSZYSTKIE pasujące ulice, nie tylko pierwszą
+                    var allMatches = _streetMatcher.FindAllStreets(ulice, request.Ulica);
 
-                    // ✅ KROK 2: Jeśli nie znaleziono dokładnego, szukaj PARTIAL (może być WIELE!)
-                    if (exactMatch == null)
+                    if (allMatches.Count > 0)
                     {
-                        diagnostic?.Log($"  ⚠️ Brak dokładnego dopasowania, szukam partial matching...");
-                        
-                        var partialMatches = _streetMatcher.FindAllStreets(ulice, request.Ulica);
-                        
-                        if (partialMatches.Count > 0)
+                        diagnostic?.Log($"  ✓ Znaleziono {allMatches.Count} pasujących ulic:");
+                        foreach (var match in allMatches)
                         {
-                            diagnostic?.Log($"  ✓ Znaleziono {partialMatches.Count} częściowych dopasowań:");
-                            foreach (var match in partialMatches)
-                            {
-                                diagnostic?.Log($"    - {match.Cecha} {match.Nazwa1}");
-                                matchingStreets.Add((match, miasto));
-                            }
+                            diagnostic?.Log($"    - ID:{match.Id} {_cache.GetOriginalStreetName(match)}");
+                            matchingStreets.Add((match, miasto));
                         }
                     }
                 }
@@ -320,7 +313,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (!string.IsNullOrEmpty(numberOnly))
                 {
                     diagnostic?.Log($"Retry bez literki: '{numberOnly}'");
-                    
+
                     if (_cache.TryGetKodyPocztowe(ulicaId, out var allKody))
                     {
                         var byStreet = _filters.FilterByStreet(allKody, ulicaId);

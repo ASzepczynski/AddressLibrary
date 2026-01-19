@@ -68,7 +68,7 @@ namespace AddressLibrary.Services.AddressSearch
                 };
             }
 
-            // 🆕 WIELE DOPASOWAŃ: Pokaż kody pocztowe + nazwy ulic
+            // 🆕 WIELE DOPASOWAŃ: Pokaż kody pocztowe + ORYGINALNE nazwy ulic
             diagnostic?.Log($"⚠ Znaleziono wiele dopasowań: {kodyPocztowe.Count}");
             
             // Pobierz ulice z cache
@@ -81,7 +81,7 @@ namespace AddressLibrary.Services.AddressSearch
                 diagnostic?.Log($"✓ Pobrano {cachedUlice.Count} ulic z cache dla miasta {miasto.Nazwa}");
             }
 
-            // Zbierz informacje o kodach pocztowych
+            // Zbierz informacje o kodach pocztowych z ORYGINALNYMI nazwami ulic
             var postalCodeInfoList = new List<string>();
             var processedCodes = new HashSet<string>(); // Zapobiegamy duplikatom kodów
 
@@ -99,9 +99,8 @@ namespace AddressLibrary.Services.AddressSearch
                         var street = cachedUlice.FirstOrDefault(u => u.Id == kod.UlicaId.Value);
                         if (street != null)
                         {
-                            var streetName = !string.IsNullOrEmpty(street.Cecha)
-                                ? $"{street.Cecha} {street.Nazwa1}".Trim()
-                                : street.Nazwa1;
+                            // 🆕 Użyj oryginalnej nazwy z cache (nieznormalizowanej)
+                            var streetName = _cache.GetOriginalStreetName(street);
                             codeInfo = $"{kod.Kod} ({streetName})";
                             diagnostic?.Log($"    ✓ {codeInfo}");
                         }
