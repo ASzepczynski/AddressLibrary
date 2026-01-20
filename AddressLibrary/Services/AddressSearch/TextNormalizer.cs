@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using AddressLibrary.Helpers;
+using Microsoft.IdentityModel.Tokens;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -27,6 +28,18 @@ namespace AddressLibrary.Services.AddressSearch
             "szosa",
             "ścieżka",
             "pasaż", "pasażu"
+        };
+
+        // ✅ NOWE: Skróty nazw miast które NIE MOGĄ BYĆ USUWANE!
+        private static readonly string[] CityAbbreviations = new[]
+        {
+            "św.", "św", "sw.", "sw",     // Święty/Świętokrzyski
+            "wlk.", "wlk",                 // Wielki/Wielka
+            "maz.", "maz",                 // Mazowiecki
+            "śl.", "śl", "sl.", "sl",     // Śląski
+            "podh.", "podh",               // Podhalański
+            "górn.", "górn", "gorn.", "gorn", // Górny
+            "doln.", "doln"                // Dolny
         };
 
         // 🚀 OPTYMALIZACJA: Skompilowane regex (tylko raz!)
@@ -60,119 +73,56 @@ namespace AddressLibrary.Services.AddressSearch
 
             var normalized = RemoveDiacritics(text.Trim());
             normalized = normalized.ToLowerInvariant();
-            
-            // 🚀 OPTYMALIZACJA: Jeden regex zamiast pętli
-            normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2");
-            normalized = RemoveDotsRegex.Replace(normalized, "$1");
-            
-            // 🆕 USUŃ "-go " z nazw ulic (np. "3-go Maja" -> "3 Maja")
-            normalized = RemoveGoSuffixRegex.Replace(normalized, "$1 ");
-            
-            normalized = normalized.Replace('-', ' ');
-            
-            normalized = RemoveStreetPrefixes(normalized);
+            normalized = RemoveStreetPrefixes(normalized); // ← TU JEST WYWOŁYWANE
             normalized = RemoveTrailingNumbers(normalized, out _);
-            
-            // 🆕 USUŃ TYTUŁY WOJSKOWE/RELIGIJNE/NAUKOWE
-            normalized = RemoveTitles(normalized);
-            
-            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
 
             return normalized;
         }
 
-        public (string NormalizedStreet, string ExtractedNumber) NormalizeStreetWithNumber(string text)
+        private string RemoveStreetPrefixes(string text)
         {
-            if (string.IsNullOrWhiteSpace(text))
-                return (string.Empty, string.Empty);
-
-            var normalized = RemoveDiacritics(text.Trim());
-            normalized = normalized.ToLowerInvariant();
-            
-            normalized = TitleAbbreviationsRegex.Replace(normalized, "$1. $2");
-            normalized = RemoveDotsRegex.Replace(normalized, "$1");
-            
-            // 🆕 USUŃ "-go " z nazw ulic
-            normalized = RemoveGoSuffixRegex.Replace(normalized, "$1 ");
-            
-            normalized = normalized.Replace('-', ' ');
-            
-            normalized = RemoveStreetPrefixes(normalized);
-            normalized = RemoveTrailingNumbers(normalized, out string extractedNumber);
-            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
-
-            return (normalized, extractedNumber);
-        }
-
-        public string RemoveNameInitial(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            var match = Regex.Match(text, @"^[A-ZĄĆĘŁŃÓŚŹŻ]\.\s?(.+)$");
-
-            if (match.Success)
+            // ✅ WALIDACJA: Sprawdź czy ostatnie słowo to skrót nazwy miasta
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 1)
             {
-                return match.Groups[1].Value;
-            }
-
-            return text;
-        }
-
-        public string NormalizePostalCode(string kod)
-        {
-            if (string.IsNullOrWhiteSpace(kod))
-            {
-                return string.Empty;
-            }
-
-            var cyfry = new string(kod.Where(char.IsDigit).ToArray());
-
-            if (cyfry.Length != 5)
-            {
-                return kod;
-            }
-
-            return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
-        }
-
-        private string RemoveDiacritics(string text)
-        {
-            // ✅ Użyj scentralizowanej metody dla polskich znaków
-            text = PolishCharacterHelper.RemovePolishDiacritics(text);
-    
-            // Potem usuń pozostałe znaki diakrytyczne (akcenty międzynarodowe)
-            var normalizedString = text.Normalize(NormalizationForm.FormD);
-            var stringBuilder = new StringBuilder(text.Length);
-
-            foreach (var c in normalizedString)
-            {
-                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                var lastWord = words[^1];
+                
+                // Sprawdź czy to skrót miasta (z kropką lub bez)
+                foreach (var cityAbbr in CityAbbreviations)
                 {
-                    stringBuilder.Append(c);
+                    if (lastWord.Equals(cityAbbr, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // To jest skrót miasta - ZATRZYMAJ usuwanie prefixów!
+                        // Nie usuwaj NICZEGO, zwróć oryginalny tekst
+                        return text;
+                    }
                 }
             }
 
-            return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        }
+            // Usuń przedrostki ulic (istniejący kod bez zmian)
+            var sortedPrefixes = StreetPrefixes.OrderByDescending(p => p.Length);
 
-        private string RemoveStreetPrefixes(string text)
-        {
-            foreach (var prefix in StreetPrefixes)
+            foreach (var prefix in sortedPrefixes)
             {
-                if (text.StartsWith(prefix + " "))
+                if (text.StartsWith(prefix + " ", StringComparison.OrdinalIgnoreCase))
+                {
                     return text.Substring(prefix.Length + 1).Trim();
+                }
 
-                if (prefix.EndsWith(".") && text.StartsWith(prefix))
+                if (prefix.EndsWith(".") && text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
                     var afterPrefix = text.Substring(prefix.Length);
                     if (afterPrefix.Length > 0 && char.IsLetter(afterPrefix[0]))
+                    {
                         return afterPrefix.Trim();
+                    }
                 }
 
                 if (text.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+                {
                     return string.Empty;
+                }
             }
 
             return text;
@@ -268,5 +218,85 @@ namespace AddressLibrary.Services.AddressSearch
             
             return string.Join(" ", filtered);
         }
+
+        /// <summary>
+        /// Normalizuje nazwę ulicy i wyciąga z niej numer (jeśli występuje)
+        /// </summary>
+        public (string NormalizedStreet, string ExtractedNumber) NormalizeStreetWithNumber(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return (string.Empty, string.Empty);
+
+            var normalized = RemoveDiacritics(text.Trim());
+            normalized = normalized.ToLowerInvariant();
+            normalized = RemoveStreetPrefixes(normalized);
+            
+            // Usuń numery i zwróć je
+            normalized = RemoveTrailingNumbers(normalized, out string extractedNumber);
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
+
+            return (normalized, extractedNumber);
+        }
+
+        /// <summary>
+        /// Normalizuje kod pocztowy do formatu XX-XXX
+        /// </summary>
+        public string NormalizePostalCode(string kod)
+        {
+            if (string.IsNullOrWhiteSpace(kod))
+            {
+                return string.Empty;
+            }
+
+            var cyfry = new string(kod.Where(char.IsDigit).ToArray());
+
+            if (cyfry.Length != 5)
+            {
+                return kod;
+            }
+
+            return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
+        }
+
+        /// <summary>
+        /// ✅ DODAJ TĘ METODĘ:
+        /// Usuwa inicjały imion z nazw ulic (np. "G. Zapolskiej" -> "Zapolskiej")
+        /// </summary>
+        public string RemoveNameInitial(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            // Wzorzec: 1-3 litery + kropka + spacja (lub 1-3 litery + spacja)
+            // Przykłady: "G. ", "Gen. ", "J.K. ", "dr ", "prof. "
+            var pattern = @"^(?:[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]{1,3}\.?\s+)+";
+            
+            var result = System.Text.RegularExpressions.Regex.Replace(
+                text, 
+                pattern, 
+                string.Empty, 
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return result.Trim();
+        }
+
+        private string RemoveDiacritics(string text)
+        {
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            var stringBuilder = new StringBuilder();
+
+            foreach (var c in normalizedString)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+
+            return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        // ... reszta kodu
     }
 }

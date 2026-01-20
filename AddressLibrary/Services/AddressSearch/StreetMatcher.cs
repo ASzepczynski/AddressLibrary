@@ -23,20 +23,22 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public bool IsMatch(UlicaCached ulica, string normalizedSearchTerm)
         {
-            // ✅ Sprawdź główną nazwę (Nazwa1) - TYLKO bez Nazwa2 lub z pełną kombinacją!
+            // ✅ Sprawdź dokładne dopasowanie głównej nazwy
             if (ulica.NormalizedNazwa1 == normalizedSearchTerm)
                 return true;
 
-            // ❌ USUNIĘTO: Sprawdzanie samej Nazwa2 (to było źródłem błędu!)
-            // if (ulica.NormalizedNazwa2 != null && ulica.NormalizedNazwa2 == normalizedSearchTerm)
-            //     return true;
-
-            // ✅ Sprawdź kombinacje (Nazwa2 + " " + Nazwa1)
+            // ✅ Sprawdź dokładne dopasowanie kombinacji
             if (ulica.NormalizedCombined != null && ulica.NormalizedCombined == normalizedSearchTerm)
                 return true;
 
-            // ✅ Sprawdź kombinacje odwrotne (Nazwa1 + " " + Nazwa2)
-            if (ulica.NormalizedCombinedReverse != null && ulica.NormalizedCombinedReverse == normalizedSearchTerm)
+            // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedNazwa1)
+            // Obsługuje przypadki: "Axentowicza" → "teodora axentowicza"
+            if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedSearchTerm))
+                return true;
+
+            // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedCombined)
+            if (ulica.NormalizedCombined != null && 
+                ulica.NormalizedCombined.EndsWith(" " + normalizedSearchTerm))
                 return true;
 
             return false;
@@ -74,14 +76,16 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // ⚠️ KROK 3: Dopasowanie częściowe (TYLKO gdy nie znaleziono dokładnego)
-            // Chroni przed false positive: "Powstańców" nie znajdzie "Powstańców Śląskich"
             foreach (var ulica in ulice)
             {
+                // ✅ Sprawdź Nazwa1
                 if (IsPartialMatch(ulica.NormalizedNazwa1, normalized))
                     return ulica;
 
-                if (ulica.NormalizedNazwa2 != null && IsPartialMatch(ulica.NormalizedNazwa2, normalized))
+                // ✅ Sprawdź pełne kombinacje (NormalizedCombined i NormalizedCombinedReverse)
+                if (ulica.NormalizedCombined != null && IsPartialMatch(ulica.NormalizedCombined, normalized))
                     return ulica;
+
             }
 
             return null;
@@ -127,8 +131,14 @@ namespace AddressLibrary.Services.AddressSearch
             // ⚠️ KROK 3: Dopasowanie częściowe (TYLKO gdy nie znaleziono dokładnego)
             foreach (var ulica in ulice)
             {
-                if (IsPartialMatch(ulica.NormalizedNazwa1, normalized) ||
-                    (ulica.NormalizedNazwa2 != null && IsPartialMatch(ulica.NormalizedNazwa2, normalized)))
+                // ✅ Sprawdź Nazwa1
+                bool matchesNazwa1 = IsPartialMatch(ulica.NormalizedNazwa1, normalized);
+
+                // ✅ Sprawdź pełne kombinacje
+                bool matchesCombined = ulica.NormalizedCombined != null &&
+                                      IsPartialMatch(ulica.NormalizedCombined, normalized);
+
+                              if (matchesNazwa1 || matchesCombined )
                 {
                     results.Add(ulica);
                 }
@@ -141,64 +151,25 @@ namespace AddressLibrary.Services.AddressSearch
         /// 🆕 Znajduje ulicę TYLKO metodą dokładnego dopasowania (bez partial match)
         /// Używane gdy priorytetem jest precyzja (np. "Powstańców" nie może znaleźć "Powstańców Śląskich")
         /// </summary>
-        public UlicaCached? FindStreetExact(List<UlicaCached> ulice, string searchTerm)
+        public UlicaCached? FindStreetExact(List<UlicaCached> ulice, string searchName)
         {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return null;
-
-            var normalizedSearch = _normalizer.Normalize(searchTerm);
+            var normalizedSearch = _normalizer.Normalize(searchName);
 
             foreach (var ulica in ulice)
             {
-                // 1. Sprawdź Nazwa1 (główna nazwa ulicy)
-                if (ulica.NormalizedNazwa1 == normalizedSearch)
-                    return ulica;
+                // ✅ Sprawdź TYLKO:
+                // 1. Nazwa1
+                // 2. Nazwa2 + Nazwa1 (NormalizedCombined)
+                // 3. Nazwa1 + Nazwa2 (NormalizedCombinedReverse)
 
-                // 2. Sprawdź Combined (Nazwa2 + " " + Nazwa1)
-                if (!string.IsNullOrEmpty(ulica.NormalizedCombined) &&
-                    ulica.NormalizedCombined == normalizedSearch)
-                    return ulica;
-
-                // 3. Sprawdź CombinedReverse (Nazwa1 + " " + Nazwa2)
-                if (!string.IsNullOrEmpty(ulica.NormalizedCombinedReverse) &&
-                    ulica.NormalizedCombinedReverse == normalizedSearch)
-                    return ulica;
-
-                // 🆕 4. Sprawdź inicjał z Nazwa2 (np. "j lea" pasuje do Nazwa2="juliusza" + Nazwa1="lea")
-                if (!string.IsNullOrEmpty(ulica.Nazwa2))
+                if (ulica.NormalizedNazwa1 == normalizedSearch ||
+                    ulica.NormalizedCombined == normalizedSearch )
                 {
-                    if (MatchesInitial(searchTerm, ulica.Nazwa2, ulica.Nazwa1))
-                        return ulica;
+                    return ulica;
                 }
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Sprawdza czy searchTerm zawiera inicjał (np. "J.Lea" pasuje do "Juliusza Lea")
-        /// </summary>
-        private bool MatchesInitial(string searchTerm, string nazwa2, string nazwa1)
-        {
-            // Wzorzec: "J.Lea", "j.lea", "J. Lea"
-            var match = System.Text.RegularExpressions.Regex.Match(searchTerm, @"^([A-Za-z])\.?\s*(.+)$");
-
-            if (!match.Success)
-                return false;
-
-            var initial = match.Groups[1].Value.ToLowerInvariant();
-            var restOfName = match.Groups[2].Value;
-
-            // Sprawdź czy inicjał pasuje do pierwszej litery Nazwa2
-            var nazwa2Normalized = _normalizer.Normalize(nazwa2);
-            if (!nazwa2Normalized.StartsWith(initial))
-                return false;
-
-            // Sprawdź czy reszta pasuje do Nazwa1
-            var restNormalized = _normalizer.Normalize(restOfName);
-            var nazwa1Normalized = _normalizer.Normalize(nazwa1);
-
-            return restNormalized == nazwa1Normalized;
         }
 
         /// <summary>
@@ -246,13 +217,7 @@ namespace AddressLibrary.Services.AddressSearch
                     distanceCombined = LevenshteinDistance(normalizedSearch, ulica.NormalizedCombined);
                 }
 
-                int distanceReverse = int.MaxValue;
-                if (!string.IsNullOrEmpty(ulica.NormalizedCombinedReverse))
-                {
-                    distanceReverse = LevenshteinDistance(normalizedSearch, ulica.NormalizedCombinedReverse);
-                }
-
-                int minDistance = Math.Min(distance1, Math.Min(distanceCombined, distanceReverse));
+                int minDistance = Math.Min(distance1, distanceCombined);
 
                 if (minDistance < bestDistance)
                 {
@@ -267,7 +232,7 @@ namespace AddressLibrary.Services.AddressSearch
                 var similarity = 1.0 - ((double)bestDistance / referenceLength);
 
                 // 🔧 POPRAWKA: Wyższy próg dla krótkich słów
-                double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5; // 70% dla ≤5 znaków, 50% dla dłuższych
+                double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5;
 
                 if (bestDistance <= maxDistance && similarity >= minSimilarity)
                     return bestMatch;

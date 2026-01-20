@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
+ï»¿// Copyright (c) 2025-2026 Andrzej SzepczyÅ„ski. All rights reserved.
 
 using AddressLibrary.Models;
 
@@ -9,12 +9,13 @@ namespace AddressLibrary.Services.AddressSearch
     /// </summary>
     public enum AddressSearchStatus
     {
-        Success,              // Znaleziono dok³adny adres
-        MultipleMatches,      // Znaleziono wiele pasuj¹cych adresów
-        MiastoNotFound,  // Nie znaleziono miejscowoœci
+        Success,              // Znaleziono dokÅ‚adny adres
+        MultipleMatches,      // Znaleziono wiele pasujÄ…cych adresÃ³w
+        MiastoNotFound,       // Nie znaleziono miejscowoÅ›ci
         UlicaNotFound,        // Nie znaleziono ulicy
+        InvalidStreetName,    // âœ… NOWE: BÅ‚Ä™dna nazwa ulicy (nie istnieje w caÅ‚ej bazie TERYT)
         KodPocztowyNotFound,  // Nie znaleziono kodu pocztowego
-        ValidationError       // B³¹d walidacji danych wejœciowych
+        ValidationError       // BÅ‚Ä…d walidacji danych wejÅ›ciowych
     }
 
     /// <summary>
@@ -30,11 +31,11 @@ namespace AddressLibrary.Services.AddressSearch
         public Miasto? Miasto { get; set; }
         public Ulica? Ulica { get; set; }
 
-        // Znormalizowane numery (z uwzglêdnieniem numerów wyci¹gniêtych z nazwy ulicy)
+        // Znormalizowane numery (z uwzglÄ™dnieniem numerÃ³w wyciÄ…gniÄ™tych z nazwy ulicy)
         public string? NormalizedBuildingNumber { get; set; }
         public string? NormalizedApartmentNumber { get; set; }
 
-        // W przypadku wielu dopasowañ
+        // W przypadku wielu dopasowaÅ„
         public List<KodPocztowy>? AlternativeMatches { get; set; }
 
         // Informacje diagnostyczne
