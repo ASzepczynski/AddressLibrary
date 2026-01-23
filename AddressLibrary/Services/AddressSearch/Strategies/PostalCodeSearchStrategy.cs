@@ -117,7 +117,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                         Status = AddressSearchStatus.UlicaNotFound,
                         Message = AddressSearchStatusInfo.GetMessage(
                             AddressSearchStatus.UlicaNotFound,
-                            $"{request.Ulica} w miejscowości {request.Miasto}"),
+                            $"'{request.Ulica}' w miejscowości '{request.Miasto}'"),
                         DiagnosticInfo = diagnostic?.GetLog()
                     };
                 }

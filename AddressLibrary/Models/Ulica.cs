@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
@@ -23,13 +23,17 @@ namespace AddressLibrary.Models
         [MaxLength(200)]
         public string? Nazwa2 { get; set; }
 
-        // Klucz obcy do miejscowo�ci
+        // ✅ DODANO: Pole dzielnica
+        [MaxLength(200)]
+        public string? Dzielnica { get; set; }
+
+        // Klucz obcy do miejscowości
         [Required]
         [ForeignKey(nameof(Miasto))]
         public int MiastoId { get; set; }
         public Miasto Miasto { get; set; } = null!;
 
-        // Relacja 1:N - jedna ulica ma wiele kod�w pocztowych
+        // Relacja 1:N - jedna ulica ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
     }
 }

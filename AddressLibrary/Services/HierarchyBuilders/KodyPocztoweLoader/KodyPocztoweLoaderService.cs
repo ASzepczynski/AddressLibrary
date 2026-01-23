@@ -35,7 +35,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             progress?.Report(progressInfo);
 
             _logger.LogError("=== Rozpoczęcie czyszczenia tabeli KodyPocztowe ===");
-            
+
             try
             {
                 // Usuń wszystkie rekordy z tabeli KodyPocztowe
@@ -77,7 +77,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             {
                 try
                 {
-                    // 1. Znajdź miejscowość
+                    // 1. Znajdź miasto
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
                     var miasto = matchResult.miasto;
                     var gmina = matchResult.gmina;
@@ -99,15 +99,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                         }
                         else if (isMultipleGmin)
                         {
-                            // Sytuacja 2: Znaleziono wiele gmin o tej nazwie, ale miejscowość nie jest w żadnej
+                            // Sytuacja 2: Znaleziono wiele gmin o tej nazwie, ale miasto nie jest w żadnej
                             var gminyLista = string.Join(", ", gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()]
                                 .Select(g => g.RodzajGminy.Nazwa));
-                            _logger.LogError($"Nie znaleziono miejscowości: '{miastoNazwa}' w żadnej z {gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()].Count} gmin o nazwie '{gminaNazwa}' ({gminyLista}) dla kodu {pna.Kod}");
+                            _logger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w żadnej z {gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()].Count} gmin o nazwie '{gminaNazwa}' ({gminyLista}) dla kodu {pna.Kod}");
                         }
                         else
                         {
-                            // Sytuacja 3: Znaleziono gminę, ale miejscowość nie jest w tej gminie
-                            _logger.LogError($"Nie znaleziono miejscowości: '{miastoNazwa}' w gminie '{gminaNazwa}' ({gmina.RodzajGminy.Nazwa}) dla kodu {pna.Kod}");
+                            // Sytuacja 3: Znaleziono gminę, ale miasto nie jest w tej gminie
+                            _logger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w gminie '{gminaNazwa}' ({gmina.RodzajGminy.Nazwa}) dla kodu {pna.Kod}");
                         }
 
                         stats.ErrorCount++;

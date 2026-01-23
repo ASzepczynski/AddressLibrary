@@ -4,6 +4,7 @@ using AddressLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    partial class AddressDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260121135829_dodano dzielnicę do ulic")]
+    partial class dodanodzielnicędoulic
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -467,9 +470,8 @@ namespace AddressLibrary.Migrations
 
                     b.HasIndex("Nazwa1");
 
-                    b.HasIndex("Symbol", "MiastoId", "Dzielnica")
-                        .IsUnique()
-                        .HasFilter("[Dzielnica] IS NOT NULL");
+                    b.HasIndex("Symbol", "MiastoId")
+                        .IsUnique();
 
                     b.ToTable("Ulice");
                 });

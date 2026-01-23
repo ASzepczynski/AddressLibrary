@@ -14,7 +14,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         {
             _context = context;
             _appDataPath = appDataPath;
-            
+
             var logsDir = Path.Combine(appDataPath ?? AppDomain.CurrentDomain.BaseDirectory, "AppData", "Logs");
             Directory.CreateDirectory(logsDir);
             _controlLogPath = Path.Combine(logsDir, "Control.txt");
@@ -22,11 +22,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
         public async Task LoadAsync(
             List<TerytUlic> ulicData,
-            Dictionary<string, Miasto> miastaDict)
+            Dictionary<string, Miasto> miastoDict)
         {
             await LogControl("=== Rozpoczynam ładowanie ulic ===\n");
             await LogControl($"Liczba ulic do przetworzenia: {ulicData.Count}");
-            await LogControl($"Liczba miejscowości w słowniku: {miastaDict.Count}");
+            await LogControl($"Liczba miejscowości w słowniku: {miastoDict.Count}");
 
             int przetworzono = 0;
             int brakujacych = 0;
@@ -48,8 +48,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
             // POPRAWKA: Filtruj gminy w miastach na prawach powiatu
             // Powiat.Kod jest teraz 4-cyfrowy (np. "2261"), więc sprawdzamy końcówkę
             var gminyWMiastachNaPrawachPowiatu = gminyAll
-                .Where(g => g.Powiat.Kod.EndsWith("61") || g.Powiat.Kod.EndsWith("62") || 
-                           g.Powiat.Kod.EndsWith("63") || g.Powiat.Kod.EndsWith("64") || 
+                .Where(g => g.Powiat.Kod.EndsWith("61") || g.Powiat.Kod.EndsWith("62") ||
+                           g.Powiat.Kod.EndsWith("63") || g.Powiat.Kod.EndsWith("64") ||
                            g.Powiat.Kod.EndsWith("65"))
                 .ToList();
 
@@ -59,8 +59,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
             {
                 // Klucz to pełny 4-cyfrowy kod powiatu (już jest w gmina.Powiat.Kod)
                 var kodPowiatu = gmina.Powiat.Kod; // np. "2261"
-                var miasto = miastaDict.Values.FirstOrDefault(m => m.GminaId == gmina.Id);
-                
+                var miasto = miastoDict.Values.FirstOrDefault(m => m.GminaId == gmina.Id);
+
                 if (miasto != null)
                 {
                     if (!miastaNaPrawachPowiatuDict.ContainsKey(kodPowiatu))
@@ -71,28 +71,43 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 }
                 else
                 {
-                    await LogControl($"⚠️ UWAGA: Nie znaleziono miejscowości dla gminy {gmina.Nazwa} (GminaId={gmina.Id})");
+                    await LogControl($"⚠️ UWAGA: Nie znaleziono miasta dla gminy {gmina.Nazwa} (GminaId={gmina.Id})");
                 }
             }
 
             await LogControl($"Mapowanie miast na prawach powiatu zawiera {miastaNaPrawachPowiatuDict.Count} wpisów");
-            
+
             // Wyświetl wszystkie wpisy
             foreach (var kvp in miastaNaPrawachPowiatuDict)
             {
                 await LogControl($"  [{kvp.Key}] => {kvp.Value.Nazwa} (MiastoId={kvp.Value.Id})");
             }
-            
+
             await LogControl("Przetwarzam ulice...");
 
             // Lista wszystkich ulic do wstawienia
             var allUlice = new List<Ulica>(ulicData.Count);
 
-            // Diagnostyka dla Gdańska
-            int gdanskUliceCount = 0;
-
             // Główna pętla - tylko przygotowanie danych
-            foreach (var ulic in ulicData)
+
+            var wojDict = _context.Wojewodztwa.AsNoTracking().ToDictionary(x => x.Kod);
+
+            var powDict = _context.Powiaty.AsNoTracking().ToDictionary(x => x.Kod);
+
+            var gmiDict = _context.TerytTerc.AsNoTracking().ToDictionary(x => (x.Wojewodztwo, x.Powiat, x.Gmina, x.RodzajGminy));
+
+            var miaDict = _context.TerytSimc.AsNoTracking().ToDictionary(x => x.Symbol);
+
+            var resultList = ulicData.Select(u => new
+            {
+                Ulica = u,
+                WojewodztwoNazwa = wojDict.GetValueOrDefault(u.Wojewodztwo)?.Nazwa,
+                PowiatNazwa = powDict.GetValueOrDefault(u.Wojewodztwo + u.Powiat)?.Nazwa,
+                GminaNazwa = gmiDict.GetValueOrDefault((u.Wojewodztwo, u.Powiat, u.Gmina, u.RodzajGminy))?.Nazwa,
+                Miasto = miaDict.GetValueOrDefault(u.Symbol)
+            }).ToList();
+
+            foreach (var ulic in resultList)
             {
                 przetworzono++;
 
@@ -102,9 +117,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 }
 
                 // POPRAWKA: Buduj 4-cyfrowy kod powiatu
-                var kodPowiatu = ulic.Wojewodztwo + ulic.Powiat; // np. "2261"
-                var powiatCode = ulic.Powiat; // 2 cyfry, np. "61"
-                var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" || 
+                var kodPowiatu = ulic.Ulica.Wojewodztwo + ulic.Ulica.Powiat; // np. "2261"
+                var powiatCode = ulic.Ulica.Powiat; // 2 cyfry, np. "61"
+                var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" ||
                                             powiatCode == "63" || powiatCode == "64" || powiatCode == "65";
 
                 Miasto? miasto = null;
@@ -115,23 +130,13 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     {
                         miasto = miastaNaPrawachPowiatuDict[kodPowiatu];
                         cityWithRightsProcessed++;
-
-                        // Diagnostyka dla Gdańska (22 = Pomorskie, 61 = Gdańsk)
-                        if (kodPowiatu == "2261")
-                        {
-                            gdanskUliceCount++;
-                            if (gdanskUliceCount <= 5)
-                            {
-                                await LogControl($"  Gdańsk: ulica {ulic.Nazwa1} => MiastoId={miasto.Id}");
-                            }
-                        }
                     }
                     else
                     {
                         // Loguj pierwsze nieznalezione miasta
                         if (brakujacych < 10)
                         {
-                            await LogControl($"⚠️ Brak mapowania dla miasta na prawach powiatu: kod powiatu={kodPowiatu}, ulica={ulic.Nazwa1}");
+                            await LogControl($"⚠️ Brak mapowania dla miasta na prawach powiatu: kod powiatu={kodPowiatu}, ulica={ulic.Ulica.Nazwa1}");
                         }
                         brakujacych++;
                         continue;
@@ -139,9 +144,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 }
                 else
                 {
-                    if (miastaDict.ContainsKey(ulic.Symbol))
+                    if (miastoDict.ContainsKey(ulic.Ulica.Symbol))
                     {
-                        miasto = miastaDict[ulic.Symbol];
+                        miasto = miastoDict[ulic.Ulica.Symbol];
                         regularProcessed++;
                     }
                     else
@@ -151,26 +156,65 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     }
                 }
 
-                // Dodaj ulicę do listy
+                string? dzielnica = null;
+                string? Nazwa1 = ulic.Ulica.Nazwa1;
+
+                // Wyjątek dla Wesołej, dzielnicy Warszawy. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę
+                if (ulic.WojewodztwoNazwa.ToLower() == "mazowieckie" && ulic.PowiatNazwa == "Warszawa" && ulic.GminaNazwa == "Wesoła" && ulic.Miasto?.Nazwa=="Wesoła" && ulic.Miasto.RodzajMiasta=="95")
+                {
+                    dzielnica = "Wesoła";
+                }
+                // Wyjątek dla Zielonej Góry. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę, która jest zawarta w nazwie ulicy.
+
+
+                if (ulic.WojewodztwoNazwa.ToLower() == "lubuskie" && ulic.PowiatNazwa == "Zielona Góra" && ulic.GminaNazwa == "Zielona Góra" && ulic.Miasto?.Nazwa == "Zielona Góra")
+                {
+                    var dzielnice= new List<string> {
+                        "Drzonków",
+                        "Kiełpin",
+                        "Kisielin",
+                        "Krępa",
+                        "Łężyca",
+                        "Ługowo",
+                        "Nowy Kisielin",
+                        "Ochla",
+                        "Przylep",
+                        "Racula",
+                        "Stary Kisielin",
+                        "Zatonie",
+                        "Zawada"
+                    };
+
+
+                    foreach (var dziel in dzielnice) {
+                        if (ulic.Ulica.Nazwa1.StartsWith(dziel + "-"))
+                        {
+                            dzielnica = dziel;
+                            Nazwa1=ulic.Ulica.Nazwa1.Remove(0,dziel.Length+1);
+                            break;
+                        }
+                    }
+                }
+
                 var ulica = new Ulica
                 {
-                    Symbol = ulic.SymbolUlicy,
-                    Cecha = ulic.Cecha,
-                    Nazwa1 = ulic.Nazwa1,
-                    Nazwa2 = ulic.Nazwa2,
-                    MiastoId = miasto.Id
+                    Symbol = ulic.Ulica.SymbolUlicy,
+                    Cecha = ulic.Ulica.Cecha,
+                    Nazwa1 = Nazwa1,
+                    Nazwa2 = ulic.Ulica.Nazwa2,
+                    MiastoId = miasto.Id,
+                    Dzielnica = dzielnica
                 };
 
                 allUlice.Add(ulica);
             }
 
-            await LogControl($"Zebrano {allUlice.Count} ulic");
-            await LogControl($"W tym dla Gdańska: {gdanskUliceCount} ulic");
-            await LogControl("Usuwam duplikaty (Symbol + MiastoId)...");
+            await LogControl($"\nZebrano {allUlice.Count} ulic");
+            await LogControl("Usuwam duplikaty (Symbol + Dzielnica + MiastoId)...");
 
-            // Usuń duplikaty - ulice o tym samym Symbol w tej samej miejscowości
+            // ✅ ZMIENIONO: Usuń duplikaty po Symbol + Dzielnica + MiastoId
             var uniqueUlice = allUlice
-                .GroupBy(u => new { u.Symbol, u.MiastoId })
+                .GroupBy(u => new { u.Symbol, u.Dzielnica, u.MiastoId })
                 .Select(g => g.First())
                 .ToList();
 
@@ -178,14 +222,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
             int dodano = uniqueUlice.Count;
 
             await LogControl($"Po usunięciu duplikatów: {uniqueUlice.Count} unikalnych ulic (pominięto {duplikaty} duplikatów)");
-            
-            // Sprawdź ile ulic dla Gdańska po deduplikacji
-            var gdanskMiasto = miastaNaPrawachPowiatuDict.GetValueOrDefault("2261");
-            if (gdanskMiasto != null)
-            {
-                var gdanskUliceUnique = uniqueUlice.Count(u => u.MiastoId == gdanskMiasto.Id);
-                await LogControl($"Po deduplikacji dla Gdańska: {gdanskUliceUnique} unikalnych ulic");
-            }
 
             await LogControl("Zapisuję do bazy danych...");
 

@@ -328,7 +328,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 Status = AddressSearchStatus.UlicaNotFound,
                 Message = AddressSearchStatusInfo.GetMessage(
                     AddressSearchStatus.UlicaNotFound, 
-                    $"{request.Ulica} w miejscowości {request.Miasto}"), // ✅ "Nie znaleziono ulicy 'XYZ w miejscowości ABC'"
+                    $"'{request.Ulica}' w miejscowości '{request.Miasto}'"), // ✅ "Nie znaleziono ulicy 'XYZ' w miejscowości 'ABC'"
                 Miasto = miasta.Count == 1 ? miasta[0] : null,
                 DiagnosticInfo = diagnostic?.GetLog()
             };

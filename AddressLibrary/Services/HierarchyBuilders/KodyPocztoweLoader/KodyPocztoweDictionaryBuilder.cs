@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 Andrzej Szepczy�ski. All rights reserved.
+﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Data;
 using AddressLibrary.Models;
@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 {
     /// <summary>
-    /// Buduje s�owniki pomocnicze dla procesowania kod�w pocztowych
+    /// Buduje słowniki pomocnicze dla procesowania kodów pocztowych
     /// </summary>
     internal class KodyPocztoweDictionaryBuilder
     {
@@ -19,7 +19,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         }
 
         /// <summary>
-        /// Tworzy s�ownik gmin: "Wojew�dztwo|Powiat|Gmina" -> Lista<Gmina>
+        /// Tworzy słownik gmin: "Województwo|Powiat|Gmina" -> Lista<Gmina>
         /// </summary>
         public async Task<Dictionary<string, List<Gmina>>> BuildGminyDictionaryAsync()
         {
@@ -39,7 +39,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         }
 
         /// <summary>
-        /// Tworzy s�ownik miejscowo�ci: GminaId -> Dictionary[Nazwa -> Miasto]
+        /// Tworzy słownik miast: GminaId -> Dictionary[Nazwa -> Miasto]
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, Miasto>>> BuildMiastaDictionaryAsync()
         {
@@ -59,8 +59,12 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         }
 
         /// <summary>
-        /// Tworzy s�ownik ulic: MiastoId -> Dictionary[Nazwa -> Ulica]
-        /// Obs�uguje zar�wno Nazwa1 jak i "Nazwa2 Nazwa1"
+        /// Tworzy słownik ulic: MiastoId -> Dictionary[Nazwa -> Ulica]
+        /// Obsługuje zarówno Nazwa1 jak i "Nazwa2 Nazwa1"
+        /// 
+        /// ⚠️ WYJĄTEK: 
+        /// NIE dodawaj klucza tylko Nazwa1, aby uniknąć kolizji z krótszymi nazwami.
+        /// 
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, Ulica>>> BuildUliceDictionaryAsync()
         {
@@ -76,14 +80,20 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                 var ulice = uliceDict[ulica.MiastoId];
 
-                // Dodaj wpis dla Nazwa1
-                var nazwa1Lower = ulica.Nazwa1.ToLowerInvariant();
-                if (!ulice.ContainsKey(nazwa1Lower))
+                // 🆕 Sprawdź czy Nazwa2 jest specjalnym prefiksem
+                bool hasSpecialPrefix = !string.IsNullOrWhiteSpace(ulica.Nazwa2) && Wyjatek(ulica);
+
+                // KROK 1: Dodaj wpis dla Nazwa1 TYLKO jeśli NIE ma specjalnego prefiksu
+                if (!hasSpecialPrefix)
                 {
-                    ulice[nazwa1Lower] = ulica;
+                    var nazwa1Lower = ulica.Nazwa1.ToLowerInvariant();
+                    if (!ulice.ContainsKey(nazwa1Lower))
+                    {
+                        ulice[nazwa1Lower] = ulica;
+                    }
                 }
 
-                // Je�li Nazwa2 istnieje, dodaj tak�e klucz "Nazwa2 Nazwa1"
+                // KROK 2: Jeśli Nazwa2 istnieje, dodaj także klucz "Nazwa2 Nazwa1"
                 if (!string.IsNullOrWhiteSpace(ulica.Nazwa2))
                 {
                     var nazwa2Plus1 = $"{ulica.Nazwa2} {ulica.Nazwa1}".ToLowerInvariant();
@@ -95,6 +105,26 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             }
 
             return uliceDict;
+        }
+
+        /// <summary>
+        /// Sprawdza czy ulica wymaga specjalnego traktowania (nie dodawaj klucza Nazwa1)
+        /// </summary>
+        /// <param name="ulica">Ulica do sprawdzenia</param>
+        /// <returns>True jeśli ulica ma specjalny prefiks wymagający pełnej nazwy</returns>
+        private static bool Wyjatek(Ulica ulica)
+        {
+            // Specjalny przypadek: "Księcia Józefa"
+            if (ulica.Nazwa1.Equals("Józefa", StringComparison.OrdinalIgnoreCase) &&
+                ulica.Nazwa2.Equals("Księcia", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Tutaj można dodać więcej wyjątków w przyszłości
+            // np. "Generała Andersa", "Marszałka Piłsudskiego" itp.
+
+            return false;
         }
     }
 }
