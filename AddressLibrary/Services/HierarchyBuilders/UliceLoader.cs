@@ -1,6 +1,9 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Models;
+using AddressLibrary.Services.AddressSearch;
 using Microsoft.EntityFrameworkCore;
+using AddressLibrary.Structures;
+using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -98,7 +101,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             var miaDict = _context.TerytSimc.AsNoTracking().ToDictionary(x => x.Symbol);
 
-            var resultList = ulicData.Select(u => new
+            var resultList = ulicData.Select(u => new ResultList
             {
                 Ulica = u,
                 WojewodztwoNazwa = wojDict.GetValueOrDefault(u.Wojewodztwo)?.Nazwa,
@@ -159,49 +162,16 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 string? dzielnica = null;
                 string? Nazwa1 = ulic.Ulica.Nazwa1;
 
-                // Wyjątek dla Wesołej, dzielnicy Warszawy. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę
-                if (ulic.WojewodztwoNazwa.ToLower() == "mazowieckie" && ulic.PowiatNazwa == "Warszawa" && ulic.GminaNazwa == "Wesoła" && ulic.Miasto?.Nazwa=="Wesoła" && ulic.Miasto.RodzajMiasta=="95")
-                {
-                    dzielnica = "Wesoła";
-                }
-                // Wyjątek dla Zielonej Góry. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę, która jest zawarta w nazwie ulicy.
-
-
-                if (ulic.WojewodztwoNazwa.ToLower() == "lubuskie" && ulic.PowiatNazwa == "Zielona Góra" && ulic.GminaNazwa == "Zielona Góra" && ulic.Miasto?.Nazwa == "Zielona Góra")
-                {
-                    var dzielnice= new List<string> {
-                        "Drzonków",
-                        "Kiełpin",
-                        "Kisielin",
-                        "Krępa",
-                        "Łężyca",
-                        "Ługowo",
-                        "Nowy Kisielin",
-                        "Ochla",
-                        "Przylep",
-                        "Racula",
-                        "Stary Kisielin",
-                        "Zatonie",
-                        "Zawada"
-                    };
-
-
-                    foreach (var dziel in dzielnice) {
-                        if (ulic.Ulica.Nazwa1.StartsWith(dziel + "-"))
-                        {
-                            dzielnica = dziel;
-                            Nazwa1=ulic.Ulica.Nazwa1.Remove(0,dziel.Length+1);
-                            break;
-                        }
-                    }
-                }
+                (Nazwa1, dzielnica) = UliceUtils.ZielonaGoraWesola(ulic);
+                var Nazwa2 = ulic.Ulica.Nazwa2;
+                (Nazwa1, Nazwa2) = UliceUtils.GetCorrectedStreetName(Nazwa1, Nazwa2);
 
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
                     Cecha = ulic.Ulica.Cecha,
                     Nazwa1 = Nazwa1,
-                    Nazwa2 = ulic.Ulica.Nazwa2,
+                    Nazwa2 = Nazwa2,
                     MiastoId = miasto.Id,
                     Dzielnica = dzielnica
                 };
@@ -250,5 +220,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 // Ignoruj błędy zapisu do logu
             }
         }
+
+  
+
     }
 }

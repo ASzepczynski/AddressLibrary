@@ -67,15 +67,15 @@ namespace AddressLibrary.Services.AddressSearch
                 Nazwa1 = u.Nazwa1,
                 Nazwa2 = u.Nazwa2,
                 Miasto = u.Miasto,
-                
+
                 // ✅ NORMALIZUJ NAZWA2 (usuń "-go", "-tego" etc.)
                 NormalizedNazwa1 = _normalizer.Normalize(u.Nazwa1),
-                
+
                 // ✅ Kombinacja: Nazwa2 + " " + Nazwa1 (jeśli Nazwa2 nie jest pusta)
-                NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2) 
-                    ? null 
+                NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2)
+                    ? null
                     : _normalizer.Normalize($"{NormalizeOrdinalNumber(u.Nazwa2)} {u.Nazwa1}")
-                
+
             }).ToList();
 
             // Słownik: miasto ID -> lista ulic (cached)
@@ -96,7 +96,7 @@ namespace AddressLibrary.Services.AddressSearch
                 .ToDictionary(g => g.Key, g => g.ToList());
 
             // 🔍 DEBUG: Loguj ulicę Axentowicza
-            
+
             _isInitialized = true;
         }
 
@@ -145,59 +145,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public string GetOriginalStreetName(UlicaCached ulica)
         {
-            // ✅ OBSŁUGA ULIC Z NUMEREM (np. "3-go Maja")
-            // Jeśli Nazwa2 wygląda jak liczba/data → wyświetl "Nazwa2 Nazwa1"
-            if (!string.IsNullOrEmpty(ulica.Nazwa2) && IsNumericPrefix(ulica.Nazwa2))
-            {
-                if (!string.IsNullOrEmpty(ulica.Cecha))
-                {
-                    return $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1}".Trim();
-                }
-                return $"{ulica.Nazwa2} {ulica.Nazwa1}".Trim();
-            }
-
-            // ✅ OBSŁUGA KLASYCZNYCH ULIC (np. "Księcia Józefa")
-            if (!string.IsNullOrEmpty(ulica.Cecha))
-            {
-                if (!string.IsNullOrEmpty(ulica.Nazwa2))
-                {
-                    return $"{ulica.Cecha} {ulica.Nazwa1} {ulica.Nazwa2}".Trim(); // ✅ "ul. Józefa Księcia"
-                }
-                return $"{ulica.Cecha} {ulica.Nazwa1}".Trim();
-            }
-
-            // Bez cechy
-            if (!string.IsNullOrEmpty(ulica.Nazwa2))
-            {
-                return $"{ulica.Nazwa1} {ulica.Nazwa2}".Trim(); // ✅ "Józefa Księcia"
-            }
-
-            return ulica.Nazwa1;
-        }
-
-        /// <summary>
-        /// Sprawdza czy Nazwa2 to prefix numeryczny/datowy
-        /// Przykłady: "3-go", "1", "29", "15-go", "II", "1-go"
-        /// </summary>
-        private bool IsNumericPrefix(string nazwa2)
-        {
-            if (string.IsNullOrWhiteSpace(nazwa2))
-                return false;
-
-            // Usuń białe znaki
-            var trimmed = nazwa2.Trim();
-
-            // ✅ WZORCE DLA NAZW NUMERYCZNYCH:
-            // 1. Zawiera cyfry: "3-go", "29", "1-go", "15"
-            if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"\d"))
-                return true;
-
-            // 2. Numery rzymskie: "II", "III", "IV"
-            if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^(I|V|X|L|C|D|M)+$", 
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                return true;
-
-            return false;
+           return $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1}".Replace("  ", " ").Trim();
         }
 
         /// <summary>
@@ -253,7 +201,7 @@ namespace AddressLibrary.Services.AddressSearch
                                 }
                             }
                         }
-                        
+
                         // ❌ USUŃ sprawdzanie NormalizedCombinedReverse
                     }
 
@@ -326,9 +274,9 @@ namespace AddressLibrary.Services.AddressSearch
             // "3-go", "1-go", "29-go" → "3", "1", "29"
             // "II-go", "III-go" → "II", "III"
             var normalized = System.Text.RegularExpressions.Regex.Replace(
-                text, 
+                text,
                 @"-?(go|tego|cie)$",  // Dopasuj "-go", "-tego", "-cie" na końcu
-                "", 
+                "",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase
             );
 
@@ -350,10 +298,10 @@ namespace AddressLibrary.Services.AddressSearch
 
         // 🚀 Pre-znormalizowane nazwy
         public string NormalizedNazwa1 { get; set; } = string.Empty;
-        
+
         // ✅ TYLKO kombinacja Nazwa2 + " " + Nazwa1
         public string? NormalizedCombined { get; set; }
-        
+
         // ❌ USUŃ: NormalizedCombinedReverse
     }
 

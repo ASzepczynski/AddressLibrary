@@ -1,7 +1,9 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Models;
+using AddressLibrary.Structures;
 using System.Collections.Immutable;
+using AddressLibrary.Helpers;
 
 
 namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
@@ -42,8 +44,9 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (_uliceDict.TryGetValue(miasto.Id, out var ulice))
             {
+            
                 // 🆕 KROK 1a: Znajdź WSZYSTKIE dokładnie pasujące ulice
-                var exactMatches = FindAllExactMatches(ulice, currentUlica);
+                var exactMatches = FindAllExactMatches(miasto, ulice, currentUlica);
 
                 if (exactMatches.Count == 1)
                 {
@@ -116,12 +119,32 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// <summary>
         /// 🆕 Znajduje wszystkie ulice dokładnie pasujące do szukanej nazwy (case-insensitive)
         /// </summary>
-        private List<Ulica> FindAllExactMatches(Dictionary<string, Ulica> ulice, string searchName)
+        private List<Ulica> FindAllExactMatches(Miasto miasto, Dictionary<string, Ulica> ulice, string searchName)
         {
+            
             var matches = new List<Ulica>();
+            var ulic = new ResultList();
+            
+            ulic.Ulica = new TerytUlic();
+            ulic.Ulica.Nazwa1 = searchName;
+            ulic.Ulica.Nazwa2 = "";
+            ulic.Ulica.Cecha = "";
+            
+            ulic.WojewodztwoNazwa = miasto.Gmina.Powiat.Wojewodztwo.Nazwa;
+            ulic.PowiatNazwa = miasto.Gmina.Powiat.Nazwa;
+            ulic.GminaNazwa = miasto.Gmina.Nazwa;
+
+            ulic.Miasto = new TerytSimc();
+            ulic.Miasto.Nazwa=miasto.Nazwa;
+            ulic.Miasto.RodzajMiasta = miasto.RodzajMiasta.Kod;
+
+            string Nazwa1;
+            string dzielnica;
+            (Nazwa1, dzielnica) = UliceUtils.ZielonaGoraWesola(ulic);
+
             var normalizedSearch = searchName.ToLowerInvariant();
             
-
+         
             foreach (var kvp in ulice)
             {
                 // Klucz słownika jest już znormalizowany (lowercase)
