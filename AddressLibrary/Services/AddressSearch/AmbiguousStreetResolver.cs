@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -50,7 +51,7 @@ namespace AddressLibrary.Services.AddressSearch
             // ✅ KROK 3: Jeśli podano kod pocztowy, sprawdź dopasowanie po kodzie
             if (!string.IsNullOrWhiteSpace(postalCode))
             {
-                var normalizedPostalCode = _normalizer.NormalizePostalCode(postalCode);
+                var normalizedPostalCode = UliceUtils.NormalizujKodPocztowy(postalCode);
                 var codeMatch = FindByPostalCode(filteredStreets, normalizedPostalCode, postalCodes);
                 if (codeMatch != null)
                     return codeMatch;
@@ -94,7 +95,7 @@ namespace AddressLibrary.Services.AddressSearch
                 }
 
                 // ✅ Sprawdź dokładne dopasowanie do NormalizedCombined
-                if (street.NormalizedCombined != null && 
+                if (street.NormalizedCombined != null &&
                     street.NormalizedCombined == normalizedSearch)
                 {
                     exactMatches.Add(street);
@@ -160,13 +161,13 @@ namespace AddressLibrary.Services.AddressSearch
             if (!string.IsNullOrWhiteSpace(street.Nazwa2) && IsOrdinalNumber(street.Nazwa2))
             {
                 // Normalizuj liczebnik (usuń "-go", "-tego")
-                var normalizedNazwa2 = NormalizeOrdinalNumber(street.Nazwa2);
+                var normalizedNazwa2 = UliceUtils.NormalizeOrdinalNumber(street.Nazwa2);
                 parts.Insert(parts.Count - 1, normalizedNazwa2); // Wstaw PRZED Nazwa1
             }
 
             return string.Join(" ", parts);
         }
-// Prawdziwa nazwa żeby wyświetlić duplikaty
+        // Prawdziwa nazwa żeby wyświetlić duplikaty
         private string GetOriginalStreetName(UlicaCached street)
         {
             var parts = new List<string>();
@@ -193,51 +194,40 @@ namespace AddressLibrary.Services.AddressSearch
 
             // Sprawdź czy zawiera liczby arabskie (1-go, 29-go) lub rzymskie (II-go, III-go)
             return System.Text.RegularExpressions.Regex.IsMatch(text, @"^\d+(-?(go|tego|cie))?$") ||
-                   System.Text.RegularExpressions.Regex.IsMatch(text, @"^[IVXLCDM]+(-?(go|tego|cie))?$", 
+                   System.Text.RegularExpressions.Regex.IsMatch(text, @"^[IVXLCDM]+(-?(go|tego|cie))?$",
                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         }
 
-        /// <summary>
-        /// Normalizuje liczebniki porządkowe (usuwa "-go", "-tego", "-cie")
-        /// </summary>
-        private string NormalizeOrdinalNumber(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            return System.Text.RegularExpressions.Regex.Replace(
-                text,
-                @"-?(go|tego|cie)$",
-                "",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase
-            ).Trim();
-        }
 
         /// <summary>
         /// Zwraca szczegółowy komunikat o niejednoznaczności
         /// </summary>
         public string GetAmbiguityMessage(
-            List<UlicaCached> streets,
-            List<KodPocztowy> postalCodes)
+     List<UlicaCached> streets,
+     List<KodPocztowy> postalCodes
+ )
         {
-            var codesPerStreet = streets.Select(s =>
+            var details = streets.Select(s =>
             {
+                var streetName = GetOriginalStreetName(s);
+                var streetId = s.Id;
+                var dzielnicaStr = !string.IsNullOrWhiteSpace(s.Dzielnica) ? $" [{s.Dzielnica}]" : "";
+
                 var codes = postalCodes
                     .Where(k => k.UlicaId == s.Id)
                     .Select(k => k.Kod)
                     .Distinct()
-                    .OrderBy(c => c)
+                    .OrderBy(k => k)
                     .ToList();
 
-                var streetName = GetOriginalStreetName(s);
-                
-                if (codes.Count > 0)
-                    return $"{string.Join(", ", codes)} ({streetName})";
-                else
-                    return $"(brak kodu) ({streetName})";
+                var codesStr = codes.Count > 0
+                    ? string.Join(", ", codes)
+                    : "(brak kodu)";
+
+                return $"{codesStr} ({streetName}/{streetId}{dzielnicaStr})";
             }).ToList();
 
-            return $"Znaleziono wiele dopasowań ({codesPerStreet.Count}): {string.Join(", ", codesPerStreet)}";
+            return $"Znaleziono wiele dopasowań [A] {details.Count}): {string.Join(", ", details)}";
         }
     }
 }

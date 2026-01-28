@@ -2,6 +2,7 @@
 
 using AddressLibrary.Models;
 using Microsoft.IdentityModel.Tokens;
+using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -100,9 +101,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
             if (string.IsNullOrWhiteSpace(name))
                 return string.Empty;
 
+
             // Usuñ popularne prefiksy
             var prefixes = new[] { "ul.", "ulica", "al.", "aleja", "alei", "os.", "osiedle", "pl.", "plac", "placu" };
             var normalized = name.ToLowerInvariant().Trim();
+            // Usuwa -go z nazwy ulicy
+            normalized=UliceUtils.NormalizeOrdinalNumber(normalized);
 
             foreach (var prefix in prefixes)
             {

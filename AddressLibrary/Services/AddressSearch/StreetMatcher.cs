@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
+using AddressLibrary.Helpers;
 using AddressLibrary.Services.AddressSearch;
+using System.Collections.Generic;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -62,7 +64,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // ✅ KROK 2: Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
-            var withoutInitial = _normalizer.RemoveNameInitial(originalStreetName);
+            var withoutInitial = UliceUtils.RemoveNameInitial(originalStreetName);
 
             if (withoutInitial != originalStreetName)
             {
@@ -75,20 +77,9 @@ namespace AddressLibrary.Services.AddressSearch
                 }
             }
 
-            // ⚠️ KROK 3: Dopasowanie częściowe (TYLKO gdy nie znaleziono dokładnego)
-            foreach (var ulica in ulice)
-            {
-                // ✅ Sprawdź Nazwa1
-                if (IsPartialMatch(ulica.NormalizedNazwa1, normalized))
-                    return ulica;
-
-                // ✅ Sprawdź pełne kombinacje (NormalizedCombined i NormalizedCombinedReverse)
-                if (ulica.NormalizedCombined != null && IsPartialMatch(ulica.NormalizedCombined, normalized))
-                    return ulica;
-
-            }
-
-            return null;
+            // ⚠️ KROK 3: Dopasowanie fuzzy matching (TYLKO gdy nie znaleziono dokładnego)
+            var ulica_fuzzy = FindMostSimilarStreet(ulice, normalized);
+            return ulica_fuzzy;
         }
 
         /// <summary>
@@ -111,7 +102,7 @@ namespace AddressLibrary.Services.AddressSearch
                 return results;
 
             // ✅ KROK 2: Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
-            var withoutInitial = _normalizer.RemoveNameInitial(originalStreetName);
+            var withoutInitial = UliceUtils.RemoveNameInitial(originalStreetName);
 
             if (withoutInitial != originalStreetName)
             {

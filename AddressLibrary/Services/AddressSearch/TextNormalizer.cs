@@ -13,6 +13,39 @@ namespace AddressLibrary.Services.AddressSearch
     /// </summary>
     public class TextNormalizer
     {
+        private static readonly string[] titles = new[] { 
+                // wojskowe
+                "plk","pulkownika",
+                "mjr","majora",
+                "kpt", "kapitana",
+                "por", "porucznika",
+                "gen", "generala",
+                "pplk", "podpulkownika",
+                "rotm", "rtm", "rotmistrza",
+                "sierz", "sierzanta",
+                "marsz", "marszalka",
+                "adm", "admirala",
+                "kmdr", "komandora",
+                // religijne
+                "sw","swietego",
+                "ks", "ksiedza","ksiecia",
+                "bp", "biskupa",
+                "abp", "arcybiskupa",
+                "kard", "kardynala",
+                "br", "brata",
+                "o", "ojca",
+                "s", "siostry",
+                "bl","blogoslawionego",
+                // naukowe
+                "dr", "doktora",
+                "prof", "profesora",
+                "inz", "inzyniera",
+                "mgr", "magistra",
+                // szlacheckie
+                "kr", "krolowej","krola"
+            };
+
+
         private static readonly string[] StreetPrefixes = new[]
         {
             "ul.", "ul", "ulica",
@@ -42,28 +75,10 @@ namespace AddressLibrary.Services.AddressSearch
             "doln.", "doln"                // Dolny
         };
 
-        // 🚀 OPTYMALIZACJA: Skompilowane regex (tylko raz!)
-        private static readonly Regex TitleAbbreviationsRegex;
-        private static readonly Regex RemoveDotsRegex;
-        private static readonly Regex RemoveGoSuffixRegex;
+       
 
         static TextNormalizer()
         {
-            // Lista skrótów bez kropek dla wzorca
-            var abbrs = new[] { "sw", "ks", "gen", "bp", "kpt", "pplk", "plk", "mjr", "por",
-                               "dr", "prof", "inz", "mgr", "abp", "kard", "o", "s", "br",
-                               "rotm", "rtm", "sierz", "marsz", "adm", "kmdr", "kr", "bl" };
-
-            // Wzorzec: (sw|ks|gen|...)\.([^\s]) - dodaj spację po kropce
-            var pattern1 = $@"({string.Join("|", abbrs)})\.([^\s])";
-            TitleAbbreviationsRegex = new Regex(pattern1, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-            // Wzorzec: (sw|ks|gen|...)\. - usuń kropkę
-            var pattern2 = $@"({string.Join("|", abbrs)})\.";
-            RemoveDotsRegex = new Regex(pattern2, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-            // Wzorzec: (\d+)-go\s+ - usuń "-go " z dat (np. "3-go Maja" -> "3 Maja")
-            RemoveGoSuffixRegex = new Regex(@"(\d+)-go\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         }
 
         public string Normalize(string text)
@@ -71,16 +86,38 @@ namespace AddressLibrary.Services.AddressSearch
             if (string.IsNullOrWhiteSpace(text))
                 return string.Empty;
 
-            var normalized = RemoveDiacritics(text.Trim());
-            normalized = normalized.ToLowerInvariant();
-            normalized = RemoveStreetPrefixes(normalized); // ← TU JEST WYWOŁYWANE
-            normalized = RemoveTrailingNumbers(normalized, out _);
+            var normalized = text.ToLowerInvariant().Trim();
+            normalized = UliceUtils.RemoveDiacritics(normalized);
+            // Popraw os.Nowe na os. Nowe
+            normalized = normalized.Replace("..", ".");
+            normalized = normalized.Replace(".", ". ").Trim();
+            // usuń ewentualnie powstałe podwójne spacje
+            normalized = normalized.Replace("  ", " ").Trim();
+            normalized = normalized.Replace("-go", "").Trim();
+
+            normalized = RemoveStreetPrefixes(normalized);
+            normalized = RemoveTitles(normalized);
+            normalized = RemoveInitialsPrefix(normalized);
+
             normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
 
             return normalized;
         }
 
-        private string RemoveStreetPrefixes(string text)
+        public string RemoveInitialsPrefix(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            // Wzorzec: 1-3 litery (polskie lub łacińskie), kropka, ewentualnie powtórzone, na początku napisu
+            // Przykłady: "J. ", "A.B. ", "M.K. ", "Ł. ", "J.K. ", "A.B.C. "
+            var pattern = @"^(([\p{L}]{1,3}\.)+\s*)+";
+
+            return Regex.Replace(text, pattern, string.Empty).TrimStart();
+        }
+
+
+        public string RemoveStreetPrefixes(string text)
         {
             // ✅ WALIDACJA: Sprawdź czy ostatnie słowo to skrót nazwy miasta
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -124,7 +161,6 @@ namespace AddressLibrary.Services.AddressSearch
                     return string.Empty;
                 }
             }
-
             return text;
         }
 
@@ -180,38 +216,6 @@ namespace AddressLibrary.Services.AddressSearch
         {
             if (string.IsNullOrEmpty(text))
                 return text;
-            // Lista tytułów do usunięcia (znormalizowane)
-            var titles = new[] { 
-                // wojskowe
-                "plk","pulkownika",
-                "mjr","majora",
-                "kpt", "kapitana",
-                "por", "porucznika",
-                "gen", "generala",
-                "pplk", "podpulkownika",
-                "rotm", "rtm", "rotmistrza",
-                "sierz", "sierzanta",
-                "marsz", "marszalka",
-                "adm", "admirala",
-                "kmdr", "komandora",
-                // religijne
-                "sw","swietego",
-                "ks", "ksiedza","ksiecia",
-                "bp", "biskupa",
-                "abp", "arcybiskupa",
-                "kard", "kardynala",
-                "br", "brata",
-                "o", "ojca",
-                "s", "siostry",
-                "bl","blogoslawionego",
-                // naukowe
-                "dr", "doktora",
-                "prof", "profesora",
-                "inz", "inzyniera",
-                "mgr", "magistra",
-                // szlacheckie
-                "kr", "krolowej","krola"
-            };
 
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var filtered = words.Where(w => !titles.Contains(w)).ToList();
@@ -227,76 +231,11 @@ namespace AddressLibrary.Services.AddressSearch
             if (string.IsNullOrWhiteSpace(text))
                 return (string.Empty, string.Empty);
 
-            var normalized = RemoveDiacritics(text.Trim());
-            normalized = normalized.ToLowerInvariant();
-            normalized = RemoveStreetPrefixes(normalized);
-            
-            // Usuń numery i zwróć je
+            var normalized = Normalize(text.Trim());
             normalized = RemoveTrailingNumbers(normalized, out string extractedNumber);
-            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
 
             return (normalized, extractedNumber);
         }
-
-        /// <summary>
-        /// Normalizuje kod pocztowy do formatu XX-XXX
-        /// </summary>
-        public string NormalizePostalCode(string kod)
-        {
-            if (string.IsNullOrWhiteSpace(kod))
-            {
-                return string.Empty;
-            }
-
-            var cyfry = new string(kod.Where(char.IsDigit).ToArray());
-
-            if (cyfry.Length != 5)
-            {
-                return kod;
-            }
-
-            return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
-        }
-
-        /// <summary>
-        /// ✅ DODAJ TĘ METODĘ:
-        /// Usuwa inicjały imion z nazw ulic (np. "G. Zapolskiej" -> "Zapolskiej")
-        /// </summary>
-        public string RemoveNameInitial(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            // Wzorzec: 1-3 litery + kropka + spacja (lub 1-3 litery + spacja)
-            // Przykłady: "G. ", "Gen. ", "J.K. ", "dr ", "prof. "
-            var pattern = @"^(?:[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]{1,3}\.?\s+)+";
-            
-            var result = System.Text.RegularExpressions.Regex.Replace(
-                text, 
-                pattern, 
-                string.Empty, 
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-            return result.Trim();
-        }
-
-        private string RemoveDiacritics(string text)
-        {
-            var normalizedString = text.Normalize(NormalizationForm.FormD);
-            var stringBuilder = new StringBuilder();
-
-            foreach (var c in normalizedString)
-            {
-                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-                {
-                    stringBuilder.Append(c);
-                }
-            }
-
-            return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        }
-
-        // ... reszta kodu
+   
     }
 }

@@ -13,7 +13,7 @@ namespace AddressLibrary.Services.AddressSearch
         MultipleMatches,      // Znaleziono wiele pasujących adresów
         MiastoNotFound,       // Nie znaleziono miejscowości
         UlicaNotFound,        // Nie znaleziono ulicy
-        InvalidStreetName,    // ✅ NOWE: Błędna nazwa ulicy (nie istnieje w całej bazie TERYT)
+        InvalidStreetName,    // Błędna nazwa ulicy (nie istnieje w całej bazie TERYT)
         KodPocztowyNotFound,  // Nie znaleziono kodu pocztowego
         ValidationError       // Błąd walidacji danych wejściowych
     }

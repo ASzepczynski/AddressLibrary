@@ -43,7 +43,11 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, Miasto>>> BuildMiastaDictionaryAsync()
         {
-            var miastaList = await _context.Miasta.ToListAsync();
+            // var miastaList = await _context.Miasta.ToListAsync();
+            var miastaList = await _context.Miasta
+        .Include(m => m.RodzajMiasta) // <-- to jest kluczowe!
+        .ToListAsync();
+
 
             return miastaList
                 .GroupBy(m => m.GminaId)

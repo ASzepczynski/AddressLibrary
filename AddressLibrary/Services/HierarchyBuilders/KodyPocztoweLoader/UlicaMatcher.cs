@@ -28,6 +28,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// </summary>
         public (Ulica? ulica, string ulicaNazwa) Match(
             string ulicaNazwa,
+            string dzielnicaNazwa,
             Miasto miasto,
             string miastoNazwa,
             string kodPocztowy)
@@ -38,15 +39,16 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             }
 
             var currentUlica = ulicaNazwa;
+            var currentDzielnica = dzielnicaNazwa;
             Ulica? ulica = null;
             bool ulicaFound = false;
 
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (_uliceDict.TryGetValue(miasto.Id, out var ulice))
             {
-            
+
                 // 🆕 KROK 1a: Znajdź WSZYSTKIE dokładnie pasujące ulice
-                var exactMatches = FindAllExactMatches(miasto, ulice, currentUlica);
+                                var exactMatches = FindAllExactMatches(miasto, ulice, currentUlica, currentDzielnica);
 
                 if (exactMatches.Count == 1)
                 {
@@ -119,14 +121,14 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// <summary>
         /// 🆕 Znajduje wszystkie ulice dokładnie pasujące do szukanej nazwy (case-insensitive)
         /// </summary>
-        private List<Ulica> FindAllExactMatches(Miasto miasto, Dictionary<string, Ulica> ulice, string searchName)
+        private List<Ulica> FindAllExactMatches(Miasto miasto, Dictionary<string, Ulica> ulice, string ulicaNazwa, string dzielnicaNazwa)
         {
             
             var matches = new List<Ulica>();
             var ulic = new ResultList();
             
             ulic.Ulica = new TerytUlic();
-            ulic.Ulica.Nazwa1 = searchName;
+            ulic.Ulica.Nazwa1 = ulicaNazwa;
             ulic.Ulica.Nazwa2 = "";
             ulic.Ulica.Cecha = "";
             
@@ -142,13 +144,18 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             string dzielnica;
             (Nazwa1, dzielnica) = UliceUtils.ZielonaGoraWesola(ulic);
 
-            var normalizedSearch = searchName.ToLowerInvariant();
+            if (dzielnicaNazwa != "")
+            {
+                dzielnica = dzielnicaNazwa;
+            }
+
+            var normalizedSearch = ulicaNazwa.ToLowerInvariant();
             
          
             foreach (var kvp in ulice)
             {
                 // Klucz słownika jest już znormalizowany (lowercase)
-                if (kvp.Key == normalizedSearch)
+                if (kvp.Key == normalizedSearch) // Tu by wypadało sprawdzić dzielnicę
                 {
                     matches.Add(kvp.Value);
                 }

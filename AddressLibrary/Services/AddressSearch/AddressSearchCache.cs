@@ -2,6 +2,7 @@
 
 using AddressLibrary.Data;
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.AddressSearch
@@ -68,13 +69,13 @@ namespace AddressLibrary.Services.AddressSearch
                 Nazwa2 = u.Nazwa2,
                 Miasto = u.Miasto,
 
-                // ✅ NORMALIZUJ NAZWA2 (usuń "-go", "-tego" etc.)
+              
                 NormalizedNazwa1 = _normalizer.Normalize(u.Nazwa1),
 
                 // ✅ Kombinacja: Nazwa2 + " " + Nazwa1 (jeśli Nazwa2 nie jest pusta)
                 NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2)
                     ? null
-                    : _normalizer.Normalize($"{NormalizeOrdinalNumber(u.Nazwa2)} {u.Nazwa1}")
+                    : _normalizer.Normalize($"{UliceUtils.NormalizeOrdinalNumber(u.Nazwa2)} {u.Nazwa1}")
 
             }).ToList();
 
@@ -261,27 +262,6 @@ namespace AddressLibrary.Services.AddressSearch
             return allCities;
         }
 
-        /// <summary>
-        /// ✅ Normalizuje liczebniki porządkowe w nazwach ulic
-        /// Przykłady: "3-go" → "3", "29-go" → "29", "II-go" → "II"
-        /// </summary>
-        private string NormalizeOrdinalNumber(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            // ✅ USUŃ SUFIKSY LICZEBNIKÓW PORZĄDKOWYCH
-            // "3-go", "1-go", "29-go" → "3", "1", "29"
-            // "II-go", "III-go" → "II", "III"
-            var normalized = System.Text.RegularExpressions.Regex.Replace(
-                text,
-                @"-?(go|tego|cie)$",  // Dopasuj "-go", "-tego", "-cie" na końcu
-                "",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase
-            );
-
-            return normalized.Trim();
-        }
     }
 
     /// <summary>
@@ -295,6 +275,7 @@ namespace AddressLibrary.Services.AddressSearch
         public string Nazwa1 { get; set; } = string.Empty;
         public string? Nazwa2 { get; set; }
         public Miasto Miasto { get; set; } = null!;
+        public string Dzielnica { get; set; } = null!;
 
         // 🚀 Pre-znormalizowane nazwy
         public string NormalizedNazwa1 { get; set; } = string.Empty;

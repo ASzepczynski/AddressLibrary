@@ -2,6 +2,7 @@
 
 using AddressLibrary.Data;
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
@@ -77,7 +78,7 @@ namespace AddressLibrary.Services
             // Filtruj po kodzie pocztowym
             if (!string.IsNullOrWhiteSpace(parameters.Kod))
             {
-                var kodNormalized = NormalizujKodPocztowy(parameters.Kod);
+                var kodNormalized = UliceUtils.NormalizujKodPocztowy(parameters.Kod);
                 query = query.Where(k => k.Kod == kodNormalized);
             }
 
@@ -177,13 +178,13 @@ namespace AddressLibrary.Services
                 return string.Empty;
 
             // Usuñ akcenty i normalizuj
-            var normalized = RemoveDiacritics(text.Trim());
+            var normalized = UliceUtils.RemoveDiacritics(text.Trim());
 
             // Zamieñ na ma³e litery
             normalized = normalized.ToLowerInvariant();
 
             // Usuñ przedrostki ulic
-            normalized = RemoveStreetPrefixes(normalized);
+            normalized = UliceUtils.RemoveStreetPrefixes(normalized);
 
             // Usuñ zbêdne bia³e znaki
             normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
@@ -191,80 +192,7 @@ namespace AddressLibrary.Services
             return normalized;
         }
 
-        private static readonly string[] StreetPrefixes = new[]
-        {
-            "ul.", "ul", "ulica",
-            "al.", "al", "aleja", "alei",
-            "pl.", "pl", "plac", "placu",
-            "os.", "os", "osiedle", "osiedla",
-            "oœ.", "oœ",
-            "rondo",
-            "skwer", "skweru",
-            "park", "parku",
-            "bulwar", "bulwaru",
-            "droga",
-            "szosa",
-            "œcie¿ka",
-            "pasa¿", "pasa¿u"
-        };
 
-        private string RemoveStreetPrefixes(string text)
-        {
-            var sortedPrefixes = StreetPrefixes.OrderByDescending(p => p.Length);
-
-            foreach (var prefix in sortedPrefixes)
-            {
-                if (text.StartsWith(prefix + " ", StringComparison.OrdinalIgnoreCase))
-                {
-                    return text.Substring(prefix.Length + 1).Trim();
-                }
-                
-                if (text.Equals(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    return string.Empty;
-                }
-            }
-
-            return text;
-        }
-
-        private string RemoveDiacritics(string text)
-        {
-            var normalizedString = text.Normalize(NormalizationForm.FormD);
-            var stringBuilder = new StringBuilder();
-
-            foreach (var c in normalizedString)
-            {
-                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-                {
-                    stringBuilder.Append(c);
-                }
-            }
-
-            return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        }
-
-        /// <summary>
-        /// Normalizuje kod pocztowy do formatu XX-XXX
-        /// </summary>
-        private string NormalizujKodPocztowy(string kod)
-        {
-            if (string.IsNullOrWhiteSpace(kod))
-            {
-                return string.Empty;
-            }
-
-            // Usuñ wszystko oprócz cyfr
-            var cyfry = new string(kod.Where(char.IsDigit).ToArray());
-
-            if (cyfry.Length != 5)
-            {
-                return kod; // Zwróæ oryginalny jeœli nieprawid³owy format
-            }
-
-            return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
-        }
 
         /// <summary>
         /// Wyszukuje kody pocztowe pasuj¹ce do podanego adresu (stara metoda dla kompatybilnoœci)
@@ -444,9 +372,9 @@ namespace AddressLibrary.Services
                     .FirstOrDefaultAsync(m => m.Id == kod.MiastoId);
 
                 Ulica? ulica = null;
-                if (kod.UlicaId.HasValue && kod.UlicaId.Value != -1)
+                if (kod.UlicaId != -1)
                 {
-                    ulica = await _context.Ulice.FirstOrDefaultAsync(u => u.Id == kod.UlicaId.Value);
+                    ulica = await _context.Ulice.FirstOrDefaultAsync(u => u.Id == kod.UlicaId);
                 }
 
                 wyniki.Add(new KodPocztowyZAdresem

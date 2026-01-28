@@ -69,7 +69,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // 🆕 WIELE DOPASOWAŃ: Pokaż kody pocztowe + ORYGINALNE nazwy ulic
-            diagnostic?.Log($"⚠ Znaleziono wiele dopasowań: {kodyPocztowe.Count}");
+            diagnostic?.Log($"⚠ Znaleziono wiele dopasowań [Z]: {kodyPocztowe.Count}");
             
             // Pobierz ulice z cache
             if (!_cache.TryGetUlice(miasto.Id, out var cachedUlice))
@@ -87,21 +87,21 @@ namespace AddressLibrary.Services.AddressSearch
 
             foreach (var kod in kodyPocztowe)
             {
-                diagnostic?.Log($"  Kod: {kod.Kod}, UlicaId: {kod.UlicaId?.ToString() ?? "NULL"}");
+                diagnostic?.Log($"  Kod: {kod.Kod}, UlicaId: {kod.UlicaId.ToString() }");
 
                 if (processedCodes.Add(kod.Kod)) // Dodaj tylko unikalne kody
                 {
                     string codeInfo = kod.Kod;
 
                     // Dodaj nazwę ulicy jeśli dostępna
-                    if (kod.UlicaId.HasValue && cachedUlice != null)
+                    if (cachedUlice != null)
                     {
-                        var street = cachedUlice.FirstOrDefault(u => u.Id == kod.UlicaId.Value);
+                        var street = cachedUlice.FirstOrDefault(u => u.Id == kod.UlicaId);
                         if (street != null)
                         {
                             // 🆕 Użyj oryginalnej nazwy z cache (nieznormalizowanej)
                             var streetName = _cache.GetOriginalStreetName(street);
-                            codeInfo = $"{kod.Kod} ({streetName})";
+                            codeInfo = $"{kod.Kod} ({streetName}/{kod.UlicaId})";
                             diagnostic?.Log($"    ✓ {codeInfo}");
                         }
                     }
@@ -112,15 +112,16 @@ namespace AddressLibrary.Services.AddressSearch
 
             // Utwórz komunikat
             string message;
+
             if (postalCodeInfoList.Count > 0)
             {
                 var codeList = string.Join(", ", postalCodeInfoList);
-                message = $"Znaleziono wiele dopasowań ({postalCodeInfoList.Count}): {codeList}";
+                message = $"Znaleziono wiele dopasowań [X] ({postalCodeInfoList.Count}): {codeList}";
                 diagnostic?.Log($"  ✓ Komunikat: {message}");
             }
             else
             {
-                message = $"Znaleziono wiele dopasowań ({kodyPocztowe.Count})";
+                message = $"Znaleziono wiele dopasowań [Y] ({kodyPocztowe.Count})";
                 diagnostic?.Log($"  ⚠ Nie udało się utworzyć szczegółowego komunikatu");
             }
 

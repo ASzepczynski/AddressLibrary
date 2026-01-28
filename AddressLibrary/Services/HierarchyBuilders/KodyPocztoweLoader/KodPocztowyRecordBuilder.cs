@@ -14,9 +14,9 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// <summary>
         /// Sprawdza czy kombinacja Kod+Miejscowoœæ+Ulica ju¿ istnieje
         /// </summary>
-        public bool IsDuplicate(string kod, int miastoId, int? ulicaId)
+        public bool IsDuplicate(string kod, string numery, string dzielnica,int miastoId, int? ulicaId)
         {
-            var combinationKey = $"{kod}|{miastoId}|{(ulicaId.HasValue ? ulicaId.ToString() : "NULL")}";
+            var combinationKey = $"{kod}|{numery}|{dzielnica}|{miastoId}|{(ulicaId.HasValue ? ulicaId.ToString() : "NULL")}";
             
             if (_insertedCombinations.Contains(combinationKey))
             {

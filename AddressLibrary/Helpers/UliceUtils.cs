@@ -1,9 +1,12 @@
 ﻿using AddressLibrary.Structures;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AddressLibrary.Helpers
 {
@@ -95,6 +98,121 @@ namespace AddressLibrary.Helpers
                 return true;
 
             return false;
+        }
+
+        /// <summary>
+        /// Normalizuje liczebniki porządkowe (usuwa "-go", "-tego", "-cie")
+        /// </summary>
+        public static string NormalizeOrdinalNumber(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            return System.Text.RegularExpressions.Regex.Replace(
+                text,
+                @"-?(go|tego|cie)$",
+                "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            ).Trim();
+        }
+
+        private static readonly string[] StreetPrefixes = new[]
+{
+            "ul.", "ul", "ulica",
+            "al.", "al", "aleja", "alei",
+            "pl.", "pl", "plac", "placu",
+            "os.", "os", "osiedle", "osiedla",
+            "oś.", "oś",
+            "rondo",
+            "skwer", "skweru",
+            "park", "parku",
+            "bulwar", "bulwaru",
+            "droga",
+            "szosa",
+            "ścieżka",
+            "pasaż", "pasażu"
+        };
+
+        public static string RemoveStreetPrefixes(string text)
+        {
+            var sortedPrefixes = StreetPrefixes.OrderByDescending(p => p.Length);
+
+            foreach (var prefix in sortedPrefixes)
+            {
+                if (text.StartsWith(prefix + " ", StringComparison.OrdinalIgnoreCase))
+                {
+                    return text.Substring(prefix.Length + 1).Trim();
+                }
+
+                if (text.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return string.Empty;
+                }
+            }
+
+            return text;
+        }
+
+        /// <summary>
+        /// Normalizuje kod pocztowy do formatu XX-XXX
+        /// </summary>
+        public static string NormalizujKodPocztowy(string kod)
+        {
+            if (string.IsNullOrWhiteSpace(kod))
+            {
+                return string.Empty;
+            }
+
+            // Usuń wszystko oprócz cyfr
+            var cyfry = new string(kod.Where(char.IsDigit).ToArray());
+
+            if (cyfry.Length != 5)
+            {
+                return kod; // Zwróć oryginalny jeśli nieprawidłowy format
+            }
+
+            return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
+        }
+
+
+        public static string RemoveDiacritics(string text)
+        {
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            var stringBuilder = new StringBuilder();
+
+            foreach (var c in normalizedString)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+            //  Litera ł(U+0142) i Ł(U+0141) są osobnymi znakami w Unicode, a nie literą bazową z nałożonym znakiem diakrytycznym.
+            // 	Standardowa normalizacja Unicode(FormD) i usuwanie znaków diakrytycznych działa dla znaków takich jak: ą → a, ć → c, é → e, ö → o, itp., ale nie zamienia ł na l ani Ł na L.
+            return stringBuilder.ToString().Replace('ł', 'l').Replace('Ł', 'L').Normalize(NormalizationForm.FormC);
+        }
+
+        /// <summary>
+        /// ✅ DODAJ TĘ METODĘ:
+        /// Usuwa inicjały imion z nazw ulic (np. "G. Zapolskiej" -> "Zapolskiej")
+        /// </summary>
+        public static string RemoveNameInitial(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            // Wzorzec: 1-3 litery + kropka + spacja (lub 1-3 litery + spacja)
+            // Przykłady: "G. ", "Gen. ", "J.K. ", "dr ", "prof. "
+            var pattern = @"^(?:[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]{1,3}\.?\s+)+";
+
+            var result = System.Text.RegularExpressions.Regex.Replace(
+                text,
+                pattern,
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return result.Trim();
         }
 
     }

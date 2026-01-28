@@ -80,6 +80,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     // 1. Znajdź miasto
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
                     var miasto = matchResult.miasto;
+                
                     var gmina = matchResult.gmina;
                     var miastoNazwa = matchResult.miastoNazwa;
                     var gminaNazwa = matchResult.gminaNazwa;
@@ -117,7 +118,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 2. Znajdź ulicę (jeśli jest)
-                    var ulicaResult = ulicaMatcher.Match(pna.Ulica, miasto, miastoNazwa, pna.Kod);
+                    var ulicaResult = ulicaMatcher.Match(pna.Ulica, pna.Dzielnica, miasto, miastoNazwa, pna.Kod);
                     var ulica = ulicaResult.ulica;
                     var ulicaNazwa = ulicaResult.ulicaNazwa;
 
@@ -128,7 +129,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 3. Sprawdź duplikaty
-                    if (recordBuilder.IsDuplicate(pna.Kod, miasto.Id, ulica?.Id))
+                    if (recordBuilder.IsDuplicate(pna.Kod, pna.Numery, pna.Dzielnica, miasto.Id, ulica?.Id))
                     {
                         stats.DuplicateCount++;
                         stats.ProcessedCount++;

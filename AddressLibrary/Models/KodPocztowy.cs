@@ -26,10 +26,12 @@ namespace AddressLibrary.Models
         [ForeignKey(nameof(Miasto))]
         public int MiastoId { get; set; }
         public Miasto Miasto { get; set; } = null!;
+//        public string Dzielnica { get; set; } = string.Empty;
+
 
         // Klucz obcy do ulicy (opcjonalny - niektóre kody dotycz¹ ca³ych miejscowoœci bez konkretnej ulicy)
         [ForeignKey(nameof(Ulica))]
-        public int? UlicaId { get; set; }
-        public Ulica? Ulica { get; set; }
+        public int UlicaId { get; set; }
+        public Ulica Ulica { get; set; }
     }
 }

@@ -123,6 +123,9 @@ namespace AddressLibrary.Services
                     Wojewodztwo = parts[6].Trim()       // WOJEWÓDZTWO
                 };
 
+                // if (pna.Numery != "137-181m(n)") continue;
+
+
                 pnaBatch.Add(pna);
 
                 if (pnaBatch.Count >= batchSize)

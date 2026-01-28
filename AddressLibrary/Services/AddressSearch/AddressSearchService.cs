@@ -2,6 +2,7 @@
 
 using AddressLibrary.Data;
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using AddressLibrary.Services.AddressSearch.Filters;
 using AddressLibrary.Services.AddressSearch.Strategies;
 
@@ -181,7 +182,7 @@ namespace AddressLibrary.Services.AddressSearch
             string? normalizedPostalCode = null;
             if (!string.IsNullOrWhiteSpace(postalCode))
             {
-                normalizedPostalCode = _normalizer.NormalizePostalCode(postalCode);
+                normalizedPostalCode = UliceUtils.NormalizujKodPocztowy(postalCode);
                 diagnostic?.Log($"    Wymagany kod pocztowy: '{normalizedPostalCode}'");
             }
 
@@ -333,7 +334,7 @@ namespace AddressLibrary.Services.AddressSearch
             // ✅ KRYTERIUM 0: Jeśli podano kod pocztowy, ODFILTRUJ miasta bez tego kodu
             if (!string.IsNullOrWhiteSpace(postalCode))
             {
-                var normalizedCode = _normalizer.NormalizePostalCode(postalCode);
+                var normalizedCode = UliceUtils.NormalizujKodPocztowy(postalCode);
                 diagnostic?.Log($"    Filtrowanie po kodzie pocztowym: '{normalizedCode}'");
                 
                 var citiesWithCode = miasta.Where(m =>

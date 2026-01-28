@@ -1,7 +1,9 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
+using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch.Filters;
+using System.Collections.Generic;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
 {
@@ -67,7 +69,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             var combinedBuildingNumber = CombineNumbers(extractedNumber, request.NumerDomu);
             diagnostic?.Log($"Połączony numer budynku: '{combinedBuildingNumber}'");
 
-            // 🆕 KROK 1: Znajdź WSZYSTKIE pasujące ulice w WSZYSTKICH miastach
+            // 🆕 KROK 1: Znajdź WSZYSTKIE pasujące ulice w WSZYSTKICH miastach o podanej nazwie
             var matchingStreets = FindAllMatchingStreets(request, miasta, normalizedStreet, diagnostic);
 
             if (matchingStreets.Count == 0)
@@ -196,7 +198,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             var streets = matchingStreets.Select(m => m.street).ToList();
             var message = _ambiguityResolver.GetAmbiguityMessage(streets, postalCodes);
 
-            diagnostic?.Log($"  ℹ️ {message}");
+            diagnostic?.Log($" [A] ℹ️ {message}");
 
             return new AddressSearchResult
             {
@@ -248,8 +250,27 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     }
                 }
             }
+            if (matchingStreets.Count > 0)
+            {
+                diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic");
+                return matchingStreets;
+            }
 
-            diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic");
+            foreach (var miasto in miasta)
+            {
+                if (_cache.TryGetUlice(miasto.Id, out var ulice))
+                {
+                    diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
+
+                    var ulica = _streetMatcher.FindStreet(ulice, normalizedStreet);
+                    if (ulica != null) 
+                    {
+                        diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
+                        matchingStreets.Add((ulica, miasto));
+                    }
+                }
+            }
+            diagnostic?.Log($"Włączenie fuzzy matching - łącznie znaleziono {matchingStreets.Count} pasujących ulic");
             return matchingStreets;
         }
 
@@ -275,13 +296,13 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (otherLocations.Count == 0)
             {
                 diagnostic?.Log($"  ⚠️ UWAGA: Ulica '{request.Ulica}' NIE ISTNIEJE w całej bazie TERYT!");
-                
+        
                 return new AddressSearchResult
                 {
                     Status = AddressSearchStatus.InvalidStreetName,
                     Message = AddressSearchStatusInfo.GetMessage(
                         AddressSearchStatus.InvalidStreetName, 
-                        request.Ulica), // ✅ "Błędna nazwa ulicy 'XYZ'"
+                        request.Ulica)+ "/'" + normalizedStreet + "'", // ✅ "Błędna nazwa ulicy 'XYZ'"
                     Miasto = miasta.Count == 1 ? miasta[0] : null,
                     DiagnosticInfo = diagnostic?.GetLog()
                 };
@@ -377,7 +398,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             // ✅ WALIDACJA 2: Jeśli podano kod pocztowy, sprawdź czy pasuje do nowej miejscowości
             if (!string.IsNullOrWhiteSpace(request.KodPocztowy))
             {
-                var normalizedCode = _normalizer.NormalizePostalCode(request.KodPocztowy);
+                var normalizedCode = UliceUtils.NormalizujKodPocztowy(request.KodPocztowy);
 
                 if (_cache.TryGetKodyPocztowe(targetCity.Id, out var targetCityCodes))
                 {

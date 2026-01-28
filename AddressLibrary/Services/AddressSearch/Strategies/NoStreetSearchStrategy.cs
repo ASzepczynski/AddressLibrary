@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using AddressLibrary.Services.AddressSearch.Filters;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
@@ -125,7 +126,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             List<Miasto> miasta,
             DiagnosticLogger? diagnostic)
         {
-            var kodNorm = _normalizer.NormalizePostalCode(request.KodPocztowy);
+            var kodNorm = UliceUtils.NormalizujKodPocztowy(request.KodPocztowy);
             diagnostic?.Log($"Znaleziono {miasta.Count} miast o nazwie '{request.Miasto}', próba zawężenia po kodzie: {kodNorm}");
 
             var miastaZKodem = new List<Miasto>();
