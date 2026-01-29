@@ -137,7 +137,8 @@ namespace AddressLibrary.Services.AddressSearch
             if (_kodyPocztoweDict == null)
                 return false;
 
-            return _kodyPocztoweDict.TryGetValue(miastoId, out kody!);
+            var ok = _kodyPocztoweDict.TryGetValue(miastoId, out kody!);
+            return ok;
         }
 
         /// <summary>

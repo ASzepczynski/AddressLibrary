@@ -1,4 +1,5 @@
-﻿using AddressLibrary.Structures;
+﻿using AddressLibrary.Models;
+using AddressLibrary.Structures;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,21 +13,23 @@ namespace AddressLibrary.Helpers
 {
     static public class UliceUtils
     {
-        static public (string Nazwa1, string dzielnica) ZielonaGoraWesola(ResultList ulic)
+
+        static public string Wesola(ResultList ulic)
         {
-            string Nazwa1 = ulic.Ulica.Nazwa1;
-            string dzielnica = "";
-
             // Wyjątek dla Wesołej, dzielnicy Warszawy. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę
-            if (ulic.WojewodztwoNazwa.ToLower() == "mazowieckie" && ulic.PowiatNazwa == "Warszawa" && ulic.GminaNazwa == "Wesoła" && ulic.Miasto?.Nazwa == "Wesoła" && ulic.Miasto.RodzajMiasta == "95")
+            if (ulic.WojewodztwoNazwa.ToLower() == "mazowieckie"
+                && ulic.PowiatNazwa == "Warszawa"
+                && ulic.GminaNazwa == "Wesoła"
+                && ulic.Miasto.Nazwa == "Wesoła"
+                && ulic.Miasto.RodzajMiasta == "95")
             {
-                dzielnica = "Wesoła";
+                return "Wesoła";
             }
-            // Wyjątek dla Zielonej Góry. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę, która jest zawarta w nazwie ulicy.
-
-            if (ulic.WojewodztwoNazwa.ToLower() == "lubuskie" && ulic.PowiatNazwa == "Zielona Góra" && ulic.GminaNazwa == "Zielona Góra" && ulic.Miasto?.Nazwa == "Zielona Góra")
-            {
-                var dzielnice = new List<string> {
+            return "";
+        }
+        static public (string ulicaNazwa, string dzielnicaNazwa) ZielonaGora(Miasto miasto, string sUlica, string sDzielnica)
+        {
+            var dzielnice = new List<string> {
                         "Drzonków",
                         "Kiełpin",
                         "Kisielin",
@@ -41,20 +44,28 @@ namespace AddressLibrary.Helpers
                         "Zatonie",
                         "Zawada"
                     };
+            string ulicaNazwa = sUlica;
+            string dzielnicaNazwa = sDzielnica;
 
-
+            // Wyjątek dla Zielonej Góry. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę, która jest zawarta w nazwie ulicy.
+            if (miasto.Gmina.Powiat.Wojewodztwo.Nazwa.ToLower() == "lubuskie"
+                && miasto.Gmina.Powiat.Nazwa == "Zielona Góra" 
+                && miasto.Gmina.Nazwa == "Zielona Góra" 
+                && miasto.Nazwa == "Zielona Góra")
+            {
                 foreach (var dziel in dzielnice)
                 {
-                    if (ulic.Ulica.Nazwa1.StartsWith(dziel + "-"))
+                    if (sUlica.StartsWith(dziel + "-"))
                     {
-                        dzielnica = dziel;
-                        Nazwa1 = ulic.Ulica.Nazwa1.Remove(0, dziel.Length + 1);
+                        dzielnicaNazwa = dziel;
+                        ulicaNazwa = sUlica.Remove(0, dziel.Length + 1);
                         break;
                     }
                 }
             }
-            return (Nazwa1, dzielnica);
+            return (ulicaNazwa, dzielnicaNazwa);
         }
+
         static public (string Nazwa1, string Nazwa2) GetCorrectedStreetName(string Nazwa1, string Nazwa2)
         {
             Nazwa2 = Nazwa2.Replace("-go", "");

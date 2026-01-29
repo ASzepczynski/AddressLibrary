@@ -13,12 +13,12 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     /// </summary>
     internal class UlicaMatcher
     {
-        private readonly Dictionary<int, Dictionary<string, Ulica>> _uliceDict;
+        private readonly Dictionary<int, Dictionary<string, List<Ulica>>> _uliceDict;
 
         public int CorrectedCount { get; private set; }
         public int AmbiguousCount { get; private set; } // 🆕 Licznik niejednoznaczności
 
-        public UlicaMatcher(Dictionary<int, Dictionary<string, Ulica>> uliceDict)
+        public UlicaMatcher(Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict)
         {
             _uliceDict = uliceDict;
         }
@@ -27,19 +27,29 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// Próbuje znaleźć ulicę w danej miejscowości
         /// </summary>
         public (Ulica? ulica, string ulicaNazwa) Match(
-            string ulicaNazwa,
-            string dzielnicaNazwa,
+            string kodPocztowy,
+            string sWojewodztwo,
+            string sPowiat,
+            string sGmina,
             Miasto miasto,
-            string miastoNazwa,
-            string kodPocztowy)
+            string sDzielnica,
+            string sUlica
+        )
         {
-            if (string.IsNullOrEmpty(ulicaNazwa))
+            if (string.IsNullOrEmpty(sUlica))
             {
-                return (null, ulicaNazwa);
+                return (null, sUlica);
             }
 
-            var currentUlica = ulicaNazwa;
-            var currentDzielnica = dzielnicaNazwa;
+            var currentUlica = sUlica;
+            var currentDzielnica = "";
+
+            if (miasto.Nazwa == "Warszawa" && sDzielnica == "Wesoła")
+            {
+                currentDzielnica = sDzielnica;
+            }
+            (currentUlica, currentDzielnica) = UliceUtils.ZielonaGora(miasto, currentUlica, currentDzielnica);
+
             Ulica? ulica = null;
             bool ulicaFound = false;
 
@@ -48,7 +58,10 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             {
 
                 // 🆕 KROK 1a: Znajdź WSZYSTKIE dokładnie pasujące ulice
-                                var exactMatches = FindAllExactMatches(miasto, ulice, currentUlica, currentDzielnica);
+                var exactMatches = FindAllExactMatches(miasto, ulice, currentUlica, currentDzielnica);
+
+
+
 
                 if (exactMatches.Count == 1)
                 {
@@ -62,15 +75,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     // ⚠️ Wiele ulic - NIEJEDNOZNACZNOŚĆ
                     AmbiguousCount++;
                     Console.WriteLine($"[UlicaMatcher] ⚠️ NIEJEDNOZNACZNOŚĆ: Znaleziono {exactMatches.Count} ulic pasujących do '{currentUlica}':");
-                    
+
                     foreach (var match in exactMatches)
                     {
                         Console.WriteLine($"    - ID={match.Id}: '{GetPelnaNazwa(match)}'");
                     }
 
                     // 🆕 Próba rozstrzygnięcia po kodzie pocztowym
-                    ulica = ResolveAmbiguity(exactMatches, kodPocztowy, miastoNazwa);
-                    
+                    ulica = ResolveAmbiguity(exactMatches, kodPocztowy, miasto.Nazwa);
+
                     if (ulica != null)
                     {
                         Console.WriteLine($"[UlicaMatcher] ✓ Rozstrzygnięto: wybrano '{GetPelnaNazwa(ulica)}' na podstawie kodu {kodPocztowy}");
@@ -89,7 +102,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     if (ulice.TryGetValueAgain(currentUlica, out ulica))
                     {
                         ulicaFound = true;
-                        Console.WriteLine($"[UlicaMatcher] ✓ Fuzzy matching znalazł: '{GetPelnaNazwa(ulica)}'");
+                        Console.WriteLine($"[UlicaMatcher] ✓ Fuzzy matching znalazł: '{GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
                     }
                 }
             }
@@ -97,15 +110,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             // KROK 2: Jeśli nie znaleziono ulicy, ZAWSZE spróbuj korekty
             if (!ulicaFound)
             {
-                var correctedUlica = KorektyUlic.Popraw(ulicaNazwa, miastoNazwa, kodPocztowy);
+                var correctedUlica = KorektyUlic.Popraw(currentUlica, miasto.Nazwa, kodPocztowy);
 
                 // KROK 2a: Sprawdź czy korekta zwróciła inną nazwę
-                if (correctedUlica != ulicaNazwa)
+                if (correctedUlica != currentUlica)
                 {
                     // KROK 2b: Spróbuj znaleźć skorygowaną ulicę
                     if (_uliceDict.TryGetValue(miasto.Id, out var ulice2))
                     {
-                        if (ulice2.TryGetValue(correctedUlica.ToLowerInvariant(), out ulica))
+                        if (ulice2.TryGetValue(correctedUlica.ToLowerInvariant(), out var lUlica) && lUlica.Count==1)
                         {
                             currentUlica = correctedUlica;
                             CorrectedCount++;
@@ -114,50 +127,29 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
                 }
             }
-
             return (ulica, currentUlica);
         }
 
         /// <summary>
         /// 🆕 Znajduje wszystkie ulice dokładnie pasujące do szukanej nazwy (case-insensitive)
         /// </summary>
-        private List<Ulica> FindAllExactMatches(Miasto miasto, Dictionary<string, Ulica> ulice, string ulicaNazwa, string dzielnicaNazwa)
+        private List<Ulica> FindAllExactMatches(Miasto miasto, Dictionary<string, List<Ulica>> ulice, string sUlica, string sDzielnica)
         {
-            
+
             var matches = new List<Ulica>();
-            var ulic = new ResultList();
-            
-            ulic.Ulica = new TerytUlic();
-            ulic.Ulica.Nazwa1 = ulicaNazwa;
-            ulic.Ulica.Nazwa2 = "";
-            ulic.Ulica.Cecha = "";
-            
-            ulic.WojewodztwoNazwa = miasto.Gmina.Powiat.Wojewodztwo.Nazwa;
-            ulic.PowiatNazwa = miasto.Gmina.Powiat.Nazwa;
-            ulic.GminaNazwa = miasto.Gmina.Nazwa;
 
-            ulic.Miasto = new TerytSimc();
-            ulic.Miasto.Nazwa=miasto.Nazwa;
-            ulic.Miasto.RodzajMiasta = miasto.RodzajMiasta.Kod;
+            var normalizedSearch = sUlica.ToLowerInvariant();
 
-            string Nazwa1;
-            string dzielnica;
-            (Nazwa1, dzielnica) = UliceUtils.ZielonaGoraWesola(ulic);
-
-            if (dzielnicaNazwa != "")
-            {
-                dzielnica = dzielnicaNazwa;
-            }
-
-            var normalizedSearch = ulicaNazwa.ToLowerInvariant();
-            
-         
             foreach (var kvp in ulice)
             {
                 // Klucz słownika jest już znormalizowany (lowercase)
-                if (kvp.Key == normalizedSearch) // Tu by wypadało sprawdzić dzielnicę
+                if (kvp.Key == normalizedSearch) 
                 {
-                    matches.Add(kvp.Value);
+                    foreach (var uliczka in kvp.Value)
+                        if (uliczka.Dzielnica == sDzielnica)
+                        {
+                            matches.Add(uliczka);
+                        }
                 }
             }
 
@@ -177,7 +169,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             // STRATEGIA 1: Ulica z pustym Nazwa2 (krótsza nazwa) ma wyższy priorytet
             // Przykład: "Józefa" (Nazwa2="") > "Księcia Józefa" (Nazwa2="Księcia")
             var withoutPrefix = candidates.Where(u => string.IsNullOrEmpty(u.Nazwa2)).ToList();
-            
+
             if (withoutPrefix.Count == 1)
             {
                 Console.WriteLine($"[UlicaMatcher] ✓ Wybrano ulicę bez prefiksu: '{GetPelnaNazwa(withoutPrefix[0])}'");
@@ -205,7 +197,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 : "brak ulic w słowniku";
 
             var message = $"Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
-            
+
             if (correctedUlica != ulicaNazwa)
             {
                 message += $" | Próbowano korekty: '{correctedUlica}'";

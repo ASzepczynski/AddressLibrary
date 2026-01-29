@@ -162,7 +162,13 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 string? dzielnica = null;
                 string? Nazwa1 = ulic.Ulica.Nazwa1;
 
-                (Nazwa1, dzielnica) = UliceUtils.ZielonaGoraWesola(ulic);
+
+                dzielnica = UliceUtils.Wesola(ulic);
+                if (dzielnica == "")
+                {
+                    (Nazwa1, dzielnica) = UliceUtils.ZielonaGora(miasto, Nazwa1, dzielnica);
+                }
+
                 var Nazwa2 = ulic.Ulica.Nazwa2;
                 (Nazwa1, Nazwa2) = UliceUtils.GetCorrectedStreetName(Nazwa1, Nazwa2);
 

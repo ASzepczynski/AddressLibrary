@@ -68,11 +68,12 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             progress?.Report(progressInfo);
 
             var stats = new LoadStatistics();
-            var pendingRecords = new List<KodPocztowy>(1000);
-            const int batchSize = 1000;
+
+            var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
             const int logFlushInterval = 100;
 
+            //foreach (var pna in pnaData.Where(x=>x.Ulica=="Cicha" && x.Miasto=="Warszawa"))
             foreach (var pna in pnaData)
             {
                 try
@@ -80,7 +81,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     // 1. Znajdź miasto
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
                     var miasto = matchResult.miasto;
-                
+
                     var gmina = matchResult.gmina;
                     var miastoNazwa = matchResult.miastoNazwa;
                     var gminaNazwa = matchResult.gminaNazwa;
@@ -118,7 +119,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 2. Znajdź ulicę (jeśli jest)
-                    var ulicaResult = ulicaMatcher.Match(pna.Ulica, pna.Dzielnica, miasto, miastoNazwa, pna.Kod);
+                    var ulicaResult = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, pna.Ulica);
                     var ulica = ulicaResult.ulica;
                     var ulicaNazwa = ulicaResult.ulicaNazwa;
 
@@ -128,12 +129,10 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                         stats.ErrorCount++;
                     }
 
-                    // 3. Sprawdź duplikaty
-                    if (recordBuilder.IsDuplicate(pna.Kod, pna.Numery, pna.Dzielnica, miasto.Id, ulica?.Id))
+                    string dzielnica = "";
+                    if (miasto.Nazwa == "Warszawa" && pna.Dzielnica == "Wesoła")
                     {
-                        stats.DuplicateCount++;
-                        stats.ProcessedCount++;
-                        continue;
+                        dzielnica = pna.Dzielnica;
                     }
 
                     // 4. Utwórz rekord
@@ -152,12 +151,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 }
 
                 stats.ProcessedCount++;
-
-                // Zapisz partię
-                if (pendingRecords.Count >= batchSize)
-                {
-                    await SaveBatchAsync(pendingRecords, stats);
-                }
 
                 // Flush log
                 if (stats.ProcessedCount % logFlushInterval == 0)
@@ -182,7 +175,11 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             // Zapisz pozostałe
             if (pendingRecords.Count > 0)
             {
-                await SaveBatchAsync(pendingRecords, stats);
+                var uniqueRecords = pendingRecords
+                    .GroupBy(x => new { x.Kod, x.MiastoId, x.UlicaId, x.Numery })
+                    .Select(g => g.First())
+                    .ToList();
+                await SaveBatchAsync(uniqueRecords, stats);
             }
 
             await _logger.FlushAsync();

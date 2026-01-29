@@ -70,21 +70,21 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// NIE dodawaj klucza tylko Nazwa1, aby uniknąć kolizji z krótszymi nazwami.
         /// 
         /// </summary>
-        public async Task<Dictionary<int, Dictionary<string, Ulica>>> BuildUliceDictionaryAsync()
+        public async Task<Dictionary<int, Dictionary<string, List<Ulica>>>> BuildUliceDictionaryAsync()
         {
             var uliceAllList = await _context.Ulice.ToListAsync();
-            var uliceDict = new Dictionary<int, Dictionary<string, Ulica>>();
+            var uliceDict = new Dictionary<int, Dictionary<string, List<Ulica>>>();
 
             foreach (var ulica in uliceAllList)
             {
                 if (!uliceDict.ContainsKey(ulica.MiastoId))
                 {
-                    uliceDict[ulica.MiastoId] = new Dictionary<string, Ulica>(StringComparer.OrdinalIgnoreCase);
+                    uliceDict[ulica.MiastoId] = new Dictionary<string, List<Ulica>>(StringComparer.OrdinalIgnoreCase);
                 }
 
                 var ulice = uliceDict[ulica.MiastoId];
 
-                // 🆕 Sprawdź czy Nazwa2 jest specjalnym prefiksem
+                // Sprawdź czy Nazwa2 jest specjalnym prefiksem
                 bool hasSpecialPrefix = !string.IsNullOrWhiteSpace(ulica.Nazwa2) && Wyjatek(ulica);
 
                 // KROK 1: Dodaj wpis dla Nazwa1 TYLKO jeśli NIE ma specjalnego prefiksu
@@ -93,8 +93,9 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     var nazwa1Lower = ulica.Nazwa1.ToLowerInvariant();
                     if (!ulice.ContainsKey(nazwa1Lower))
                     {
-                        ulice[nazwa1Lower] = ulica;
+                        ulice[nazwa1Lower] = new List<Ulica>();
                     }
+                    ulice[nazwa1Lower].Add(ulica);
                 }
 
                 // KROK 2: Jeśli Nazwa2 istnieje, dodaj także klucz "Nazwa2 Nazwa1"
@@ -103,8 +104,9 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     var nazwa2Plus1 = $"{ulica.Nazwa2} {ulica.Nazwa1}".ToLowerInvariant();
                     if (!ulice.ContainsKey(nazwa2Plus1))
                     {
-                        ulice[nazwa2Plus1] = ulica;
+                        ulice[nazwa2Plus1] = new List<Ulica>();
                     }
+                    ulice[nazwa2Plus1].Add(ulica);
                 }
             }
 

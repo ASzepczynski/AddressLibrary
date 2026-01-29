@@ -29,7 +29,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         /// <param name="searchName">Szukana nazwa ulicy</param>
         /// <param name="ulica">Znaleziona ulica (jeœli dopasowanie >= 70%)</param>
         /// <returns>True jeœli znaleziono dopasowanie</returns>
-        public static bool TryGetValueAgain(this Dictionary<string, Ulica> uliceDict, string searchName, out Ulica? ulica)
+        public static bool TryGetValueAgain(this Dictionary<string, List<Ulica>> uliceDict, string searchName, out Ulica? ulica)
         {
             var result = TryGetValueAgainWithScore(uliceDict, searchName);
             ulica = result.Ulica;
@@ -39,7 +39,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         /// <summary>
         /// Próbuje znaleŸæ najlepsze dopasowanie ulicy z informacj¹ o wyniku (score)
         /// </summary>
-        public static UlicaMatchResult TryGetValueAgainWithScore(this Dictionary<string, Ulica> uliceDict, string searchName)
+        public static UlicaMatchResult TryGetValueAgainWithScore(this Dictionary<string, List<Ulica>> uliceDict, string searchName)
         {
             if (string.IsNullOrWhiteSpace(searchName) || uliceDict.Count == 0)
                 return new UlicaMatchResult { SearchName = searchName, Score = 0 };
@@ -49,24 +49,26 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             foreach (var kvp in uliceDict)
             {
-                var oUlica = kvp.Value;
-
-                // SprawdŸ Nazwa1
-                int score = PoliczNajlepszy(searchName, oUlica.Nazwa1);
-                if (score > bestScore)
+                foreach (var oUlica in kvp.Value)
                 {
-                    bestScore = score;
-                    bestMatch = oUlica;
-                }
 
-                // SprawdŸ Nazwa2 + Nazwa1 (jeœli Nazwa2 istnieje)
-                if (!oUlica.Nazwa2.IsNullOrEmpty())
-                {
-                    score = PoliczNajlepszy(searchName, oUlica.Nazwa2 + " " + oUlica.Nazwa1);
+                    // SprawdŸ Nazwa1
+                    int score = PoliczNajlepszy(searchName, oUlica.Nazwa1);
                     if (score > bestScore)
                     {
                         bestScore = score;
                         bestMatch = oUlica;
+                    }
+
+                    // SprawdŸ Nazwa2 + Nazwa1 (jeœli Nazwa2 istnieje)
+                    if (!oUlica.Nazwa2.IsNullOrEmpty())
+                    {
+                        score = PoliczNajlepszy(searchName, oUlica.Nazwa2 + " " + oUlica.Nazwa1);
+                        if (score > bestScore)
+                        {
+                            bestScore = score;
+                            bestMatch = oUlica;
+                        }
                     }
                 }
             }

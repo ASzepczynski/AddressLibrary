@@ -9,23 +9,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     /// </summary>
     internal class KodPocztowyRecordBuilder
     {
-        private readonly HashSet<string> _insertedCombinations = new();
-
-        /// <summary>
-        /// Sprawdza czy kombinacja Kod+Miejscowoœæ+Ulica ju¿ istnieje
-        /// </summary>
-        public bool IsDuplicate(string kod, string numery, string dzielnica,int miastoId, int? ulicaId)
-        {
-            var combinationKey = $"{kod}|{numery}|{dzielnica}|{miastoId}|{(ulicaId.HasValue ? ulicaId.ToString() : "NULL")}";
-            
-            if (_insertedCombinations.Contains(combinationKey))
-            {
-                return true;
-            }
-
-            _insertedCombinations.Add(combinationKey);
-            return false;
-        }
+        
 
         /// <summary>
         /// Tworzy nowy rekord KodPocztowy
