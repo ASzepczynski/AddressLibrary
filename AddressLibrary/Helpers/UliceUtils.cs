@@ -49,8 +49,8 @@ namespace AddressLibrary.Helpers
 
             // Wyjątek dla Zielonej Góry. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę, która jest zawarta w nazwie ulicy.
             if (miasto.Gmina.Powiat.Wojewodztwo.Nazwa.ToLower() == "lubuskie"
-                && miasto.Gmina.Powiat.Nazwa == "Zielona Góra" 
-                && miasto.Gmina.Nazwa == "Zielona Góra" 
+                && miasto.Gmina.Powiat.Nazwa == "Zielona Góra"
+                && miasto.Gmina.Nazwa == "Zielona Góra"
                 && miasto.Nazwa == "Zielona Góra")
             {
                 foreach (var dziel in dzielnice)
@@ -199,9 +199,35 @@ namespace AddressLibrary.Helpers
                     stringBuilder.Append(c);
                 }
             }
+            return ZamienPolskie(stringBuilder.ToString());
+
             //  Litera ł(U+0142) i Ł(U+0141) są osobnymi znakami w Unicode, a nie literą bazową z nałożonym znakiem diakrytycznym.
             // 	Standardowa normalizacja Unicode(FormD) i usuwanie znaków diakrytycznych działa dla znaków takich jak: ą → a, ć → c, é → e, ö → o, itp., ale nie zamienia ł na l ani Ł na L.
-            return stringBuilder.ToString().Replace('ł', 'l').Replace('Ł', 'L').Normalize(NormalizationForm.FormC);
+        }
+
+
+        // Zamienia polskie litery na łacińskie
+        // Funkcja RemoveDiacritics miała problemy z 'ł' i z 'ż'
+
+        public static string ZamienPolskie(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+                return s;
+
+            var replacements = new Dictionary<char, char>
+    {
+        { 'ą', 'a' }, { 'ć', 'c' }, { 'ę', 'e' }, { 'ł', 'l' }, { 'ń', 'n' },
+        { 'ó', 'o' }, { 'ś', 's' }, { 'ź', 'z' }, { 'ż', 'z' },
+        { 'Ą', 'A' }, { 'Ć', 'C' }, { 'Ę', 'E' }, { 'Ł', 'L' }, { 'Ń', 'N' },
+        { 'Ó', 'O' }, { 'Ś', 'S' }, { 'Ź', 'Z' }, { 'Ż', 'Z' }
+    };
+
+            var sb = new StringBuilder(s.Length);
+            foreach (var c in s)
+            {
+                sb.Append(replacements.TryGetValue(c, out var ascii) ? ascii : c);
+            }
+            return sb.ToString();
         }
 
         /// <summary>

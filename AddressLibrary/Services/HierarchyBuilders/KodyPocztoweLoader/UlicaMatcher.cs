@@ -14,13 +14,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     internal class UlicaMatcher
     {
         private readonly Dictionary<int, Dictionary<string, List<Ulica>>> _uliceDict;
+        private readonly LoadLogger _loadLogger;
 
         public int CorrectedCount { get; private set; }
         public int AmbiguousCount { get; private set; } // 🆕 Licznik niejednoznaczności
 
-        public UlicaMatcher(Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict)
+        public UlicaMatcher(Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict, LoadLogger loadLogger)
         {
             _uliceDict = uliceDict;
+            _loadLogger = loadLogger;
         }
 
         /// <summary>
@@ -60,9 +62,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 // 🆕 KROK 1a: Znajdź WSZYSTKIE dokładnie pasujące ulice
                 var exactMatches = FindAllExactMatches(miasto, ulice, currentUlica, currentDzielnica);
 
-
-
-
                 if (exactMatches.Count == 1)
                 {
                     // ✅ Dokładnie jedna ulica - OK
@@ -81,7 +80,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                         Console.WriteLine($"    - ID={match.Id}: '{GetPelnaNazwa(match)}'");
                     }
 
-                    // 🆕 Próba rozstrzygnięcia po kodzie pocztowym
+                    // 🆕 Próba rozstrzygnięcia niejednoznaczności
                     ulica = ResolveAmbiguity(exactMatches, kodPocztowy, miasto.Nazwa);
 
                     if (ulica != null)
@@ -164,25 +163,25 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             if (candidates.Count <= 1)
                 return candidates.FirstOrDefault();
 
-            Console.WriteLine($"[UlicaMatcher] Próba rozstrzygnięcia dla kodu: {kodPocztowy}");
-
-            // STRATEGIA 1: Ulica z pustym Nazwa2 (krótsza nazwa) ma wyższy priorytet
-            // Przykład: "Józefa" (Nazwa2="") > "Księcia Józefa" (Nazwa2="Księcia")
-            var withoutPrefix = candidates.Where(u => string.IsNullOrEmpty(u.Nazwa2)).ToList();
-
-            if (withoutPrefix.Count == 1)
+           // STRATEGIA 1: Lista cech w kolejności priorytetu
+            var cechyPriorytet = new[] { "ul.", "Al.", "Pl." };
+            
+            foreach (var cecha in cechyPriorytet)
             {
-                Console.WriteLine($"[UlicaMatcher] ✓ Wybrano ulicę bez prefiksu: '{GetPelnaNazwa(withoutPrefix[0])}'");
-                return withoutPrefix[0];
-            }
+                var matches = candidates.Where(u => u.Cecha == cecha).ToList();
+                var pominieteCechy= candidates.Where(u => u.Cecha != cecha).Select(x=>x.Cecha).ToList();
+                if (matches.Count == 1)
+                {
+                    _loadLogger.LogError($"[UlicaMatcher] ✓ Wybrano cechę {kodPocztowy} {miastoNazwa} '{cecha}': '{GetPelnaNazwa(matches[0])}'");
+                    if (pominieteCechy.Count > 0)
+                    {
+                        _loadLogger.LogError($"[UlicaMatcher] Pominięto cechy: {string.Join(", ", pominieteCechy)}");
+                    }
+                    return matches[0];
+                }
+                            }
 
-            // STRATEGIA 2: TODO - w przyszłości można sprawdzić kody pocztowe
-            // if (!string.IsNullOrEmpty(kodPocztowy))
-            // {
-            //     // Sprawdź która ulica ma kod pocztowy pasujący do tego rekordu
-            // }
-
-            Console.WriteLine($"[UlicaMatcher] ✗ Nie można rozstrzygnąć - zwracam null");
+            _loadLogger.LogError($"[UlicaMatcher] ✗ Nie można rozstrzygnąć - zwracam null");
             return null;
         }
 

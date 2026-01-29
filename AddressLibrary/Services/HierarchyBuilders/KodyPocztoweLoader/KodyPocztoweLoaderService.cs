@@ -61,7 +61,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
             // Inicjalizuj matchery - PRZEKAŻ LOGGER
             var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger);
-            var ulicaMatcher = new UlicaMatcher(uliceDict);
+            var ulicaMatcher = new UlicaMatcher(uliceDict,_logger);
             var recordBuilder = new KodPocztowyRecordBuilder();
 
             progressInfo.CurrentOperation = "Przetwarzanie kodów pocztowych...";
@@ -119,7 +119,8 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 2. Znajdź ulicę (jeśli jest)
-                    var ulicaResult = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, pna.Ulica);
+                    string sUlica = pna.Ulica.Replace("-go","");
+                    var ulicaResult = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sUlica);
                     var ulica = ulicaResult.ulica;
                     var ulicaNazwa = ulicaResult.ulicaNazwa;
 
