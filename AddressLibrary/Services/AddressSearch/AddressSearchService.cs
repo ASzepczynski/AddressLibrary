@@ -3,6 +3,7 @@
 using AddressLibrary.Data;
 using AddressLibrary.Models;
 using AddressLibrary.Helpers;
+using AddressLibrary.Logging;
 using AddressLibrary.Services.AddressSearch.Filters;
 using AddressLibrary.Services.AddressSearch.Strategies;
 
@@ -17,9 +18,11 @@ namespace AddressLibrary.Services.AddressSearch
         private readonly TextNormalizer _normalizer;
         private readonly StreetSearchStrategy _streetSearch;
         private readonly NoStreetSearchStrategy _noStreetSearch;
+        private string _appDataPath;
 
-        public AddressSearchService(AddressDbContext context)
+        public AddressSearchService(AddressDbContext context,string appDataPath)
         {
+            _appDataPath = appDataPath;
             _normalizer = new TextNormalizer();
             _cache = new AddressSearchCache(context, _normalizer);
 
@@ -47,8 +50,9 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 await InitializeAsync();
             }
-
-            DiagnosticLogger? diagnostic = enableDiagnostics ? new DiagnosticLogger() : null;
+        
+            DiagnosticLogger? diagnostic = 
+                enableDiagnostics ? new DiagnosticLogger(_appDataPath) : null;
 
             // ✅ Walidacja: Miasto jest wymagane
             if (string.IsNullOrWhiteSpace(request.Miasto))

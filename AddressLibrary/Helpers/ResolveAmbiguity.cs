@@ -13,7 +13,11 @@ namespace AddressLibrary.Helpers
         /// <summary>
         /// 🆕 Próbuje rozstrzygnąć niejednoznaczność na podstawie kodu pocztowego
         /// </summary>
-        public static Ulica? ResolveAmbiguityPostal(List<Ulica> candidates, string kodPocztowy, string miastoNazwa, LoadLogger? _loadLogger)
+        public static Ulica? ResolveAmbiguityPostal(
+            List<Ulica> candidates, 
+            string kodPocztowy, 
+            string miastoNazwa, 
+            ILogger? _loadLogger)
         {
             if (candidates.Count <= 1)
                 return candidates.FirstOrDefault();

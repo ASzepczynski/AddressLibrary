@@ -18,7 +18,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         public KodyPocztoweLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
-            _logger = new LoadLogger(appDataPath,"Kody pocztowe");
+            _logger = new LoadLogger(appDataPath);
         }
 
         public async Task LoadAsync(

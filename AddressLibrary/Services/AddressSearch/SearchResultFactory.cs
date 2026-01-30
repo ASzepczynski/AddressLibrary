@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Models;
+using AddressLibrary.Logging;
 
 namespace AddressLibrary.Services.AddressSearch
 {

@@ -15,10 +15,10 @@ namespace AddressLibrary.Logging
         public string? Name = "KodyPocztoweLoader";
         public string fileName;
 
-        public LoadLogger(string? appDataPath, string _name)
+        public LoadLogger(string? appDataPath)
         {
-            Name = _name;
-            fileName = _name + ".txt";
+           
+            fileName = Name + ".txt";
             var logsDir = Path.Combine(appDataPath ?? AppDomain.CurrentDomain.BaseDirectory, "AppData", "Logs");
 
             try

@@ -2,6 +2,7 @@
 
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
+using AddressLibrary.Logging;
 using AddressLibrary.Services.AddressSearch.Filters;
 using AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader;
 using System.Collections.Generic;
@@ -130,7 +131,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private (UlicaCached street, Miasto miasto)? ResolveAmbiguousStreets(
             AddressSearchRequest request,
             List<(UlicaCached street, Miasto miasto)> matchingStreets,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             // Wyciągnij tylko listę ulic (bez miast)
 
@@ -161,7 +162,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 streets,
                 request.KodPocztowy,
                 firstMiasto.Nazwa,
-                null); // Tutaj jest do roboty, bo nie loguje
+                diagnostic); 
 
             if (resolvedStreet == null)
             {

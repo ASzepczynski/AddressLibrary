@@ -2,6 +2,7 @@
 
 using AddressLibrary.Data;
 using AddressLibrary.Models;
+using AddressLibrary.Logging;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies

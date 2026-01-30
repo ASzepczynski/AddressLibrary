@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using UglyToad.PdfPig.Logging;
 
 namespace AddressLibrary.Logging
 {
@@ -15,10 +16,10 @@ namespace AddressLibrary.Logging
         public string? Name = "DiagnosticLoader";
         public string fileName;
 
-        public DiagnosticLogger(string? appDataPath, string _name)
+        public DiagnosticLogger(string? appDataPath)
         {
-            Name = _name;
-            fileName = _name + ".txt";
+            
+            fileName = Name + ".txt";
             var logsDir = Path.Combine(appDataPath ?? AppDomain.CurrentDomain.BaseDirectory, "AppData", "Logs");
 
             try
@@ -52,7 +53,8 @@ namespace AddressLibrary.Logging
 
         public virtual void Log(string message)
         {
-            _logBuffer.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
+            // _logBuffer.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
+            _logBuffer.WriteLine($"{message}");
         }
 
         public virtual void LogInfo(string message) => Log("[INFO] " + message);
@@ -67,5 +69,6 @@ namespace AddressLibrary.Logging
                 _logBuffer.GetStringBuilder().Clear();
             }
         }
+        public string GetLog() => _logBuffer.ToString();
     }
 }

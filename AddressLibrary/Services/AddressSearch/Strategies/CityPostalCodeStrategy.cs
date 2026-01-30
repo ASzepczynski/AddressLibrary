@@ -2,6 +2,7 @@
 
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch.Filters;
+using AddressLibrary.Logging;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
 {
