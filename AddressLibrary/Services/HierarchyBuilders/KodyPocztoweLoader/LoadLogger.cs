@@ -1,82 +1,71 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
-using System.Text;
+using AddressLibrary.Logging;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 {
-    /// <summary>
-    /// Zarz¹dza logowaniem procesu ³adowania kodów pocztowych
-    /// </summary>
-    public class LoadLogger
+    public class LoadLogger : ILogger
     {
-        private readonly string _logFilePath;
-        private readonly StringBuilder _logBuffer = new();
+        private readonly string? _filePath;
+        private readonly StringWriter _logBuffer = new();
 
-        public string LogFilePath => _logFilePath;
+        public string? LogFilePath => _filePath;
+        public string? Name = "KodyPocztoweLoader";
+        public string fileName;
 
-        public LoadLogger(string? appDataPath)
+        public LoadLogger(string? appDataPath, string _name)
         {
+            Name = _name;
+            fileName = _name + ".txt";
             var logsDir = Path.Combine(appDataPath ?? AppDomain.CurrentDomain.BaseDirectory, "AppData", "Logs");
 
             try
             {
                 Directory.CreateDirectory(logsDir);
-                Console.WriteLine($"[KodyPocztoweLoader] Katalog logów: {logsDir}");
+                Console.WriteLine($"[{Name}] Katalog logów: {logsDir}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[KodyPocztoweLoader] B£¥D tworzenia katalogu logów: {ex.Message}");
+                Console.WriteLine($"[{Name}] B£¥D tworzenia katalogu logów: {ex.Message}");
             }
 
-            _logFilePath = Path.Combine(logsDir, "LoadLog.txt");
-            Console.WriteLine($"[KodyPocztoweLoader] Œcie¿ka logu: {_logFilePath}");
-        }
-
-        public async Task InitializeAsync()
-        {
+            _filePath = Path.Combine(logsDir, fileName);
+            Console.WriteLine($"[KodyPocztoweLoader] Œcie¿ka logu: {_filePath}");
             try
             {
-                await File.WriteAllTextAsync(_logFilePath, 
-                    $"=== Log ³adowania kodów pocztowych - {DateTime.Now} ==={Environment.NewLine}{Environment.NewLine}");
-                Console.WriteLine($"[KodyPocztoweLoader] Utworzono plik logu: {_logFilePath}");
+                _logBuffer.WriteLine("=== Log ³adowania kodów pocztowych ===");
+                // Zapisz nag³ówek logu synchronicznie, jeœli plik nie istnieje
+                if (!string.IsNullOrEmpty(_filePath) && !File.Exists(_filePath))
+                {
+                    File.WriteAllText(_filePath, _logBuffer.ToString());
+                    _logBuffer.GetStringBuilder().Clear();
+                }
+                Console.WriteLine($"Utworzono plik logu: {_filePath}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[KodyPocztoweLoader] B£¥D tworzenia pliku logu: {ex.Message}");
+                Console.WriteLine($"B£¥D tworzenia pliku logu '{_filePath}': {ex.Message}");
             }
         }
 
-        public void LogError(string message)
+        public virtual void Log(string message)
         {
-            _logBuffer.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
+            _logBuffer.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
         }
 
-        public async Task FlushAsync()
-        {
-            if (_logBuffer.Length > 0)
-            {
-                try
-                {
-                    await File.AppendAllTextAsync(_logFilePath, _logBuffer.ToString());
-                    _logBuffer.Clear();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[KodyPocztoweLoader] B£¥D zapisu bufora logu: {ex.Message}");
-                }
-            }
-        }
+        public virtual void LogInfo(string message) => Log("[INFO] " + message);
+        public virtual void LogWarning(string message) => Log("[WARN] " + message);
+        public virtual void LogError(string message) => Log("[ERROR] " + message);
 
-        public async Task WriteSummaryAsync(string summary)
+        public async virtual Task FlushAsync()
         {
-            try
+            if (!string.IsNullOrEmpty(_filePath))
             {
-                await File.AppendAllTextAsync(_logFilePath, summary);
-                Console.WriteLine($"[KodyPocztoweLoader] Zapisano podsumowanie do logu");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[KodyPocztoweLoader] B£¥D zapisu podsumowania: {ex.Message}");
+                await File.AppendAllTextAsync(_filePath, _logBuffer.ToString());
+                _logBuffer.GetStringBuilder().Clear();
             }
         }
     }
