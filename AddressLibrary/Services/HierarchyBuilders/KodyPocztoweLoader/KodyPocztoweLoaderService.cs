@@ -1,4 +1,5 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,15 +18,13 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         public KodyPocztoweLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
-            _logger = new LoadLogger(appDataPath);
+            _logger = new LoadLogger(appDataPath,"Kody pocztowe");
         }
 
         public async Task LoadAsync(
             List<Pna> pnaData,
             IProgress<LoadProgressInfo>? progress = null)
         {
-            await _logger.InitializeAsync();
-
             // DODANO: Wyczyść tabelę KodyPocztowe przed rozpoczęciem ładowania
             var progressInfo = new LoadProgressInfo
             {
@@ -183,9 +182,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 await SaveBatchAsync(uniqueRecords, stats);
             }
 
-            await _logger.FlushAsync();
-
-            // Raport końcowy
+            // Raport końcowy - do zrobienia, bo się nie wypisuje
             stats.CorrectedMiastaCount = miastoMatcher.CorrectedCount;
             stats.CorrectedUliceCount = ulicaMatcher.CorrectedCount;
 
@@ -195,7 +192,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             progressInfo.CurrentOperation = "Zakończono ładowanie kodów pocztowych";
             progress?.Report(progressInfo);
 
-            await _logger.WriteSummaryAsync(stats.FormatSummary(pnaData.Count));
+            await _logger.FlushAsync();
         }
 
         private async Task SaveBatchAsync(List<KodPocztowy> pendingRecords, LoadStatistics stats)

@@ -4,6 +4,7 @@ using AddressLibrary.Models;
 using AddressLibrary.Structures;
 using System.Collections.Immutable;
 using AddressLibrary.Helpers;
+using AddressLibrary.Logging;
 
 
 namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader

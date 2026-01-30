@@ -1,11 +1,10 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
-using AddressLibrary.Logging;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
+namespace AddressLibrary.Logging
 {
     public class LoadLogger : ILogger
     {

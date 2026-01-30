@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
+using AddressLibrary.Logging;
 using AddressLibrary.Models;
 
 namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
