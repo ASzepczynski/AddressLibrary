@@ -18,50 +18,6 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         /// <summary>
-        /// Próbuje rozwiązać niejednoznaczność i wybrać jedną ulicę
-        /// </summary>
-        /// <param name="matchingStreets">Lista pasujących ulic (UlicaCached)</param>
-        /// <param name="originalStreetName">Oryginalna nazwa ulicy z danych źródłowych</param>
-        /// <param name="postalCode">Kod pocztowy z danych źródłowych (może być pusty)</param>
-        /// <param name="postalCodes">Lista kodów pocztowych dla miejscowości</param>
-        /// <returns>Wybrana ulica lub null jeśli nie można rozwiązać niejednoznaczności</returns>
-        public UlicaCached? ResolveAmbiguity(
-            List<UlicaCached> matchingStreets,
-            string originalStreetName,
-            string? postalCode,
-            List<KodPocztowy> postalCodes)
-        {
-            if (matchingStreets == null || matchingStreets.Count <= 1)
-                return matchingStreets?.FirstOrDefault();
-
-            // ✅ KROK 1: Odfiltruj ulice zaczynające się od "Park", "inne", "rondo"
-            var filteredStreets = FilterOutSpecialPrefixes(matchingStreets);
-
-            if (filteredStreets.Count == 1)
-                return filteredStreets[0];
-
-            if (filteredStreets.Count == 0)
-                filteredStreets = matchingStreets; // Jeśli wszystkie zostały odfiltrowane, użyj oryginalnej listy
-
-            // ✅ KROK 2: Sprawdź dokładne dopasowanie nazwy (1:1)
-            var exactMatch = FindExactNameMatch(filteredStreets, originalStreetName);
-            if (exactMatch != null)
-                return exactMatch;
-
-            // ✅ KROK 3: Jeśli podano kod pocztowy, sprawdź dopasowanie po kodzie
-            if (!string.IsNullOrWhiteSpace(postalCode))
-            {
-                var normalizedPostalCode = UliceUtils.NormalizujKodPocztowy(postalCode);
-                var codeMatch = FindByPostalCode(filteredStreets, normalizedPostalCode, postalCodes);
-                if (codeMatch != null)
-                    return codeMatch;
-            }
-
-            // ❌ Nie udało się rozwiązać niejednoznaczności
-            return null;
-        }
-
-        /// <summary>
         /// Odfiltruj ulice zaczynające się od "Park", "inne", "rondo"
         /// </summary>
         private List<UlicaCached> FilterOutSpecialPrefixes(List<UlicaCached> streets)

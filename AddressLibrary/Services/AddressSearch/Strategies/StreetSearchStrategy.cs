@@ -3,6 +3,7 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch.Filters;
+using AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader;
 using System.Collections.Generic;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
@@ -44,18 +45,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             DiagnosticLogger? diagnostic)
         {
             diagnostic?.Log("\n--- STRATEGIA: Szukanie z ulicą ---");
-
-            // Sprawdź czy miejscowość == ulica (duplikat)
-            if (IsCityAndStreetIdentical(request, diagnostic))
-            {
-                diagnostic?.Log($"⚠ Miejscowość i ulica są identyczne ('{request.Miasto}'), usuwam ulicę - szukam bez ulicy");
-                return new AddressSearchResult
-                {
-                    Status = AddressSearchStatus.ValidationError,
-                    Message = "Miejscowość i ulica nie mogą być identyczne",
-                    DiagnosticInfo = diagnostic?.GetLog()
-                };
-            }
 
             // Normalizuj ulicę i wyciągnij numer
             var (normalizedStreet, extractedNumber) = _normalizer.NormalizeStreetWithNumber(request.Ulica);
@@ -144,22 +133,35 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             DiagnosticLogger? diagnostic)
         {
             // Wyciągnij tylko listę ulic (bez miast)
-            var streets = matchingStreets.Select(m => m.street).ToList();
 
-            // Pobierz kody pocztowe dla pierwszego miasta (zakładamy że wszystkie miasta mają te same ulice)
-            var firstMiasto = matchingStreets[0].miasto;
-            if (!_cache.TryGetKodyPocztowe(firstMiasto.Id, out var postalCodes))
+            // Jeśli na liście matchingStreets są ulice z więcej niż jednego miasta, poddajemy się
+            var uniqueCities = matchingStreets.Select(m => m.miasto.Id).Distinct().Count();
+            if (uniqueCities > 1)
             {
-                diagnostic?.Log("  ✗ Brak kodów pocztowych dla miejscowości - nie można rozwiązać po kodzie");
-                postalCodes = new List<KodPocztowy>();
+                diagnostic?.Log("  ✗ Niejednoznaczność: znaleziono ulice w więcej niż jednym mieście – nie rozstrzygamy.");
+                return null;
             }
 
+
+            var firstMiasto = matchingStreets[0].miasto;
+            var streets = matchingStreets
+    .Select(m => new Ulica
+    {
+        Id = m.street.Id,
+        MiastoId = m.street.MiastoId,
+        Cecha = m.street.Cecha,
+        Nazwa1 = m.street.Nazwa1,
+        Nazwa2 = m.street.Nazwa2,
+        Miasto = m.street.Miasto
+    })
+    .ToList();
+
             // Użyj AmbiguousStreetResolver
-            var resolvedStreet = _ambiguityResolver.ResolveAmbiguity(
+            var resolvedStreet = ResolveAmbiguity.ResolveAmbiguityPostal(
                 streets,
-                request.Ulica,
                 request.KodPocztowy,
-                postalCodes);
+                firstMiasto.Nazwa,
+                null); // Tutaj jest do roboty, bo nie loguje
 
             if (resolvedStreet == null)
             {
@@ -169,14 +171,14 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             // Znajdź odpowiadające miasto dla wybranej ulicy
             var matchedPair = matchingStreets.FirstOrDefault(m => m.street.Id == resolvedStreet.Id);
-            
+
             if (matchedPair.street == null)
             {
                 diagnostic?.Log("  ✗ Błąd: nie znaleziono pary (ulica, miasto)");
                 return null;
             }
 
-            diagnostic?.Log($"  ✓ Automatycznie wybrano: {_cache.GetOriginalStreetName(resolvedStreet)}");
+            diagnostic?.Log($"  ✓ Automatycznie wybrano: {UliceUtils.GetPelnaNazwa(resolvedStreet)}");
             return matchedPair;
         }
 
@@ -209,16 +211,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             };
         }
 
-        private bool IsCityAndStreetIdentical(AddressSearchRequest request, DiagnosticLogger? diagnostic)
-        {
-            if (string.IsNullOrWhiteSpace(request.Ulica) || string.IsNullOrWhiteSpace(request.Miasto))
-                return false;
 
-            var miejscNorm = _normalizer.Normalize(request.Miasto);
-            var ulicaNorm = _normalizer.Normalize(request.Ulica);
-
-            return miejscNorm == ulicaNorm;
-        }
 
         /// <summary>
         /// 🆕 Znajduje WSZYSTKIE ulice pasujące do wyszukiwanego nazwy we WSZYSTKICH miastach
@@ -263,7 +256,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
 
                     var ulica = _streetMatcher.FindStreet(ulice, normalizedStreet);
-                    if (ulica != null) 
+                    if (ulica != null)
                     {
                         diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
                         matchingStreets.Add((ulica, miasto));
@@ -291,18 +284,18 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             // KROK 2: Sprawdź globalnie - czy ulica istnieje GDZIEKOLWIEK?
             var otherLocations = _cache.FindStreetGlobally(normalizedStreet);
-            
+
             // ✅ ULICA NIE ISTNIEJE NIGDZIE → InvalidStreetName
             if (otherLocations.Count == 0)
             {
                 diagnostic?.Log($"  ⚠️ UWAGA: Ulica '{request.Ulica}' NIE ISTNIEJE w całej bazie TERYT!");
-        
+
                 return new AddressSearchResult
                 {
                     Status = AddressSearchStatus.InvalidStreetName,
                     Message = AddressSearchStatusInfo.GetMessage(
-                        AddressSearchStatus.InvalidStreetName, 
-                        request.Ulica)+ "/'" + normalizedStreet + "'", // ✅ "Błędna nazwa ulicy 'XYZ'"
+                        AddressSearchStatus.InvalidStreetName,
+                        request.Ulica) + "/'" + normalizedStreet + "'", // ✅ "Błędna nazwa ulicy 'XYZ'"
                     Miasto = miasta.Count == 1 ? miasta[0] : null,
                     DiagnosticInfo = diagnostic?.GetLog()
                 };
@@ -348,7 +341,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 Status = AddressSearchStatus.UlicaNotFound,
                 Message = AddressSearchStatusInfo.GetMessage(
-                    AddressSearchStatus.UlicaNotFound, 
+                    AddressSearchStatus.UlicaNotFound,
                     $"'{request.Ulica}' w miejscowości '{request.Miasto}'"), // ✅ "Nie znaleziono ulicy 'XYZ' w miejscowości 'ABC'"
                 Miasto = miasta.Count == 1 ? miasta[0] : null,
                 DiagnosticInfo = diagnostic?.GetLog()

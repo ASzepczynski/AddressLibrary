@@ -7,7 +7,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     /// <summary>
     /// Zarz¹dza logowaniem procesu ³adowania kodów pocztowych
     /// </summary>
-    internal class LoadLogger
+    public class LoadLogger
     {
         private readonly string _logFilePath;
         private readonly StringBuilder _logBuffer = new();

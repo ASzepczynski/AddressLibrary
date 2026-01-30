@@ -14,7 +14,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     internal class UlicaMatcher
     {
         private readonly Dictionary<int, Dictionary<string, List<Ulica>>> _uliceDict;
-        private readonly LoadLogger _loadLogger;
+        public readonly LoadLogger _loadLogger;
 
         public int CorrectedCount { get; private set; }
         public int AmbiguousCount { get; private set; } // 🆕 Licznik niejednoznaczności
@@ -67,7 +67,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     // ✅ Dokładnie jedna ulica - OK
                     ulica = exactMatches[0];
                     ulicaFound = true;
-                    Console.WriteLine($"[UlicaMatcher] ✓ Znaleziono dokładnie jedną ulicę: '{GetPelnaNazwa(ulica)}'");
+                    Console.WriteLine($"[UlicaMatcher] ✓ Znaleziono dokładnie jedną ulicę: '{UliceUtils.GetPelnaNazwa(ulica)}'");
                 }
                 else if (exactMatches.Count > 1)
                 {
@@ -77,15 +77,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                     foreach (var match in exactMatches)
                     {
-                        Console.WriteLine($"    - ID={match.Id}: '{GetPelnaNazwa(match)}'");
+                        Console.WriteLine($"    - ID={match.Id}: '{UliceUtils.GetPelnaNazwa(match)}'");
                     }
 
                     // 🆕 Próba rozstrzygnięcia niejednoznaczności
-                    ulica = ResolveAmbiguity(exactMatches, kodPocztowy, miasto.Nazwa);
+                    ulica = AddressLibrary.Helpers.ResolveAmbiguity.ResolveAmbiguityPostal(exactMatches, kodPocztowy, miasto.Nazwa,_loadLogger);
 
                     if (ulica != null)
                     {
-                        Console.WriteLine($"[UlicaMatcher] ✓ Rozstrzygnięto: wybrano '{GetPelnaNazwa(ulica)}' na podstawie kodu {kodPocztowy}");
+                        Console.WriteLine($"[UlicaMatcher] ✓ Rozstrzygnięto: wybrano '{UliceUtils.GetPelnaNazwa(ulica)}' na podstawie kodu {kodPocztowy}");
                         ulicaFound = true;
                     }
                     else
@@ -101,7 +101,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     if (ulice.TryGetValueAgain(currentUlica, out ulica))
                     {
                         ulicaFound = true;
-                        Console.WriteLine($"[UlicaMatcher] ✓ Fuzzy matching znalazł: '{GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
+                        Console.WriteLine($"[UlicaMatcher] ✓ Fuzzy matching znalazł: '{UliceUtils.GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
                     }
                 }
             }
@@ -155,36 +155,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             return matches;
         }
 
-        /// <summary>
-        /// 🆕 Próbuje rozstrzygnąć niejednoznaczność na podstawie kodu pocztowego
-        /// </summary>
-        private Ulica? ResolveAmbiguity(List<Ulica> candidates, string kodPocztowy, string miastoNazwa)
-        {
-            if (candidates.Count <= 1)
-                return candidates.FirstOrDefault();
-
-           // STRATEGIA 1: Lista cech w kolejności priorytetu
-            var cechyPriorytet = new[] { "ul.", "Al.", "Pl." };
-            
-            foreach (var cecha in cechyPriorytet)
-            {
-                var matches = candidates.Where(u => u.Cecha == cecha).ToList();
-                var pominieteCechy= candidates.Where(u => u.Cecha != cecha).Select(x=>x.Cecha).ToList();
-                if (matches.Count == 1)
-                {
-                    _loadLogger.LogError($"[UlicaMatcher] ✓ Wybrano cechę {kodPocztowy} {miastoNazwa} '{cecha}': '{GetPelnaNazwa(matches[0])}'");
-                    if (pominieteCechy.Count > 0)
-                    {
-                        _loadLogger.LogError($"[UlicaMatcher] Pominięto cechy: {string.Join(", ", pominieteCechy)}");
-                    }
-                    return matches[0];
-                }
-                            }
-
-            _loadLogger.LogError($"[UlicaMatcher] ✗ Nie można rozstrzygnąć - zwracam null");
-            return null;
-        }
-
+        
         /// <summary>
         /// Generuje diagnostyczny komunikat o braku ulicy
         /// </summary>
@@ -205,16 +176,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             return message;
         }
 
-        /// <summary>
-        /// Buduje pełną nazwę ulicy z Nazwa2 (prefiks) + Nazwa1 (główna nazwa)
-        /// </summary>
-        private static string GetPelnaNazwa(Ulica ulica)
-        {
-            if (string.IsNullOrEmpty(ulica.Nazwa2))
-            {
-                return ulica.Nazwa1;
-            }
-            return $"{ulica.Nazwa2} {ulica.Nazwa1}";
-        }
+        
     }
 }

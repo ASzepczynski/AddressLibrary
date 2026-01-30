@@ -252,5 +252,17 @@ namespace AddressLibrary.Helpers
             return result.Trim();
         }
 
+        /// <summary>
+        /// Buduje pełną nazwę ulicy z Nazwa2 (prefiks) + Nazwa1 (główna nazwa)
+        /// </summary>
+        public static string GetPelnaNazwa(Ulica ulica)
+        {
+            if (string.IsNullOrEmpty(ulica.Nazwa2))
+            {
+                return ulica.Nazwa1;
+            }
+            return $"{ulica.Nazwa2} {ulica.Nazwa1}";
+        }
+
     }
 }
