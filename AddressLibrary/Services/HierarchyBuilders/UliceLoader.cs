@@ -172,6 +172,10 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 var Nazwa2 = ulic.Ulica.Nazwa2;
                 (Nazwa1, Nazwa2) = UliceUtils.GetCorrectedStreetName(Nazwa1, Nazwa2);
 
+                // Tutaj usuwamy duplikaty
+
+                Nazwa1 = UliceUtils.RemoveStreetTypeDuplication(ulic.Ulica.Cecha, Nazwa1);
+
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
@@ -213,6 +217,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
             await LogControl($"Pominięto (brak miejscowości): {brakujacych}");
             await LogControl($"Pominięto (duplikaty): {duplikaty}");
         }
+
+
 
         private async Task LogControl(string message)
         {

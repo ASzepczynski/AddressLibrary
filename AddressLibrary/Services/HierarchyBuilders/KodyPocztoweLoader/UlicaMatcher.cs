@@ -36,6 +36,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             string sGmina,
             Miasto miasto,
             string sDzielnica,
+            string sPrefiks,
             string sUlica
         )
         {

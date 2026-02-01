@@ -105,7 +105,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
 
             // Usuñ popularne prefiksy
-            var prefixes = new[] { "ul.", "ulica", "al.", "aleja", "alei", "os.", "osiedle", "pl.", "plac", "placu" };
+            var prefixes = UliceUtils.GetAllStreetPrefixes();
             var normalized = name.ToLowerInvariant().Trim();
             // Usuwa -go z nazwy ulicy
             normalized=UliceUtils.NormalizeOrdinalNumber(normalized);

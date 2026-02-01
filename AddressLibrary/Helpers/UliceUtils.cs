@@ -127,26 +127,30 @@ namespace AddressLibrary.Helpers
             ).Trim();
         }
 
-        private static readonly string[] StreetPrefixes = new[]
+        public static readonly Dictionary<string, List<string>> StreetPrefixes = new(StringComparer.OrdinalIgnoreCase)
 {
-            "ul.", "ul", "ulica",
-            "al.", "al", "aleja", "alei",
-            "pl.", "pl", "plac", "placu",
-            "os.", "os", "osiedle", "osiedla",
-            "oś.", "oś",
-            "rondo",
-            "skwer", "skweru",
-            "park", "parku",
-            "bulwar", "bulwaru",
-            "droga",
-            "szosa",
-            "ścieżka",
-            "pasaż", "pasażu"
-        };
-
+            { "aleja",    new List<string> { "al.", "al", "aleja" } },
+            { "bulwar",   new List<string> { "bulw.", "bulwar"} },
+            { "droga",    new List<string> { "droga" } },
+            { "ogród",    new List<string> { "ogród"}},
+            { "osiedle",    new List<string> { "os.", "os", "oś.", "oś","osiedle" } },
+            { "park",     new List<string> { "park" } },
+            { "pasaż",    new List<string> { "pasaż"}},
+            { "plac",     new List<string> { "plac", "pl.","pl" } },
+            { "rondo",    new List<string> { "rondo" } },
+            { "rynek",    new List<string> { "rynek"}},
+            { "skwer",    new List<string> { "skw.", "skwer",  } },
+            { "szosa",    new List<string> { "szosa" } },
+            { "ścieżka",  new List<string> { "ścieżka"} },
+            { "ulica",    new List<string> { "ul.", "ul", "ulica" } }
+};
         public static string RemoveStreetPrefixes(string text)
         {
-            var sortedPrefixes = StreetPrefixes.OrderByDescending(p => p.Length);
+            var sortedPrefixes = StreetPrefixes
+                .SelectMany(kv => kv.Value).
+                Distinct(StringComparer.OrdinalIgnoreCase).
+                ToList()
+                .OrderByDescending(p => p.Length);
 
             foreach (var prefix in sortedPrefixes)
             {
@@ -263,6 +267,70 @@ namespace AddressLibrary.Helpers
             }
             return $"{ulica.Nazwa2} {ulica.Nazwa1}";
         }
+        public static List<string> GetAllStreetPrefixes()
+        {
+            return StreetPrefixes
+                .SelectMany(kv => kv.Value)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(p => p.Length)
+                .ToList();
+        }
 
+        public static (string? Prefix, string Name) SplitStreetPrefix(string streetName)
+        {
+            if (string.IsNullOrWhiteSpace(streetName))
+                return (null, streetName);
+
+            // Pobierz wszystkie możliwe prefiksy, posortowane malejąco po długości (żeby najpierw sprawdzić najdłuższe)
+            var allPrefixes = GetAllStreetPrefixes();
+
+            foreach (var prefix in allPrefixes)
+            {
+                var prefixWithSpace = prefix + " ";
+                if (streetName.StartsWith(prefixWithSpace, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Znajdź pełną nazwę cechy na podstawie słownika
+                    var fullType = StreetPrefixes.FirstOrDefault(kv => kv.Value.Any(v => v.Equals(prefix, StringComparison.OrdinalIgnoreCase))).Key;
+                    return (prefix, streetName.Substring(prefixWithSpace.Length).TrimStart());
+                }
+                if (streetName.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    var fullType = StreetPrefixes.FirstOrDefault(kv => kv.Value.Any(v => v.Equals(prefix, StringComparison.OrdinalIgnoreCase))).Key;
+                    return (prefix, string.Empty);
+                }
+            }
+
+            return (null, streetName);
+        }
+        public static string RemoveStreetTypeDuplication(string streetType, string streetName)
+        {
+            if (string.IsNullOrWhiteSpace(streetType) || string.IsNullOrWhiteSpace(streetName))
+                return streetName;
+
+            // Znajdź pełną nazwę typu na podstawie streetType (może być skrótem lub pełną nazwą)
+            string? fullType = StreetPrefixes
+                .FirstOrDefault(kv => kv.Value.Any(v => v.Equals(streetType, StringComparison.OrdinalIgnoreCase)
+                                                     || kv.Key.Equals(streetType, StringComparison.OrdinalIgnoreCase)))
+                .Key;
+
+            if (fullType == null)
+                return streetName;
+
+            // Pobierz wszystkie warianty prefiksu dla danego typu
+            var allVariants = StreetPrefixes[fullType];
+
+            // Sprawdź, czy streetName zaczyna się od dowolnego wariantu (np. "aleja", "al.", "al")
+            foreach (var variant in allVariants.OrderByDescending(v => v.Length))
+            {
+                var variantWithSpace = variant + " ";
+                if (streetName.StartsWith(variantWithSpace, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Usuń prefiks i zwróć resztę
+                    return streetName.Substring(variantWithSpace.Length).TrimStart();
+                }
+            }
+
+            return streetName;
+        }
     }
 }

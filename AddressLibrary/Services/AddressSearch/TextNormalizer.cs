@@ -46,23 +46,7 @@ namespace AddressLibrary.Services.AddressSearch
             };
 
 
-        private static readonly string[] StreetPrefixes = new[]
-        {
-            "ul.", "ul", "ulica",
-            "al.", "al", "aleja", "alei",
-            "pl.", "pl", "plac", "placu",
-            "os.", "os", "osiedle", "osiedla",
-            "oś.", "oś",
-            "rondo",
-            "skwer", "skweru",
-            "park", "parku",
-            "bulwar", "bulwaru",
-            "droga",
-            "szosa",
-            "ścieżka",
-            "pasaż", "pasażu"
-        };
-
+        
         // ✅ NOWE: Skróty nazw miast które NIE MOGĄ BYĆ USUWANE!
         private static readonly string[] CityAbbreviations = new[]
         {
@@ -138,7 +122,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // Usuń przedrostki ulic (istniejący kod bez zmian)
-            var sortedPrefixes = StreetPrefixes.OrderByDescending(p => p.Length);
+            var sortedPrefixes = UliceUtils.GetAllStreetPrefixes().OrderByDescending(p => p.Length);
 
             foreach (var prefix in sortedPrefixes)
             {

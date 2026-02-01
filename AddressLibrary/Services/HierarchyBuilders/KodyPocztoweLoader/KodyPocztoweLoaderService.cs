@@ -2,6 +2,7 @@
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
+using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 {
@@ -119,7 +120,13 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                     // 2. Znajdź ulicę (jeśli jest)
                     string sUlica = pna.Ulica.Replace("-go","");
-                    var ulicaResult = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sUlica);
+                    
+                    // Rozkładamy ulicę na prefix i część pozostałą
+                    (string sPrefix,sUlica) = UliceUtils.SplitStreetPrefix(sUlica);
+                    // Usuwamy duplikat prefiksu, przykład os. Osiedle Kolorowe
+                    sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix,sUlica);
+                    
+                    var ulicaResult = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
                     var ulica = ulicaResult.ulica;
                     var ulicaNazwa = ulicaResult.ulicaNazwa;
 

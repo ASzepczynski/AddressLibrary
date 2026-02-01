@@ -19,6 +19,8 @@ namespace AddressLibrary.Services.AddressSearch
         private readonly StreetSearchStrategy _streetSearch;
         private readonly NoStreetSearchStrategy _noStreetSearch;
         private string _appDataPath;
+        private DiagnosticLogger diagnostic;
+        private bool enableDiagnostics = true;
 
         public AddressSearchService(AddressDbContext context,string appDataPath)
         {
@@ -32,6 +34,7 @@ namespace AddressLibrary.Services.AddressSearch
             var resultFactory = new SearchResultFactory(_cache);
             var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
             var ambiguityResolver = new AmbiguousStreetResolver(_normalizer); // 🆕 DODANE
+            diagnostic = enableDiagnostics ? new DiagnosticLogger(_appDataPath) : null;
 
             _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver); // 🆕 DODANE parametr
             _noStreetSearch = new NoStreetSearchStrategy(_cache, _normalizer, filters, resultFactory);
@@ -43,17 +46,15 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         public async Task<AddressSearchResult> SearchAsync(
-            AddressSearchRequest request,
-            bool enableDiagnostics = false)
+            AddressSearchRequest request
+            )
         {
             if (!_cache.IsInitialized)
             {
                 await InitializeAsync();
             }
         
-            DiagnosticLogger? diagnostic = 
-                enableDiagnostics ? new DiagnosticLogger(_appDataPath) : null;
-
+            
             // ✅ Walidacja: Miasto jest wymagane
             if (string.IsNullOrWhiteSpace(request.Miasto))
             {
@@ -127,7 +128,7 @@ namespace AddressLibrary.Services.AddressSearch
             var results = new List<AddressSearchResult>();
             foreach (var request in requests)
             {
-                var result = await SearchAsync(request, enableDiagnostics: false);
+                var result = await SearchAsync(request);
                 results.Add(result);
             }
             return results;

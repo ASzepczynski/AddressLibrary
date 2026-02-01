@@ -33,8 +33,7 @@ namespace AddressLibrary.Logging
             }
 
             _filePath = Path.Combine(logsDir, fileName);
-            Console.WriteLine($"[KodyPocztoweLoader] Œcie¿ka logu: {_filePath}");
-            try
+           try
             {
                 _logBuffer.WriteLine("=== Log diagnostyczny ===");
                 // Zapisz nag³ówek logu synchronicznie, jeœli plik nie istnieje
