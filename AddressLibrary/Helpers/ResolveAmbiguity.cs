@@ -14,9 +14,9 @@ namespace AddressLibrary.Helpers
         /// 🆕 Próbuje rozstrzygnąć niejednoznaczność na podstawie kodu pocztowego
         /// </summary>
         public static Ulica? ResolveAmbiguityPostal(
-            List<Ulica> candidates, 
-            string kodPocztowy, 
-            string miastoNazwa, 
+            List<Ulica> candidates,
+            string kodPocztowy,
+            string miastoNazwa,
             ILogger? _loadLogger)
         {
             if (candidates.Count <= 1)
@@ -24,6 +24,11 @@ namespace AddressLibrary.Helpers
 
             // STRATEGIA 1: Lista cech w kolejności priorytetu
             var cechyPriorytet = new[] { "ul.", "Al.", "Pl." };
+            _loadLogger?.LogWarning($"[UlicaMatcher] ✓ Wykryto niejednoznaczność - próba rozstrzygnięcia");
+            foreach (var ulica in candidates)
+            {
+                _loadLogger?.LogInfo($"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""}".Trim());
+            }
 
             foreach (var cecha in cechyPriorytet)
             {

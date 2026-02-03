@@ -25,7 +25,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             Miasto miasto,
             Ulica ulica,
             string normalizedBuildingNumber,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             diagnostic?.Log("\n--- STRATEGIA: Zwracanie kodu miasta dla ulicy bez kodu ---");
 

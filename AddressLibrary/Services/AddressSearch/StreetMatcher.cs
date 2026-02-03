@@ -32,7 +32,7 @@ namespace AddressLibrary.Services.AddressSearch
             // ✅ Sprawdź dokładne dopasowanie kombinacji
             if (ulica.NormalizedCombined != null && ulica.NormalizedCombined == normalizedSearchTerm)
                 return true;
-
+/*
             // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedNazwa1)
             // Obsługuje przypadki: "Axentowicza" → "teodora axentowicza"
             if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedSearchTerm))
@@ -42,7 +42,7 @@ namespace AddressLibrary.Services.AddressSearch
             if (ulica.NormalizedCombined != null && 
                 ulica.NormalizedCombined.EndsWith(" " + normalizedSearchTerm))
                 return true;
-
+*/
             return false;
         }
 

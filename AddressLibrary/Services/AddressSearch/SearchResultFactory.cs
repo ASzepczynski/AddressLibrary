@@ -23,7 +23,7 @@ namespace AddressLibrary.Services.AddressSearch
             Ulica? ulica,
             string? normalizedBuildingNumber,
             string? normalizedApartmentNumber,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             diagnostic?.Log("\n--- TWORZENIE WYNIKU ---");
 

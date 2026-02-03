@@ -175,6 +175,16 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 // Tutaj usuwamy duplikaty
 
                 Nazwa1 = UliceUtils.RemoveStreetTypeDuplication(ulic.Ulica.Cecha, Nazwa1);
+                if (Nazwa2 == "" 
+                      && ulic.Ulica.Cecha!="ul."
+                      && ulic.Ulica.Cecha != "inne"
+                      && ulic.Ulica.Cecha != ""
+                      && StreetNameConversionDictionary.TryConvert(Nazwa1, out var n2, out var n1)
+                   )
+                {
+                    Nazwa1 = n1;
+                    Nazwa2 = n2;
+                }
 
                 var ulica = new Ulica
                 {

@@ -6,7 +6,7 @@ namespace AddressLibrary.Logging
         void LogInfo(string message);
         void LogWarning(string message);
         void LogError(string message);
+        string GetLog();
 
-        Task FlushAsync();
     }
 }

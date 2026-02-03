@@ -48,8 +48,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 throw;
             }
 
-            await _logger.FlushAsync();
-
             progressInfo.CurrentOperation = "Ładowanie danych hierarchicznych...";
             progress?.Report(progressInfo);
 
@@ -159,12 +157,8 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                 stats.ProcessedCount++;
 
-                // Flush log
-                if (stats.ProcessedCount % logFlushInterval == 0)
-                {
-                    await _logger.FlushAsync();
-                }
-
+                
+                
                 // Raportuj postęp
                 if (stats.ProcessedCount % reportInterval == 0 || stats.ProcessedCount == pnaData.Count)
                 {
@@ -199,7 +193,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             progressInfo.CurrentOperation = "Zakończono ładowanie kodów pocztowych";
             progress?.Report(progressInfo);
 
-            await _logger.FlushAsync();
+           
         }
 
         private async Task SaveBatchAsync(List<KodPocztowy> pendingRecords, LoadStatistics stats)
@@ -222,7 +216,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     _logger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}");
                 }
 
-                await _logger.FlushAsync();
                 throw;
             }
         }

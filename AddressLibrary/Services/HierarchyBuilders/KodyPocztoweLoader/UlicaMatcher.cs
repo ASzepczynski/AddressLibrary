@@ -168,12 +168,13 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 ? $"{_uliceDict[miasto.Id].Count} ulic w słowniku"
                 : "brak ulic w słowniku";
 
-            var message = $"Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
-
+            var message = "";
             if (correctedUlica != ulicaNazwa)
             {
-                message += $" | Próbowano korekty: '{correctedUlica}'";
+                message = $" Próbowano korekty: '{correctedUlica}\r\n'";
             }
+            message += $" Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
+
 
             return message;
         }

@@ -32,7 +32,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         public AddressSearchResult Execute(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             diagnostic?.Log("\n--- STRATEGIA: Szukanie bez ulicy ---");
 
@@ -85,7 +85,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private Miasto? SelectCity(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             // Jeśli mamy wiele miast
             if (miasta.Count > 1)
@@ -125,7 +125,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private Miasto? SelectCityByPostalCode(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             var kodNorm = UliceUtils.NormalizujKodPocztowy(request.KodPocztowy);
             diagnostic?.Log($"Znaleziono {miasta.Count} miast o nazwie '{request.Miasto}', próba zawężenia po kodzie: {kodNorm}");

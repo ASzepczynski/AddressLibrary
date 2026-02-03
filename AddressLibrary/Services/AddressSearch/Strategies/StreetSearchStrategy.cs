@@ -43,51 +43,51 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         public AddressSearchResult Execute(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            DiagnosticLogger? diagnostic)
+            SearchLogger? searchLogger)
         {
-            diagnostic?.Log("\n--- STRATEGIA: Szukanie z ulicą ---");
+            searchLogger?.Log("\n--- STRATEGIA: Szukanie z ulicą ---");
 
             // Normalizuj ulicę i wyciągnij numer
             var (normalizedStreet, extractedNumber) = _normalizer.NormalizeStreetWithNumber(request.Ulica);
-            diagnostic?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{normalizedStreet}'");
+            searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{normalizedStreet}'");
 
             if (!string.IsNullOrEmpty(extractedNumber))
             {
-                diagnostic?.Log($"Wyciągnięto numer z ulicy: '{extractedNumber}'");
+                searchLogger?.Log($"Wyciągnięto numer z ulicy: '{extractedNumber}'");
             }
 
             var combinedBuildingNumber = CombineNumbers(extractedNumber, request.NumerDomu);
-            diagnostic?.Log($"Połączony numer budynku: '{combinedBuildingNumber}'");
+            searchLogger?.Log($"Połączony numer budynku: '{combinedBuildingNumber}'");
 
             // 🆕 KROK 1: Znajdź WSZYSTKIE pasujące ulice w WSZYSTKICH miastach o podanej nazwie
-            var matchingStreets = FindAllMatchingStreets(request, miasta, normalizedStreet, diagnostic);
+            var matchingStreets = FindAllMatchingStreets(request, miasta, normalizedStreet, searchLogger);
 
             if (matchingStreets.Count == 0)
             {
-                return HandleStreetNotFound(request, miasta, normalizedStreet, diagnostic);
+                return HandleStreetNotFound(request, miasta, normalizedStreet, searchLogger);
             }
 
             // 🆕 KROK 2: Jeśli jest WIĘCEJ NIŻ JEDNA ulica - użyj AmbiguousStreetResolver
             if (matchingStreets.Count > 1)
             {
-                diagnostic?.Log($"⚠ Znaleziono {matchingStreets.Count} pasujących ulic - próba rozwiązania niejednoznaczności");
+                searchLogger?.Log($"⚠ Znaleziono {matchingStreets.Count} pasujących ulic - próba rozwiązania niejednoznaczności");
 
-                var resolvedStreet = ResolveAmbiguousStreets(request, matchingStreets, diagnostic);
+                var resolvedStreet = ResolveAmbiguousStreets(request, matchingStreets, searchLogger);
 
                 if (resolvedStreet == null)
                 {
                     // Nie udało się rozwiązać - zwróć błąd z listą wszystkich dopasowań
-                    return CreateMultipleMatchesError(matchingStreets, miasta, diagnostic);
+                    return CreateMultipleMatchesError(matchingStreets, miasta, searchLogger);
                 }
 
                 // ✅ Udało się rozwiązać niejednoznaczność - użyj wybranej ulicy
                 matchingStreets = new List<(UlicaCached street, Miasto miasto)> { resolvedStreet.Value };
-                diagnostic?.Log($"✓ Rozwiązano niejednoznaczność: {_cache.GetOriginalStreetName(resolvedStreet.Value.street)}");
+                searchLogger?.Log($"✓ Rozwiązano niejednoznaczność: {_cache.GetOriginalStreetName(resolvedStreet.Value.street)}");
             }
 
             // 🆕 KROK 3: Dokładnie jedna ulica - kontynuuj normalnie
             var (foundUlica, foundMiasto) = matchingStreets[0];
-            diagnostic?.Log($"✓ Znaleziono dokładnie jedną ulicę: {_cache.GetOriginalStreetName(foundUlica)}");
+            searchLogger?.Log($"✓ Znaleziono dokładnie jedną ulicę: {_cache.GetOriginalStreetName(foundUlica)}");
 
             // Przekształć UlicaCached na Ulica
             var ulica = new Ulica
@@ -103,26 +103,26 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             // Znajdź kody pocztowe
             if (!_cache.TryGetKodyPocztowe(foundMiasto.Id, out var kodyPocztowe))
             {
-                diagnostic?.Log($"✗ Brak kodów pocztowych dla miejscowości ID: {foundMiasto.Id}");
-                return _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, diagnostic);
+                searchLogger?.Log($"✗ Brak kodów pocztowych dla miejscowości ID: {foundMiasto.Id}");
+                return _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
             }
 
-            diagnostic?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla miejscowości");
+            searchLogger?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla miejscowości");
 
             // Filtruj po ulicy
             var filteredKody = _filters.FilterByStreet(kodyPocztowe, ulica.Id);
-            diagnostic?.Log($"Po filtracji po ulicy (ID: {ulica.Id}): {filteredKody.Count} kodów");
+            searchLogger?.Log($"Po filtracji po ulicy (ID: {ulica.Id}): {filteredKody.Count} kodów");
 
             if (filteredKody.Count == 0)
             {
-                diagnostic?.Log("Ulica nie ma przypisanych kodów pocztowych");
-                return _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, diagnostic);
+                searchLogger?.Log("Ulica nie ma przypisanych kodów pocztowych");
+                return _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
             }
 
             // Filtruj po numerze domu
-            filteredKody = FilterByBuildingNumber(filteredKody, combinedBuildingNumber, ulica.Id, diagnostic);
+            filteredKody = FilterByBuildingNumber(filteredKody, combinedBuildingNumber, ulica.Id, searchLogger);
 
-            return _resultFactory.CreateResult(filteredKody, foundMiasto, ulica, combinedBuildingNumber, request.NumerMieszkania, diagnostic);
+            return _resultFactory.CreateResult(filteredKody, foundMiasto, ulica, combinedBuildingNumber, request.NumerMieszkania, searchLogger);
         }
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private (UlicaCached street, Miasto miasto)? ResolveAmbiguousStreets(
             AddressSearchRequest request,
             List<(UlicaCached street, Miasto miasto)> matchingStreets,
-            ILogger? diagnostic)
+            ILogger? searchLogger)
         {
             // Wyciągnij tylko listę ulic (bez miast)
 
@@ -139,7 +139,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             var uniqueCities = matchingStreets.Select(m => m.miasto.Id).Distinct().Count();
             if (uniqueCities > 1)
             {
-                diagnostic?.Log("  ✗ Niejednoznaczność: znaleziono ulice w więcej niż jednym mieście – nie rozstrzygamy.");
+                searchLogger?.Log("  ✗ Niejednoznaczność: znaleziono ulice w więcej niż jednym mieście – nie rozstrzygamy.");
                 return null;
             }
 
@@ -162,11 +162,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 streets,
                 request.KodPocztowy,
                 firstMiasto.Nazwa,
-                diagnostic); 
+                searchLogger); 
 
             if (resolvedStreet == null)
             {
-                diagnostic?.Log("  ✗ Nie udało się automatycznie rozwiązać niejednoznaczności");
+                searchLogger?.Log("  ✗ Nie udało się automatycznie rozwiązać niejednoznaczności");
                 return null;
             }
 
@@ -175,11 +175,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             if (matchedPair.street == null)
             {
-                diagnostic?.Log("  ✗ Błąd: nie znaleziono pary (ulica, miasto)");
+                searchLogger?.Log("  ✗ Błąd: nie znaleziono pary (ulica, miasto)");
                 return null;
             }
 
-            diagnostic?.Log($"  ✓ Automatycznie wybrano: {UliceUtils.GetPelnaNazwa(resolvedStreet)}");
+            searchLogger?.Log($"  ✓ Automatycznie wybrano: {UliceUtils.GetPelnaNazwa(resolvedStreet)}");
             return matchedPair;
         }
 
@@ -189,7 +189,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private AddressSearchResult CreateMultipleMatchesError(
             List<(UlicaCached street, Miasto miasto)> matchingStreets,
             List<Miasto> miasta,
-            DiagnosticLogger? diagnostic)
+            SearchLogger? diagnostic)
         {
             // Pobierz kody pocztowe
             var firstMiasto = matchingStreets[0].miasto;
@@ -221,7 +221,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             AddressSearchRequest request,
             List<Miasto> miasta,
             string normalizedStreet,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             diagnostic?.Log($"Szukam WSZYSTKICH ulic pasujących do: '{request.Ulica}' -> znormalizowana: '{normalizedStreet}'");
 
@@ -272,7 +272,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             AddressSearchRequest request,
             List<Miasto> miasta,
             string normalizedStreet,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             diagnostic?.Log($"✗ Nie znaleziono ulicy '{request.Ulica}' w żadnej z miejscowości");
 
@@ -356,7 +356,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private AddressSearchResult? TrySwapCityAndStreet(
             AddressSearchRequest request,
             string normalizedStreet,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             diagnostic?.Log($"\n🔄 Sprawdzam czy '{request.Ulica}' to miejscowość zamiast ulicy...");
 
@@ -431,7 +431,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private (UlicaCached? street, Miasto? miasto) FindSimilarStreet(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             foreach (var miasto in miasta)
             {
@@ -453,7 +453,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             List<KodPocztowy> filteredKody,
             string combinedBuildingNumber,
             int ulicaId,
-            DiagnosticLogger? diagnostic)
+            ILogger? diagnostic)
         {
             if (string.IsNullOrWhiteSpace(combinedBuildingNumber))
                 return filteredKody;

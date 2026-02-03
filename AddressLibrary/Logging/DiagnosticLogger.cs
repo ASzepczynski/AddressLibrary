@@ -10,7 +10,6 @@ namespace AddressLibrary.Logging
     public class DiagnosticLogger : ILogger
     {
         private readonly string? _filePath;
-        private readonly StringWriter _logBuffer = new();
 
         public string? LogFilePath => _filePath;
         public string? Name = "DiagnosticLoader";
@@ -31,17 +30,11 @@ namespace AddressLibrary.Logging
             {
                 Console.WriteLine($"[{Name}] B£¥D tworzenia katalogu logów: {ex.Message}");
             }
-
             _filePath = Path.Combine(logsDir, fileName);
            try
             {
-                _logBuffer.WriteLine("=== Log diagnostyczny ===");
+                Log("=== Log diagnostyczny ===");
                 // Zapisz nag³ówek logu synchronicznie, jeœli plik nie istnieje
-                if (!string.IsNullOrEmpty(_filePath) && !File.Exists(_filePath))
-                {
-                    File.WriteAllText(_filePath, _logBuffer.ToString());
-                    _logBuffer.GetStringBuilder().Clear();
-                }
                 Console.WriteLine($"Utworzono plik logu: {_filePath}");
             }
             catch (Exception ex)
@@ -53,21 +46,16 @@ namespace AddressLibrary.Logging
         public virtual void Log(string message)
         {
             // _logBuffer.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
-            _logBuffer.WriteLine($"{message}");
+            File.AppendAllTextAsync(LogFilePath, message + "\r\n");
         }
 
         public virtual void LogInfo(string message) => Log("[INFO] " + message);
         public virtual void LogWarning(string message) => Log("[WARN] " + message);
         public virtual void LogError(string message) => Log("[ERROR] " + message);
 
-        public async virtual Task FlushAsync()
+        public string GetLog()
         {
-            if (!string.IsNullOrEmpty(_filePath))
-            {
-                await File.AppendAllTextAsync(_filePath, _logBuffer.ToString());
-                _logBuffer.GetStringBuilder().Clear();
-            }
+            return "Na razie niezaimplementowane";
         }
-        public string GetLog() => _logBuffer.ToString();
     }
 }

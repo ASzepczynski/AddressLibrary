@@ -19,8 +19,7 @@ namespace AddressLibrary.Services.AddressSearch
         private readonly StreetSearchStrategy _streetSearch;
         private readonly NoStreetSearchStrategy _noStreetSearch;
         private string _appDataPath;
-        private DiagnosticLogger diagnostic;
-        private bool enableDiagnostics = true;
+        private SearchLogger searchLogger;
 
         public AddressSearchService(AddressDbContext context,string appDataPath)
         {
@@ -34,7 +33,7 @@ namespace AddressLibrary.Services.AddressSearch
             var resultFactory = new SearchResultFactory(_cache);
             var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
             var ambiguityResolver = new AmbiguousStreetResolver(_normalizer); // 🆕 DODANE
-            diagnostic = enableDiagnostics ? new DiagnosticLogger(_appDataPath) : null;
+            searchLogger = new SearchLogger(_appDataPath);
 
             _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver); // 🆕 DODANE parametr
             _noStreetSearch = new NoStreetSearchStrategy(_cache, _normalizer, filters, resultFactory);
@@ -53,8 +52,14 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 await InitializeAsync();
             }
-        
-            
+           
+            searchLogger?.Log($"\r\n==== Rozpoczynam poszukiwanie ====");
+            searchLogger?.Log($"  Kod: ({ request.KodPocztowy})");
+            searchLogger?.Log($"  Miasto: ({request.Miasto})");
+            searchLogger?.Log($"  Ulica: ({request.Ulica})");
+            searchLogger?.Log($"  Nr domu: ({request.NumerDomu})");
+            searchLogger?.Log($"  Lokal: ({request.NumerMieszkania})");
+
             // ✅ Walidacja: Miasto jest wymagane
             if (string.IsNullOrWhiteSpace(request.Miasto))
             {
@@ -82,7 +87,7 @@ namespace AddressLibrary.Services.AddressSearch
 
                 if (miastoNorm == ulicaNorm)
                 {
-                    diagnostic?.Log($"⚠ UWAGA: Miasto i ulica są identyczne ('{request.Miasto}' == '{request.Ulica}'). Wyczyśzczono ulicę.");
+                    searchLogger?.Log($"⚠ UWAGA: Miasto i ulica są identyczne ('{request.Miasto}' == '{request.Ulica}'). Wyczyśzczono ulicę.");
 
                     // Utwórz nowy request z wyczyszczoną ulicą
                     request = new AddressSearchRequest
@@ -97,25 +102,25 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // Znajdź miasta o podanej nazwie
-            var miasta = FindAllMiasta(request.Miasto, request.KodPocztowy, diagnostic);
+            var miasta = FindAllMiasta(request.Miasto, request.KodPocztowy, searchLogger);
             if (miasta == null || miasta.Count == 0)
             {
                 return new AddressSearchResult
                 {
                     Status = AddressSearchStatus.MiastoNotFound,
                     Message = $"Nie znaleziono miejscowości: {request.Miasto}",
-                    DiagnosticInfo = diagnostic?.GetLog()
+                    DiagnosticInfo = searchLogger?.GetLog()
                 };
             }
 
             // Wybierz strategię wyszukiwania
             if (!string.IsNullOrWhiteSpace(request.Ulica))
             {
-                return _streetSearch.Execute(request, miasta, diagnostic);
+                return _streetSearch.Execute(request, miasta, searchLogger);
             }
             else
             {
-                return _noStreetSearch.Execute(request, miasta, diagnostic);
+                return _noStreetSearch.Execute(request, miasta, searchLogger);
             }
         }
         public async Task<List<AddressSearchResult>> SearchBatchAsync(IEnumerable<AddressSearchRequest> requests)
@@ -137,43 +142,43 @@ namespace AddressLibrary.Services.AddressSearch
         private List<Miasto>? FindAllMiasta(
             string miastoName,
             string? postalCode, // 🆕 DODANE
-            DiagnosticLogger? diagnostic)
+            SearchLogger? searchLogger)
         {
             var miastoNorm = _normalizer.Normalize(miastoName);
-            diagnostic?.Log($"Znormalizowana miejscowość: '{miastoName}' -> '{miastoNorm}'");
+            searchLogger?.Log($"Znormalizowana miejscowość: '{miastoName}' -> '{miastoNorm}'");
 
             if (_cache.TryGetMiasta(miastoNorm, out var miasta))
             {
-                diagnostic?.Log($"Znaleziono {miasta.Count} miejscowości o nazwie '{miastoNorm}'");
+                searchLogger?.Log($"Znaleziono {miasta.Count} miejscowości o nazwie '{miastoNorm}'");
 
                 // ✅ Jeśli jest więcej niż 1 miasto, spróbuj wybrać najbardziej pasujące
                 if (miasta.Count > 1)
                 {
-                    var bestCity = SelectBestCity(miasta, miastoName, postalCode, diagnostic); // 🆕 DODANE postalCode
+                    var bestCity = SelectBestCity(miasta, miastoName, postalCode, searchLogger); // 🆕 DODANE postalCode
                     if (bestCity != null)
                     {
-                        diagnostic?.Log($"  ✓ Wybrano najlepiej pasującą miejscowość: '{bestCity.Nazwa}'");
+                        searchLogger?.Log($"  ✓ Wybrano najlepiej pasującą miejscowość: '{bestCity.Nazwa}'");
                         return new List<Miasto> { bestCity };
                     }
 
-                    diagnostic?.Log($"  ⚠ Nie można jednoznacznie wybrać miejscowości - zwracam wszystkie {miasta.Count}");
+                    searchLogger?.Log($"  ⚠ Nie można jednoznacznie wybrać miejscowości - zwracam wszystkie {miasta.Count}");
                 }
 
                 return miasta;
             }
 
             // 🆕 FUZZY MATCHING z walidacją kodu pocztowego
-            diagnostic?.Log($"  ✗ Nie znaleziono dokładnego dopasowania dla '{miastoNorm}'");
-            diagnostic?.Log($"  🔍 Szukam podobnej miejscowości (fuzzy matching)...");
+            searchLogger?.Log($"  ✗ Nie znaleziono dokładnego dopasowania dla '{miastoNorm}'");
+            searchLogger?.Log($"  🔍 Szukam podobnej miejscowości (fuzzy matching)...");
 
-            var similarCity = FindSimilarCity(miastoNorm, postalCode, diagnostic); // 🆕 DODANE postalCode
+            var similarCity = FindSimilarCity(miastoNorm, postalCode, searchLogger); // 🆕 DODANE postalCode
             if (similarCity != null)
             {
-                diagnostic?.Log($"  ✓ Znaleziono podobną miejscowość: '{similarCity.Nazwa}'");
+                searchLogger?.Log($"  ✓ Znaleziono podobną miejscowość: '{similarCity.Nazwa}'");
                 return new List<Miasto> { similarCity };
             }
 
-            diagnostic?.Log($"  ✗ Nie znaleziono podobnej miejscowości");
+            searchLogger?.Log($"  ✗ Nie znaleziono podobnej miejscowości");
             return null;
         }
 
@@ -184,7 +189,7 @@ namespace AddressLibrary.Services.AddressSearch
         private Miasto? FindSimilarCity(
             string normalizedCityName,
             string? postalCode, // 🆕 DODANE
-            DiagnosticLogger? diagnostic)
+            ILogger? searchLogger)
         {
             var allCities = _cache.GetAllCities();
 
@@ -196,7 +201,7 @@ namespace AddressLibrary.Services.AddressSearch
             if (!string.IsNullOrWhiteSpace(postalCode))
             {
                 normalizedPostalCode = UliceUtils.NormalizujKodPocztowy(postalCode);
-                diagnostic?.Log($"    Wymagany kod pocztowy: '{normalizedPostalCode}'");
+                searchLogger?.Log($"    Wymagany kod pocztowy: '{normalizedPostalCode}'");
             }
 
             MiastoCached? bestMatch = null;
@@ -286,11 +291,11 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (bestMatch != null && bestScore >= minScore)
             {
-                diagnostic?.Log($"    Najlepsze dopasowanie: '{bestMatch.Miasto.Nazwa}' (score: {bestScore})");
+                searchLogger?.Log($"    Najlepsze dopasowanie: '{bestMatch.Miasto.Nazwa}' (score: {bestScore})");
                 return bestMatch.Miasto;
             }
 
-            diagnostic?.Log($"    Brak dopasowania (najlepszy score: {bestScore}, wymagany: {minScore})");
+            searchLogger?.Log($"    Brak dopasowania (najlepszy score: {bestScore}, wymagany: {minScore})");
             return null;
         }
 
@@ -337,18 +342,18 @@ namespace AddressLibrary.Services.AddressSearch
             List<Miasto> miasta,
             string originalCityName,
             string? postalCode,
-            DiagnosticLogger? diagnostic)
+            SearchLogger? searchLogger)
         {
             if (miasta.Count == 1)
                 return miasta[0];
 
-            diagnostic?.Log($"  🔍 Wybór najlepszej z {miasta.Count} miejscowości...");
+            searchLogger?.Log($"  🔍 Wybór najlepszej z {miasta.Count} miejscowości...");
 
             // ✅ KRYTERIUM 0: Jeśli podano kod pocztowy, ODFILTRUJ miasta bez tego kodu
             if (!string.IsNullOrWhiteSpace(postalCode))
             {
                 var normalizedCode = UliceUtils.NormalizujKodPocztowy(postalCode);
-                diagnostic?.Log($"    Filtrowanie po kodzie pocztowym: '{normalizedCode}'");
+                searchLogger?.Log($"    Filtrowanie po kodzie pocztowym: '{normalizedCode}'");
 
                 var citiesWithCode = miasta.Where(m =>
                 {
@@ -357,28 +362,28 @@ namespace AddressLibrary.Services.AddressSearch
                         bool hasCode = codes.Any(k => k.Kod == normalizedCode);
                         if (hasCode)
                         {
-                            diagnostic?.Log($"      ✓ '{m.Nazwa}' (ID:{m.Id}) ma kod '{normalizedCode}'");
+                            searchLogger?.Log($"      ✓ '{m.Nazwa}' (ID:{m.Id}) ma kod '{normalizedCode}'");
                         }
                         return hasCode;
                     }
-                    diagnostic?.Log($"      ✗ '{m.Nazwa}' (ID:{m.Id}) nie ma kodów pocztowych");
+                    searchLogger?.Log($"      ✗ '{m.Nazwa}' (ID:{m.Id}) nie ma kodów pocztowych");
                     return false;
                 }).ToList();
 
                 if (citiesWithCode.Count == 1)
                 {
-                    diagnostic?.Log($"    → Wybrano przez kod pocztowy: '{citiesWithCode[0].Nazwa}'");
+                    searchLogger?.Log($"    → Wybrano przez kod pocztowy: '{citiesWithCode[0].Nazwa}'");
                     return citiesWithCode[0];
                 }
 
                 if (citiesWithCode.Count > 0)
                 {
                     miasta = citiesWithCode; // Ogranicz dalsze wyszukiwanie
-                    diagnostic?.Log($"    → Zawężono do {miasta.Count} miast z kodem '{normalizedCode}'");
+                    searchLogger?.Log($"    → Zawężono do {miasta.Count} miast z kodem '{normalizedCode}'");
                 }
                 else
                 {
-                    diagnostic?.Log($"    ⚠ ŻADNE miasto nie ma kodu '{normalizedCode}' - kontynuuj bez filtracji");
+                    searchLogger?.Log($"    ⚠ ŻADNE miasto nie ma kodu '{normalizedCode}' - kontynuuj bez filtracji");
                 }
             }
 
@@ -388,7 +393,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (exactMatch != null)
             {
-                diagnostic?.Log($"    → Dokładne dopasowanie: '{exactMatch.Nazwa}'");
+                searchLogger?.Log($"    → Dokładne dopasowanie: '{exactMatch.Nazwa}'");
                 return exactMatch;
             }
 
@@ -446,18 +451,18 @@ namespace AddressLibrary.Services.AddressSearch
             var best = cityScores.FirstOrDefault();
             if (best != null && best.Score > 0)
             {
-                diagnostic?.Log($"    → Najlepszy match: '{best.City.Nazwa}' (score: {best.Score})");
+                searchLogger?.Log($"    → Najlepszy match: '{best.City.Nazwa}' (score: {best.Score})");
 
                 // Debug: pokaż wszystkie wyniki
                 foreach (var result in cityScores.Take(3))
                 {
-                    diagnostic?.Log($"       {result.City.Nazwa}: score={result.Score}");
+                    searchLogger?.Log($"       {result.City.Nazwa}: score={result.Score}");
                 }
 
                 return best.City;
             }
 
-            diagnostic?.Log($"    → Brak jednoznacznego wyboru");
+            searchLogger?.Log($"    → Brak jednoznacznego wyboru");
             return null;
         }
     }
