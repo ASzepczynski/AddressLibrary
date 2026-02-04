@@ -1,4 +1,5 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch;
 using Microsoft.EntityFrameworkCore;
@@ -7,29 +8,23 @@ using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
-    public class UliceLoader
+    public class UliceLoader : IDisposable
     {
         private readonly AddressDbContext _context;
-        private readonly string? _appDataPath;
-        private readonly string _controlLogPath;
+        private readonly HierarchyStreetLogger _logger;
 
         public UliceLoader(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
-            _appDataPath = appDataPath;
-
-            var logsDir = Path.Combine(appDataPath ?? AppDomain.CurrentDomain.BaseDirectory, "AppData", "Logs");
-            Directory.CreateDirectory(logsDir);
-            _controlLogPath = Path.Combine(logsDir, "Control.txt");
+            _logger = new HierarchyStreetLogger(appDataPath);
         }
 
         public async Task LoadAsync(
             List<TerytUlic> ulicData,
             Dictionary<string, Miasto> miastoDict)
         {
-            await LogControl("=== Rozpoczynam ładowanie ulic ===\n");
-            await LogControl($"Liczba ulic do przetworzenia: {ulicData.Count}");
-            await LogControl($"Liczba miejscowości w słowniku: {miastoDict.Count}");
+            _logger.LogInfo($"Liczba ulic do przetworzenia: {ulicData.Count}");
+            _logger.LogInfo($"Liczba miejscowości w słowniku: {miastoDict.Count}");
 
             int przetworzono = 0;
             int brakujacych = 0;
@@ -37,7 +32,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             int regularProcessed = 0;
 
             // Dla miast na prawach powiatu - załaduj raz na początku
-            await LogControl("Przygotowuję mapowanie miast na prawach powiatu...");
+            _logger.LogInfo("Przygotowuję mapowanie miast na prawach powiatu...");
             var miastaNaPrawachPowiatuDict = new Dictionary<string, Miasto>();
 
             // Załaduj wszystkie gminy z powiatami
@@ -46,7 +41,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     .ThenInclude(p => p.Wojewodztwo)
                 .ToListAsync();
 
-            await LogControl($"Załadowano {gminyAll.Count} gmin z bazy");
+            _logger.LogInfo($"Załadowano {gminyAll.Count} gmin z bazy");
 
             // POPRAWKA: Filtruj gminy w miastach na prawach powiatu
             // Powiat.Kod jest teraz 4-cyfrowy (np. "2261"), więc sprawdzamy końcówkę
@@ -56,7 +51,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                            g.Powiat.Kod.EndsWith("65"))
                 .ToList();
 
-            await LogControl($"Znaleziono {gminyWMiastachNaPrawachPowiatu.Count} gmin w miastach na prawach powiatu");
+            _logger.LogInfo($"Znaleziono {gminyWMiastachNaPrawachPowiatu.Count} gmin w miastach na prawach powiatu");
 
             foreach (var gmina in gminyWMiastachNaPrawachPowiatu)
             {
@@ -69,36 +64,32 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     if (!miastaNaPrawachPowiatuDict.ContainsKey(kodPowiatu))
                     {
                         miastaNaPrawachPowiatuDict[kodPowiatu] = miasto;
-                        await LogControl($"Zarejestrowano miasto na prawach powiatu: {miasto.Nazwa} (MiastoId={miasto.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
+                        _logger.LogInfo($"Zarejestrowano miasto na prawach powiatu: {miasto.Nazwa} (MiastoId={miasto.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
                     }
                 }
                 else
                 {
-                    await LogControl($"⚠️ UWAGA: Nie znaleziono miasta dla gminy {gmina.Nazwa} (GminaId={gmina.Id})");
+                    _logger.LogWarning($"Nie znaleziono miasta dla gminy {gmina.Nazwa} (GminaId={gmina.Id})");
                 }
             }
 
-            await LogControl($"Mapowanie miast na prawach powiatu zawiera {miastaNaPrawachPowiatuDict.Count} wpisów");
+            _logger.LogInfo($"Mapowanie miast na prawach powiatu zawiera {miastaNaPrawachPowiatuDict.Count} wpisów");
 
             // Wyświetl wszystkie wpisy
             foreach (var kvp in miastaNaPrawachPowiatuDict)
             {
-                await LogControl($"  [{kvp.Key}] => {kvp.Value.Nazwa} (MiastoId={kvp.Value.Id})");
+                _logger.LogInfo($"  [{kvp.Key}] => {kvp.Value.Nazwa} (MiastoId={kvp.Value.Id})");
             }
 
-            await LogControl("Przetwarzam ulice...");
+            _logger.LogInfo("Przetwarzam ulice...");
 
             // Lista wszystkich ulic do wstawienia
             var allUlice = new List<Ulica>(ulicData.Count);
 
             // Główna pętla - tylko przygotowanie danych
-
             var wojDict = _context.Wojewodztwa.AsNoTracking().ToDictionary(x => x.Kod);
-
             var powDict = _context.Powiaty.AsNoTracking().ToDictionary(x => x.Kod);
-
             var gmiDict = _context.TerytTerc.AsNoTracking().ToDictionary(x => (x.Wojewodztwo, x.Powiat, x.Gmina, x.RodzajGminy));
-
             var miaDict = _context.TerytSimc.AsNoTracking().ToDictionary(x => x.Symbol);
 
             var resultList = ulicData.Select(u => new ResultList
@@ -116,7 +107,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 if (przetworzono % 50000 == 0)
                 {
-                    await LogControl($"Przetworzono {przetworzono}/{ulicData.Count} ulic...");
+                    _logger.LogInfo($"Przetworzono {przetworzono}/{ulicData.Count} ulic...");
                 }
 
                 // POPRAWKA: Buduj 4-cyfrowy kod powiatu
@@ -139,7 +130,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                         // Loguj pierwsze nieznalezione miasta
                         if (brakujacych < 10)
                         {
-                            await LogControl($"⚠️ Brak mapowania dla miasta na prawach powiatu: kod powiatu={kodPowiatu}, ulica={ulic.Ulica.Nazwa1}");
+                            _logger.LogWarning($"Brak mapowania dla miasta na prawach powiatu: kod powiatu={kodPowiatu}, ulica={ulic.Ulica.Nazwa1}");
                         }
                         brakujacych++;
                         continue;
@@ -162,7 +153,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 string? dzielnica = null;
                 string? Nazwa1 = ulic.Ulica.Nazwa1;
 
-
                 dzielnica = UliceUtils.Wesola(ulic);
                 if (dzielnica == "")
                 {
@@ -173,7 +163,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 (Nazwa1, Nazwa2) = UliceUtils.GetCorrectedStreetName(Nazwa1, Nazwa2);
 
                 // Tutaj usuwamy duplikaty
-
                 Nazwa1 = UliceUtils.RemoveStreetTypeDuplication(ulic.Ulica.Cecha, Nazwa1);
                 if (Nazwa2 == "" 
                       && ulic.Ulica.Cecha!="ul."
@@ -199,8 +188,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 allUlice.Add(ulica);
             }
 
-            await LogControl($"\nZebrano {allUlice.Count} ulic");
-            await LogControl("Usuwam duplikaty (Symbol + Dzielnica + MiastoId)...");
+            _logger.LogInfo($"Zebrano {allUlice.Count} ulic");
+            _logger.LogInfo("Usuwam duplikaty (Symbol + Dzielnica + MiastoId)...");
 
             // ✅ ZMIENIONO: Usuń duplikaty po Symbol + Dzielnica + MiastoId
             var uniqueUlice = allUlice
@@ -211,39 +200,25 @@ namespace AddressLibrary.Services.HierarchyBuilders
             int duplikaty = allUlice.Count - uniqueUlice.Count;
             int dodano = uniqueUlice.Count;
 
-            await LogControl($"Po usunięciu duplikatów: {uniqueUlice.Count} unikalnych ulic (pominięto {duplikaty} duplikatów)");
-
-            await LogControl("Zapisuję do bazy danych...");
+            _logger.LogInfo($"Po usunięciu duplikatów: {uniqueUlice.Count} unikalnych ulic (pominięto {duplikaty} duplikatów)");
+            _logger.LogInfo("Zapisuję do bazy danych...");
 
             // Wstaw wszystkie ulice jednym ruchem
             await _context.Ulice.AddRangeAsync(uniqueUlice);
             await _context.SaveChangesAsync();
 
-            await LogControl($"\n=== Podsumowanie ładowania ulic ===");
-            await LogControl($"Przetworzono: {przetworzono}");
-            await LogControl($"Dodano: {dodano}");
-            await LogControl($"  - Dla miast na prawach powiatu: {cityWithRightsProcessed}");
-            await LogControl($"  - Dla zwykłych miejscowości: {regularProcessed}");
-            await LogControl($"Pominięto (brak miejscowości): {brakujacych}");
-            await LogControl($"Pominięto (duplikaty): {duplikaty}");
+            _logger.LogInfo("=== Podsumowanie ładowania ulic ===");
+            _logger.LogInfo($"Przetworzono: {przetworzono}");
+            _logger.LogInfo($"Dodano: {dodano}");
+            _logger.LogInfo($"  - Dla miast na prawach powiatu: {cityWithRightsProcessed}");
+            _logger.LogInfo($"  - Dla zwykłych miejscowości: {regularProcessed}");
+            _logger.LogInfo($"Pominięto (brak miejscowości): {brakujacych}");
+            _logger.LogInfo($"Pominięto (duplikaty): {duplikaty}");
         }
 
-
-
-        private async Task LogControl(string message)
+        public void Dispose()
         {
-            try
-            {
-                var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n";
-                await File.AppendAllTextAsync(_controlLogPath, logEntry);
-            }
-            catch
-            {
-                // Ignoruj błędy zapisu do logu
-            }
+            _logger?.Dispose();
         }
-
-  
-
     }
 }

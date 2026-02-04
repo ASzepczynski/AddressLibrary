@@ -128,7 +128,7 @@ namespace AddressLibrary.Helpers
         }
 
         public static readonly Dictionary<string, List<string>> StreetPrefixes = new(StringComparer.OrdinalIgnoreCase)
-{
+        {
             { "aleja",    new List<string> { "al.", "al", "aleja" } },
             { "bulwar",   new List<string> { "bulw.", "bulwar"} },
             { "droga",    new List<string> { "droga" } },
@@ -136,14 +136,41 @@ namespace AddressLibrary.Helpers
             { "osiedle",    new List<string> { "os.", "os", "oś.", "oś","osiedle" } },
             { "park",     new List<string> { "park" } },
             { "pasaż",    new List<string> { "pasaż"}},
-            { "plac",     new List<string> { "plac", "pl.","pl" } },
+            { "plac",     new List<string> { "pl.", "plac","pl" } },
             { "rondo",    new List<string> { "rondo" } },
             { "rynek",    new List<string> { "rynek"}},
-            { "skwer",    new List<string> { "skw.", "skwer",  } },
+            { "skwer",    new List<string> { "skw.", "skwer"} },
             { "szosa",    new List<string> { "szosa" } },
             { "ścieżka",  new List<string> { "ścieżka"} },
             { "ulica",    new List<string> { "ul.", "ul", "ulica" } }
-};
+        };
+        /// <summary>
+/// Zwraca preferowany skrót dla typu ulicy (np. "aleja" → "al.", "plac" → "pl.")
+/// Korzysta z pierwszego wariantu ze słownika StreetPrefixes jako preferowanego skrótu
+/// </summary>
+/// <param name="text">Nazwa typu ulicy (np. "aleja", "al.", "plac", "ulica")</param>
+/// <returns>Preferowany skrót (pierwszy wariant ze słownika) lub oryginalny tekst</returns>
+        public static string GetStreetAbbreviation(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            var normalized = text.Trim();
+
+            // Znajdź klucz w słowniku, który zawiera podany wariant
+            foreach (var entry in StreetPrefixes)
+            {
+                if (entry.Value.Any(v => v.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
+                {
+                    // Zwróć pierwszy wariant ze słownika (zawsze skrót, np. "al.", "pl.")
+                    return entry.Value[0];
+                }
+            }
+
+            // Nie znaleziono - zwróć oryginalny
+            return text;
+        }
+
         public static string RemoveStreetPrefixes(string text)
         {
             var sortedPrefixes = StreetPrefixes
@@ -189,7 +216,49 @@ namespace AddressLibrary.Helpers
             return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
         }
 
+        /// <summary>
+        /// Rozdziela nazwę ulicy na prefiks (cechę) i właściwą nazwę
+        /// Zwraca znormalizowany prefiks (pierwszy wariant ze słownika) i pozostałą część nazwy
+        /// </summary>
+        /// <param name="sUlica">Pełna nazwa ulicy (np. "aleja Jana Pawła II", "pl. Wolności")</param>
+        /// <returns>Tuple (znormalizowany prefiks lub null, nazwa bez prefiksu)</returns>
+        public static (string Prefix, string Name) SplitStreetAndPrefix(string sUlica)
+        {
+            if (string.IsNullOrWhiteSpace(sUlica))
+                return ("", sUlica ?? string.Empty);
 
+            var trimmed = sUlica.Trim();
+
+            // Pobierz wszystkie prefiksy posortowane malejąco (najdłuższe najpierw)
+            // aby uniknąć fałszywych dopasowań (np. "al." przed "aleja")
+            var sortedPrefixes = StreetPrefixes
+                .SelectMany(kv => kv.Value.Select(v => new { Key = kv.Key, Value = v }))
+                .OrderByDescending(p => p.Value.Length)
+                .ToList();
+
+            foreach (var prefixEntry in sortedPrefixes)
+            {
+                var prefixWithSpace = prefixEntry.Value + " ";
+
+                // Sprawdź czy ulica zaczyna się od prefiksu ze spacją
+                if (trimmed.StartsWith(prefixWithSpace, StringComparison.OrdinalIgnoreCase))
+                {
+                    var remainingName = trimmed.Substring(prefixWithSpace.Length).Trim();
+                    var normalizedPrefix = StreetPrefixes[prefixEntry.Key][0]; // Pierwszy wariant (znormalizowany)
+                    return (normalizedPrefix, remainingName);
+                }
+
+                // Sprawdź czy cała nazwa to tylko prefiks (np. "Rynek")
+                if (trimmed.Equals(prefixEntry.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    var normalizedPrefix = StreetPrefixes[prefixEntry.Key][0];
+                    return (normalizedPrefix, string.Empty);
+                }
+            }
+
+            // Nie znaleziono prefiksu - zwróć oryginalną nazwę
+            return ("", trimmed);
+        }
         public static string RemoveDiacritics(string text)
         {
             var normalizedString = text.Normalize(NormalizationForm.FormD);

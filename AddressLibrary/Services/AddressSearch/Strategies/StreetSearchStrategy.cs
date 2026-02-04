@@ -43,7 +43,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         public AddressSearchResult Execute(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            SearchLogger? searchLogger)
+            GeneralLogger? searchLogger)
         {
             searchLogger?.Log("\n--- STRATEGIA: Szukanie z ulicą ---");
 
@@ -131,7 +131,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private (UlicaCached street, Miasto miasto)? ResolveAmbiguousStreets(
             AddressSearchRequest request,
             List<(UlicaCached street, Miasto miasto)> matchingStreets,
-            ILogger? searchLogger)
+            GeneralLogger? searchLogger)
         {
             // Wyciągnij tylko listę ulic (bez miast)
 
@@ -157,9 +157,13 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
     })
     .ToList();
 
+
+            (string sPrefiks,string sStreet) = UliceUtils.SplitStreetAndPrefix(request.Ulica);
+
             // Użyj AmbiguousStreetResolver
-            var resolvedStreet = ResolveAmbiguity.ResolveAmbiguityPostal(
+            var resolvedStreet = ResolveAmbiguity.ResolveStreetAmbiguity(
                 streets,
+                sPrefiks,
                 request.KodPocztowy,
                 firstMiasto.Nazwa,
                 searchLogger); 
@@ -189,7 +193,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private AddressSearchResult CreateMultipleMatchesError(
             List<(UlicaCached street, Miasto miasto)> matchingStreets,
             List<Miasto> miasta,
-            SearchLogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             // Pobierz kody pocztowe
             var firstMiasto = matchingStreets[0].miasto;
@@ -203,13 +207,18 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             diagnostic?.Log($" [A] ℹ️ {message}");
 
-            return new AddressSearchResult
+            var result = new AddressSearchResult
             {
                 Status = AddressSearchStatus.MultipleMatches,
                 Message = message,
-                Miasto = miasta.Count == 1 ? miasta[0] : null,
-                DiagnosticInfo = diagnostic?.GetLog()
+                Miasto = miasta.Count == 1 ? miasta[0] : null
             };
+            result.AddDiagnostic($"Znaleziono {matchingStreets.Count} pasujących ulic");
+            foreach (var (street, miasto) in matchingStreets.Take(10))
+            {
+                result.AddDiagnostic($"  • {_cache.GetOriginalStreetName(street)} w {miasto.Nazwa}");
+            }
+            return result;
         }
 
 
@@ -221,7 +230,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             AddressSearchRequest request,
             List<Miasto> miasta,
             string normalizedStreet,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             diagnostic?.Log($"Szukam WSZYSTKICH ulic pasujących do: '{request.Ulica}' -> znormalizowana: '{normalizedStreet}'");
 
@@ -272,7 +281,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             AddressSearchRequest request,
             List<Miasto> miasta,
             string normalizedStreet,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             diagnostic?.Log($"✗ Nie znaleziono ulicy '{request.Ulica}' w żadnej z miejscowości");
 
@@ -291,15 +300,18 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 diagnostic?.Log($"  ⚠️ UWAGA: Ulica '{request.Ulica}' NIE ISTNIEJE w całej bazie TERYT!");
 
-                return new AddressSearchResult
+                var result2 = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.InvalidStreetName,
                     Message = AddressSearchStatusInfo.GetMessage(
                         AddressSearchStatus.InvalidStreetName,
-                        request.Ulica) + "/'" + normalizedStreet + "'", // ✅ "Błędna nazwa ulicy 'XYZ'"
-                    Miasto = miasta.Count == 1 ? miasta[0] : null,
-                    DiagnosticInfo = diagnostic?.GetLog()
+                        request.Ulica) + "/'" + normalizedStreet + "'",
+                    Miasto = miasta.Count == 1 ? miasta[0] : null
                 };
+                result2.AddDiagnostic($"Szukana ulica: '{request.Ulica}'");
+                result2.AddDiagnostic($"Znormalizowana: '{normalizedStreet}'");
+                result2.AddDiagnostic("Ulica NIE istnieje w bazie TERYT");
+                return result2;
             }
 
             // ✅ ULICA ISTNIEJE, ALE W INNYM MIEŚCIE → UlicaNotFound
@@ -338,15 +350,18 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             }
 
             // KROK 4: Zwróć błąd z komunikatem ze słownika
-            return new AddressSearchResult
+            var result = new AddressSearchResult
             {
                 Status = AddressSearchStatus.UlicaNotFound,
                 Message = AddressSearchStatusInfo.GetMessage(
                     AddressSearchStatus.UlicaNotFound,
-                    $"'{request.Ulica}' w miejscowości '{request.Miasto}'"), // ✅ "Nie znaleziono ulicy 'XYZ' w miejscowości 'ABC'"
-                Miasto = miasta.Count == 1 ? miasta[0] : null,
-                DiagnosticInfo = diagnostic?.GetLog()
+                    $"'{request.Ulica}' w miejscowości '{request.Miasto}'"),
+                Miasto = miasta.Count == 1 ? miasta[0] : null
             };
+            result.AddDiagnostic($"Szukana ulica: '{request.Ulica}'");
+            result.AddDiagnostic($"Miejscowość: '{request.Miasto}'");
+            result.AddDiagnostic($"Ulica istnieje w {otherLocations.Count} innych miejscowościach");
+            return result;
         }
 
         /// <summary>
@@ -356,7 +371,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private AddressSearchResult? TrySwapCityAndStreet(
             AddressSearchRequest request,
             string normalizedStreet,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             diagnostic?.Log($"\n🔄 Sprawdzam czy '{request.Ulica}' to miejscowość zamiast ulicy...");
 
@@ -431,7 +446,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private (UlicaCached? street, Miasto? miasto) FindSimilarStreet(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             foreach (var miasto in miasta)
             {
@@ -453,7 +468,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             List<KodPocztowy> filteredKody,
             string combinedBuildingNumber,
             int ulicaId,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             if (string.IsNullOrWhiteSpace(combinedBuildingNumber))
                 return filteredKody;

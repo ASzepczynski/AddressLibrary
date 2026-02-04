@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Models;
+using System.Text;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -38,7 +39,41 @@ namespace AddressLibrary.Services.AddressSearch
         // W przypadku wielu dopasowań
         public List<KodPocztowy>? AlternativeMatches { get; set; }
 
-        // Informacje diagnostyczne
-        public string? DiagnosticInfo { get; set; }
+        // ✅ POPRAWIONE: Informacje diagnostyczne dla tego konkretnego wyszukiwania
+        private List<string> _diagnosticMessages = new();
+        
+        /// <summary>
+        /// Dodaje wiadomość diagnostyczną
+        /// </summary>
+        public void AddDiagnostic(string message)
+        {
+            _diagnosticMessages.Add(message);
+        }
+
+        /// <summary>
+        /// Zwraca wszystkie informacje diagnostyczne jako jeden string
+        /// </summary>
+        public string? DiagnosticInfo => _diagnosticMessages.Count > 0 
+            ? string.Join(Environment.NewLine, _diagnosticMessages) 
+            : null;
+
+        /// <summary>
+        /// Tworzy podsumowanie diagnostyczne w formacie czytelnym dla człowieka
+        /// </summary>
+        public string GetFormattedDiagnostics()
+        {
+            if (_diagnosticMessages.Count == 0)
+                return "Brak informacji diagnostycznych";
+
+            var sb = new StringBuilder();
+            sb.AppendLine("=== Informacje diagnostyczne ===");
+            
+            foreach (var msg in _diagnosticMessages)
+            {
+                sb.AppendLine($"  • {msg}");
+            }
+
+            return sb.ToString();
+        }
     }
 }

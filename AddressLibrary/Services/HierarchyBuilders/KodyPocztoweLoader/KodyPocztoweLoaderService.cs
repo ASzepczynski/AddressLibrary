@@ -12,14 +12,14 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     public class KodyPocztoweLoaderService : IDisposable
     {
         private readonly AddressDbContext _context;
-        private readonly LoadLogger _logger;
+        private readonly PostalCodesLogger _logger;
 
         public string LogFilePath => _logger.LogFilePath;
 
         public KodyPocztoweLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
-            _logger = new LoadLogger(appDataPath);
+            _logger = new PostalCodesLogger(appDataPath);
         }
 
         public async Task LoadAsync(

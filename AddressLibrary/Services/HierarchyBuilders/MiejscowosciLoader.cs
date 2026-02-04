@@ -1,24 +1,19 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
-    public class MiastaLoader
+    public class MiastaLoader : IDisposable
     {
         private readonly AddressDbContext _context;
-        private readonly string? _appDataPath;
-        private readonly string _controlLogPath;
+        private readonly HierarchyLogger _logger;
 
         public MiastaLoader(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
-            _appDataPath = appDataPath;
-            
-            // Ustaw ścieżkę do pliku kontrolnego
-            var logsDir = Path.Combine(appDataPath ?? AppDomain.CurrentDomain.BaseDirectory, "AppData", "Logs");
-            Directory.CreateDirectory(logsDir);
-            _controlLogPath = Path.Combine(logsDir, "Control.txt");
+            _logger = new HierarchyLogger(appDataPath);
         }
 
         public async Task<Dictionary<string, Miasto>> LoadAsync(
@@ -28,10 +23,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         {
             var miastaDict = new Dictionary<string, Miasto>();
 
-            // Wyczyść poprzedni log kontrolny
-            await File.WriteAllTextAsync(_controlLogPath, $"=== Log kontrolny budowania miejscowości - {DateTime.Now} ===\n\n");
-
-            await LogControl("Rekord domyślny 'Brak' z Id=-1 już istnieje (utworzony przez DefaultRecordSeeder)");
+            _logger.LogInfo("Rekord domyślny 'Brak' z Id=-1 już istnieje (utworzony przez DefaultRecordSeeder)");
 
             int cityWithRightsCount = 0;
             int regularCount = 0;
@@ -44,7 +36,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 .GroupBy(s => new { s.Wojewodztwo, s.Powiat, s.Gmina, s.RodzajGminy })
                 .ToList();
 
-            await LogControl($"Liczba grup miejscowości według gmin: {miastaByGmina.Count}");
+            _logger.LogInfo($"Liczba grup miejscowości według gmin: {miastaByGmina.Count}");
 
             foreach (var gminaGroup in miastaByGmina)
             {
@@ -71,7 +63,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     else
                     {
                         notFoundGminaCount++;
-                        await LogControl($"⚠️ UWAGA: Nie znaleziono gminy dla klucza: {kodGminy}");
+                        _logger.LogWarning($"Nie znaleziono gminy dla klucza: {kodGminy}");
                     }
                     continue;
                 }
@@ -108,11 +100,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
                         await _context.Miasta.AddAsync(miasto);
                         cityWithRightsCount++;
 
-                        await LogControl($"Dodano miasto na prawach powiatu: {miasto.Nazwa}, Symbol: {miasto.Symbol}, Gmina: {gmina.Nazwa}");
+                        _logger.LogInfo($"Dodano miasto na prawach powiatu: {miasto.Nazwa}, Symbol: {miasto.Symbol}, Gmina: {gmina.Nazwa}");
                     }
                     else
                     {
-                        await LogControl($"⚠️ UWAGA: Brak miasta z rodzajem '96' dla gminy {gmina.Nazwa} (kod: {kodGminy})");
+                        _logger.LogWarning($"Brak miasta z rodzajem '96' dla gminy {gmina.Nazwa} (kod: {kodGminy})");
                     }
                 }
                 else
@@ -127,7 +119,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                             skippedDistrictsCount++;
                             if (skippedDistrictsCount <= 10) // Loguj tylko pierwsze 10
                             {
-                                await LogControl($"Pominięto dzielnicę: {simc.Nazwa} (Symbol: {simc.Symbol}, SymbolPodstawowy: {simc.SymbolPodstawowy})");
+                                _logger.LogInfo($"Pominięto dzielnicę: {simc.Nazwa} (Symbol: {simc.Symbol}, SymbolPodstawowy: {simc.SymbolPodstawowy})");
                             }
                             continue;
                         }
@@ -155,19 +147,19 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 }
             }
 
-            await LogControl($"Dodano {cityWithRightsCount} miast na prawach powiatu (rodzaj '96')");
-            await LogControl($"Dodano {regularCount} zwykłych miejscowości");
+            _logger.LogInfo($"Dodano {cityWithRightsCount} miast na prawach powiatu (rodzaj '96')");
+            _logger.LogInfo($"Dodano {regularCount} zwykłych miejscowości");
             if (skippedDistrictsCount > 0)
             {
-                await LogControl($"Pominięto {skippedDistrictsCount} dzielnic (SymbolPodstawowy != Symbol)");
+                _logger.LogInfo($"Pominięto {skippedDistrictsCount} dzielnic (SymbolPodstawowy != Symbol)");
             }
             if (skippedDelegaturesCount > 0)
             {
-                await LogControl($"Pominięto {skippedDelegaturesCount} delegatur/dzielnic (nie wymagają gminy - to OK)");
+                _logger.LogInfo($"Pominięto {skippedDelegaturesCount} delegatur/dzielnic (nie wymagają gminy - to OK)");
             }
             if (notFoundGminaCount > 0)
             {
-                await LogControl($"⚠️ Pominięto {notFoundGminaCount} grup (brak gminy w słowniku - wymaga uwagi)");
+                _logger.LogWarning($"Pominięto {notFoundGminaCount} grup (brak gminy w słowniku - wymaga uwagi)");
             }
             
             await _context.SaveChangesAsync();
@@ -175,17 +167,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
             return miastaDict;
         }
 
-        private async Task LogControl(string message)
+        public void Dispose()
         {
-            try
-            {
-                var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n";
-                await File.AppendAllTextAsync(_controlLogPath, logEntry);
-            }
-            catch
-            {
-                // Ignoruj błędy zapisu do logu
-            }
+            _logger?.Dispose();
         }
     }
 }

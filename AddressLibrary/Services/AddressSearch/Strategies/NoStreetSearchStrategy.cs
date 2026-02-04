@@ -32,7 +32,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         public AddressSearchResult Execute(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             diagnostic?.Log("\n--- STRATEGIA: Szukanie bez ulicy ---");
 
@@ -40,12 +40,17 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             if (selectedMiasto == null)
             {
-                return new AddressSearchResult
+                var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.MiastoNotFound,
-                    Message = GetCityNotFoundMessage(miasta, request),
-                    DiagnosticInfo = diagnostic?.GetLog()
+                    Message = GetCityNotFoundMessage(miasta, request)
                 };
+                result.AddDiagnostic($"Szukane miasto: {request.Miasto}");
+                result.AddDiagnostic($"Znaleziono {miasta.Count} miast o tej nazwie");
+                if (!string.IsNullOrWhiteSpace(request.KodPocztowy))
+                    result.AddDiagnostic($"Kod pocztowy: {request.KodPocztowy}");
+                result.AddDiagnostic("Nie można jednoznacznie określić miasta");
+                return result;
             }
 
             diagnostic?.Log($"Wybrano miasto: {selectedMiasto.Nazwa} (ID: {selectedMiasto.Id})");
@@ -54,15 +59,18 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (!_cache.TryGetKodyPocztowe(selectedMiasto.Id, out var kodyPocztowe))
             {
                 diagnostic?.Log($"✗ Brak kodów pocztowych dla miasta ID: {selectedMiasto.Id}");
-                return new AddressSearchResult
+                
+                var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.KodPocztowyNotFound,
                     Miasto = selectedMiasto,
                     Message = $"Brak kodów pocztowych dla miasta {request.Miasto}",
                     NormalizedBuildingNumber = request.NumerDomu,
-                    NormalizedApartmentNumber = request.NumerMieszkania,
-                    DiagnosticInfo = diagnostic?.GetLog()
+                    NormalizedApartmentNumber = request.NumerMieszkania
                 };
+                result.AddDiagnostic($"Miasto: {selectedMiasto.Nazwa}");
+                result.AddDiagnostic("Miasto nie ma kodów pocztowych");
+                return result;
             }
 
             diagnostic?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla miasta");
@@ -85,7 +93,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private Miasto? SelectCity(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             // Jeśli mamy wiele miast
             if (miasta.Count > 1)
@@ -125,7 +133,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private Miasto? SelectCityByPostalCode(
             AddressSearchRequest request,
             List<Miasto> miasta,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             var kodNorm = UliceUtils.NormalizujKodPocztowy(request.KodPocztowy);
             diagnostic?.Log($"Znaleziono {miasta.Count} miast o nazwie '{request.Miasto}', próba zawężenia po kodzie: {kodNorm}");

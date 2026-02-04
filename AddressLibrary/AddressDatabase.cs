@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 Andrzej SzepczyÒski. All rights reserved.
+Ôªø// Copyright (c) 2025-2026 Andrzej Szepczy≈Ñski. All rights reserved.
 
 using AddressLibrary.Data;
 using AddressLibrary.Services;
@@ -30,7 +30,7 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// Tworzy bazÍ danych jeúli nie istnieje
+        /// Tworzy bazƒô danych je≈õli nie istnieje
         /// </summary>
         public async Task EnsureDatabaseCreatedAsync()
         {
@@ -38,11 +38,11 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// Usuwa wszystkie dane z wszystkich tabel zachowujπc strukturÍ bazy danych
+        /// Usuwa wszystkie dane z wszystkich tabel zachowujƒÖc strukturƒô bazy danych
         /// </summary>
         public async Task DeleteDatabaseAsync()
         {
-            // UsuÒ dane z tabel hierarchicznych (w odpowiedniej kolejnoúci - od dzieci do rodzicÛw)
+            // Usu≈Ñ dane z tabel hierarchicznych (w odpowiedniej kolejno≈õci - od dzieci do rodzic√≥w)
             _context.KodyPocztowe.RemoveRange(await _context.KodyPocztowe.ToListAsync());
             _context.Ulice.RemoveRange(await _context.Ulice.ToListAsync());
             _context.Miasta.RemoveRange(await _context.Miasta.ToListAsync());
@@ -50,11 +50,11 @@ namespace AddressLibrary
             _context.Powiaty.RemoveRange(await _context.Powiaty.ToListAsync());
             _context.Wojewodztwa.RemoveRange(await _context.Wojewodztwa.ToListAsync());
 
-            // UsuÒ dane ze s≥ownikÛw
+            // Usu≈Ñ dane ze s≈Çownik√≥w
             _context.RodzajeMiast.RemoveRange(await _context.RodzajeMiast.ToListAsync());
             _context.RodzajeGmin.RemoveRange(await _context.RodzajeGmin.ToListAsync());
 
-            // UsuÒ dane z tabel TERYT
+            // Usu≈Ñ dane z tabel TERYT
             _context.Pna.RemoveRange(await _context.Pna.ToListAsync());
             _context.TerytUlic.RemoveRange(await _context.TerytUlic.ToListAsync());
             _context.TerytSimc.RemoveRange(await _context.TerytSimc.ToListAsync());
@@ -73,10 +73,10 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// £aduje dane z pliku CSV do tabeli odpowiadajπcej typowi T
+        /// ≈Åaduje dane z pliku CSV do tabeli odpowiadajƒÖcej typowi T
         /// </summary>
         /// <typeparam name="T">Typ encji (nazwa tabeli)</typeparam>
-        /// <param name="csvFilePath">åcieøka do pliku CSV</param>
+        /// <param name="csvFilePath">≈öcie≈ºka do pliku CSV</param>
         public async Task LoadDataFromCsvAsync<T>(string csvFilePath) where T : class
         {
             var loader = new CsvDataLoader(_context);
@@ -84,9 +84,9 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// £aduje dane z pliku PDF do tabeli Pna
+        /// ≈Åaduje dane z pliku PDF do tabeli Pna
         /// </summary>
-        /// <param name="pdfFilePath">åcieøka do pliku PDF</param>
+        /// <param name="pdfFilePath">≈öcie≈ºka do pliku PDF</param>
         public async Task LoadDataFromPdfAsync(string pdfFilePath)
         {
             var loader = new PdfDataLoader(_context, _appDataPath);
@@ -94,12 +94,12 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// Zwraca DbContext do rÍcznych operacji
+        /// Zwraca DbContext do rƒôcznych operacji
         /// </summary>
         public AddressDbContext GetContext() => _context;
 
         /// <summary>
-        /// Czyúci wszystkie dane z tabeli typu T
+        /// Czy≈õci wszystkie dane z tabeli typu T
         /// </summary>
         public async Task ClearTableAsync<T>() where T : class
         {
@@ -109,99 +109,101 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// Buduje strukturÍ hierarchicznπ na podstawie danych TERYT (BEZ kodÛw pocztowych)
+        /// Buduje strukturƒô hierarchicznƒÖ na podstawie danych TERYT (BEZ kod√≥w pocztowych)
         /// </summary>
         public async Task BuildHierarchicalStructureAsync()
         {
-            // KROK 1: WyczyúÊ istniejπce dane hierarchiczne (oprÛcz kodÛw pocztowych)
+            // KROK 1: Wyczy≈õƒá istniejƒÖce dane hierarchiczne (opr√≥cz kod√≥w pocztowych)
             await ClearHierarchicalDataAsync();
 
-            // WAØNE: WyczyúÊ ChangeTracker po operacji DELETE
+            // WA≈ªNE: Wyczy≈õƒá ChangeTracker po operacji DELETE
             _context.ChangeTracker.Clear();
 
-            // KROK 1.5: SEED domyúlnych rekordÛw "Brak" dla wszystkich tabel
+            // KROK 1.5: SEED domy≈õlnych rekord√≥w "Brak" dla wszystkich tabel
             var seeder = new DefaultRecordSeeder(_context);
             await seeder.SeedDefaultRecordsAsync();
 
-            // WyczyúÊ ChangeTracker ponownie po seedowaniu
+            // Wyczy≈õƒá ChangeTracker ponownie po seedowaniu
             _context.ChangeTracker.Clear();
 
-            // KROK 2: Za≥aduj s≥owniki referencyjne
-            // 2a. Za≥aduj rodzaje gmin (seed data)
+            // KROK 2: Za≈Çaduj s≈Çowniki referencyjne
+            // 2a. Za≈Çaduj rodzaje gmin (seed data)
             var rodzajeGminLoader = new RodzajeGminLoader(_context);
             await rodzajeGminLoader.LoadAsync();
 
-            // 2b. Za≥aduj rodzaje miejscowoúci z TerytWmRodz
+            // 2b. Za≈Çaduj rodzaje miejscowo≈õci z TerytWmRodz
             var rodzajeMiastaLoader = new RodzajeMiastLoader(_context);
             await rodzajeMiastaLoader.LoadAsync();
 
-            // KROK 3: Za≥aduj dane z tabel TERYT
+            // KROK 3: Za≈Çaduj dane z tabel TERYT
             var tercData = await _context.TerytTerc.ToListAsync();
             var simcData = await _context.TerytSimc.ToListAsync();
             var ulicData = await _context.TerytUlic.ToListAsync();
 
-            // KROK 4: Za≥aduj s≥owniki do pamiÍci
+            // KROK 4: Za≈Çaduj s≈Çowniki do pamiƒôci
             var rodzajeGmin = await _context.RodzajeGmin.ToDictionaryAsync(r => r.Kod, r => r);
             var rodzajeMiasta = await _context.RodzajeMiast.ToDictionaryAsync(r => r.Kod, r => r);
 
-            // KROK 5: UtwÛrz wojewÛdztwa (bez seedowania - juø zrobione w kroku 1.5)
+            // KROK 5: Utw√≥rz wojew√≥dztwa (bez seedowania - ju≈º zrobione w kroku 1.5)
             var wojewodztwaLoader = new WojewodztwaLoader(_context);
             var wojewodztwaDict = await wojewodztwaLoader.LoadAsync(tercData);
 
-            // KROK 6: UtwÛrz powiaty
+            // KROK 6: Utw√≥rz powiaty
             var powiatyLoader = new PowiatyLoader(_context);
             var powiatyDict = await powiatyLoader.LoadAsync(tercData, wojewodztwaDict);
 
-            // KROK 7: UtwÛrz gminy
+            // KROK 7: Utw√≥rz gminy
             var gminyLoader = new GminyLoader(_context, _appDataPath);
             var gminyDict = await gminyLoader.LoadAsync(tercData, powiatyDict, rodzajeGmin);
 
-            // KROK 8: UtwÛrz miejscowoúci
+            // KROK 8: Utw√≥rz miejscowo≈õci
             var miastaLoader = new MiastaLoader(_context, _appDataPath);
             var miastaDict = await miastaLoader.LoadAsync(simcData, gminyDict, rodzajeMiasta);
+            miastaLoader.Dispose();
 
-            // KROK 9: UtwÛrz ulice
+            // KROK 9: Utw√≥rz ulice
             var uliceLoader = new UliceLoader(_context, _appDataPath);
             await uliceLoader.LoadAsync(ulicData, miastaDict);
+            uliceLoader.Dispose();
         }
 
         /// <summary>
-        /// £aduje TYLKO kody pocztowe na podstawie danych PNA (wymaga wczeúniejszego wykonania BuildHierarchicalStructureAsync)
+        /// ≈Åaduje TYLKO kody pocztowe na podstawie danych PNA (wymaga wcze≈õniejszego wykonania BuildHierarchicalStructureAsync)
         /// </summary>
-        /// <param name="progress">Opcjonalny obiekt do raportowania postÍpu ≥adowania kodÛw pocztowych</param>
+        /// <param name="progress">Opcjonalny obiekt do raportowania postƒôpu ≈Çadowania kod√≥w pocztowych</param>
         public async Task LoadKodyPocztoweAsync(IProgress<LoadProgressInfo>? progress = null)
         {
-            // WyczyúÊ istniejπce kody pocztowe
+            // Wyczy≈õƒá istniejƒÖce kody pocztowe
             var kodyPocztoweToRemove = await _context.KodyPocztowe
                 .Where(k => k.Id != -1)
                 .ToListAsync();
             _context.KodyPocztowe.RemoveRange(kodyPocztoweToRemove);
             await _context.SaveChangesAsync();
 
-            // Za≥aduj dane PNA
+            // Za≈Çaduj dane PNA
             var pnaData = await _context.Pna.ToListAsync();
 
-            // Loader sam za≥aduje miejscowoúci i ulice z bazy danych i dopasuje po nazwach
+            // Loader sam za≈Çaduje miejscowo≈õci i ulice z bazy danych i dopasuje po nazwach
             var kodyPocztoweLoader = new KodyPocztoweLoaderService(_context, _appDataPath); // ZMIENIONO
             await kodyPocztoweLoader.LoadAsync(pnaData, progress);
         }
 
         /// <summary>
-        /// Czyúci istniejπce dane hierarchiczne (oprÛcz rekordÛw "Brak" z Id=-1)
-        /// NIE usuwa kodÛw pocztowych
+        /// Czy≈õci istniejƒÖce dane hierarchiczne (opr√≥cz rekord√≥w "Brak" z Id=-1)
+        /// NIE usuwa kod√≥w pocztowych
         /// </summary>
         private async Task ClearHierarchicalDataAsync()
         {
-            // ZwiÍksz timeout do 5 minut dla operacji usuwania duøych iloúci danych
+            // Zwiƒôksz timeout do 5 minut dla operacji usuwania du≈ºych ilo≈õci danych
             var previousTimeout = _context.Database.GetCommandTimeout();
             _context.Database.SetCommandTimeout(300); // 300 sekund = 5 minut
 
             try
             {
-                // Uøywamy DELETE z wy≥πczonymi constraints
-                // WAØNE: KolejnoúÊ usuwania - od dzieci do rodzicÛw (zgodnie z FK)
+                // U≈ºywamy DELETE z wy≈ÇƒÖczonymi constraints
+                // WA≈ªNE: Kolejno≈õƒá usuwania - od dzieci do rodzic√≥w (zgodnie z FK)
                 var sql = @"
-                    -- Wy≥πcz sprawdzanie kluczy obcych
+                    -- Wy≈ÇƒÖcz sprawdzanie kluczy obcych
                     ALTER TABLE KodyPocztowe NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Ulice NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Miasta NOCHECK CONSTRAINT ALL;
@@ -209,8 +211,8 @@ namespace AddressLibrary
                     ALTER TABLE Powiaty NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Wojewodztwa NOCHECK CONSTRAINT ALL;
 
-                    -- UsuÒ dane (zachowaj rekordy z Id = -1)
-                    -- WAØNE: KodyPocztowe NAJPIERW (ma FK do Ulice i Miasta)
+                    -- Usu≈Ñ dane (zachowaj rekordy z Id = -1)
+                    -- WA≈ªNE: KodyPocztowe NAJPIERW (ma FK do Ulice i Miasta)
                     DELETE FROM KodyPocztowe WHERE Id != -1;
                     DELETE FROM Ulice WHERE Id != -1;
                     DELETE FROM Miasta WHERE Id != -1;
@@ -220,7 +222,7 @@ namespace AddressLibrary
                     DELETE FROM RodzajeMiast WHERE Id != -1;
                     DELETE FROM RodzajeGmin WHERE Id != -1;
 
-                    -- W≥πcz z powrotem sprawdzanie kluczy obcych
+                    -- W≈ÇƒÖcz z powrotem sprawdzanie kluczy obcych
                     ALTER TABLE KodyPocztowe CHECK CONSTRAINT ALL;
                     ALTER TABLE Ulice CHECK CONSTRAINT ALL;
                     ALTER TABLE Miasta CHECK CONSTRAINT ALL;
@@ -233,7 +235,7 @@ namespace AddressLibrary
             }
             finally
             {
-                // PrzywrÛÊ poprzedni timeout
+                // Przywr√≥ƒá poprzedni timeout
                 _context.Database.SetCommandTimeout(previousTimeout);
             }
         }

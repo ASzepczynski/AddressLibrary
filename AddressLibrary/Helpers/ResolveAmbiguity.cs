@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static UglyToad.PdfPig.Core.PdfSubpath;
 
 namespace AddressLibrary.Helpers
 {
@@ -13,29 +14,43 @@ namespace AddressLibrary.Helpers
         /// <summary>
         /// 🆕 Próbuje rozstrzygnąć niejednoznaczność na podstawie hierarchii cech ulic
         /// </summary>
-        public static Ulica? ResolveAmbiguityPostal(
+        public static Ulica? ResolveStreetAmbiguity(
             List<Ulica> candidates,
+            string sPrefiks,
             string kodPocztowy,
             string miastoNazwa,
-            ILogger? _loadLogger)
+            GeneralLogger? _PostalCodesLogger)
         {
             if (candidates.Count <= 1)
                 return candidates.FirstOrDefault();
 
-            var caseId = $"{kodPocztowy}_{miastoNazwa}_{DateTime.Now:HHmmss.fff}";
-            
             // ✅ POPRAWKA: Case-insensitive porównanie
             var cechyPriorytet = new[] { "ul.", "al.", "pl." };  // ← WSZYSTKO lowercase!
             
-            _loadLogger?.LogWarning($"[ResolveAmbiguity #{caseId}] ✓ Wykryto niejednoznaczność - próba rozstrzygnięcia");
+            _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] ✓ Wykryto niejednoznaczność - próba rozstrzygnięcia, szukany prefiks '{sPrefiks}'");
 
             foreach (var ulica in candidates)
             {
                 var line = $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""}".Trim();
-                _loadLogger?.LogInfo($"[ResolveAmbiguity #{caseId}] Kandydat: {line}");
+                _PostalCodesLogger?.LogInfo($"[ResolveAmbiguity] Kandydat: {line}");
             }
 
-            foreach (var cecha in cechyPriorytet)
+            var Pasujace = new List<Ulica>();
+			foreach (var ulica in candidates)
+			{
+                if (ulica.Cecha == sPrefiks || ulica.Cecha == UliceUtils.GetStreetAbbreviation(sPrefiks))
+				{
+					Pasujace.Add(ulica);
+				}
+			}
+
+			if (Pasujace.Count() == 1)
+            {
+				_PostalCodesLogger?.LogInfo($"Istnieje dokładnie jeden obiekt z prefiksem [{sPrefiks}]");
+				return Pasujace[0];
+			}
+
+			foreach (var cecha in cechyPriorytet)
             {
                 // ✅ POPRAWKA: Porównanie case-insensitive
                 var matches = candidates
@@ -50,17 +65,17 @@ namespace AddressLibrary.Helpers
                         .Distinct()
                         .ToList();
                         
-                    _loadLogger?.LogInfo($"[ResolveAmbiguity #{caseId}] ✓ Wybrano cechę '{cecha}': '{UliceUtils.GetPelnaNazwa(matches[0])}'");
+                    _PostalCodesLogger?.LogInfo($"[ResolveAmbiguity] ✓ Wybrano cechę '{cecha}': '{UliceUtils.GetPelnaNazwa(matches[0])}'");
                     
                     if (pominieteCechy.Count > 0)
                     {
-                        _loadLogger?.LogInfo($"[ResolveAmbiguity #{caseId}] Pominięto cechy: {string.Join(", ", pominieteCechy)}");
+                        _PostalCodesLogger?.LogInfo($"[ResolveAmbiguity] Pominięto cechy: {string.Join(", ", pominieteCechy)}");
                     }
                     return matches[0];
                 }
             }
 
-            _loadLogger?.LogError($"[ResolveAmbiguity #{caseId}] ✗ Nie można rozstrzygnąć - zwracam null");
+            _PostalCodesLogger?.LogError($"[ResolveAmbiguity] ✗ Nie można rozstrzygnąć - zwracam null");
             return null;
         }
 

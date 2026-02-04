@@ -62,14 +62,17 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (kodPocztowyRecords.Count == 0)
             {
                 diagnostic?.Log($"✗ Nie znaleziono kodu pocztowego '{request.KodPocztowy}' w bazie");
-                return new AddressSearchResult
+
+                var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.KodPocztowyNotFound,
                     Message = AddressSearchStatusInfo.GetMessage(
                         AddressSearchStatus.KodPocztowyNotFound,
-                        request.KodPocztowy),
-                    DiagnosticInfo = diagnostic?.GetLog()
+                        request.KodPocztowy)
                 };
+                result.AddDiagnostic($"Szukany kod: {request.KodPocztowy}");
+                result.AddDiagnostic("Kod nie istnieje w bazie");
+                return result;
             }
 
             diagnostic?.Log($"✓ Znaleziono {kodPocztowyRecords.Count} rekordów z kodem {request.KodPocztowy}");
@@ -87,14 +90,18 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (kodPocztowyRecords.Count == 0)
                 {
                     diagnostic?.Log($"✗ Brak kodów dla miasta '{request.Miasto}'");
-                    return new AddressSearchResult
+
+                    var result = new AddressSearchResult
                     {
                         Status = AddressSearchStatus.MiastoNotFound,
                         Message = AddressSearchStatusInfo.GetMessage(
                             AddressSearchStatus.MiastoNotFound,
-                            request.Miasto),
-                        DiagnosticInfo = diagnostic?.GetLog()
+                            request.Miasto)
                     };
+                    result.AddDiagnostic($"Kod: {request.KodPocztowy}");
+                    result.AddDiagnostic($"Szukane miasto: {request.Miasto}");
+                    result.AddDiagnostic($"Miasto nie pasuje do kodu pocztowego");
+                    return result;
                 }
             }
 
@@ -102,9 +109,9 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (!string.IsNullOrWhiteSpace(request.Ulica))
             {
                 var normalizedUlica = _normalizer.Normalize(request.Ulica);
-                
+
                 kodPocztowyRecords = kodPocztowyRecords
-                    .Where(k => k.Ulica != null && 
+                    .Where(k => k.Ulica != null &&
                                _normalizer.Normalize(BuildFullStreetName(k.Ulica)) == normalizedUlica)
                     .ToList();
 
@@ -113,14 +120,19 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (kodPocztowyRecords.Count == 0)
                 {
                     diagnostic?.Log($"✗ Brak kodów dla ulicy '{request.Ulica}'");
-                    return new AddressSearchResult
+
+                    var result = new AddressSearchResult
                     {
                         Status = AddressSearchStatus.UlicaNotFound,
                         Message = AddressSearchStatusInfo.GetMessage(
                             AddressSearchStatus.UlicaNotFound,
-                            $"({request.Ulica}) w miejscowości ({request.Miasto})"),
-                        DiagnosticInfo = diagnostic?.GetLog()
+                            $"({request.Ulica}) w miejscowości ({request.Miasto})")
                     };
+                    result.AddDiagnostic($"Kod: {request.KodPocztowy}");
+                    result.AddDiagnostic($"Miasto: {request.Miasto}");
+                    result.AddDiagnostic($"Szukana ulica: {request.Ulica}");
+                    result.AddDiagnostic("Ulica nie pasuje do kodu pocztowego");
+                    return result;
                 }
             }
 
@@ -136,12 +148,16 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (kodPocztowyRecords.Count == 0)
                 {
                     diagnostic?.Log($"✗ Numer domu '{normalizedNumerDomu}' nie pasuje do żadnego zakresu");
-                    return new AddressSearchResult
+
+                    var result = new AddressSearchResult
                     {
                         Status = AddressSearchStatus.KodPocztowyNotFound,
-                        Message = $"Nie znaleziono kodu pocztowego dla numeru domu '{request.NumerDomu}'",
-                        DiagnosticInfo = diagnostic?.GetLog()
+                        Message = $"Nie znaleziono kodu pocztowego dla numeru domu '{request.NumerDomu}'"
                     };
+                    result.AddDiagnostic($"Kod: {request.KodPocztowy}");
+                    result.AddDiagnostic($"Numer domu: {normalizedNumerDomu}");
+                    result.AddDiagnostic("Numer nie pasuje do żadnego zakresu");
+                    return result;
                 }
             }
 
@@ -150,30 +166,46 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 var match = kodPocztowyRecords[0];
                 diagnostic?.Log($"✓ SUKCES: Znaleziono dokładne dopasowanie");
-                
-                return new AddressSearchResult
+
+                var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.Success,
                     KodPocztowy = match,
                     Miasto = match.Miasto,
                     Ulica = match.Ulica,
-                    Message = "Znaleziono kod pocztowy",
-                    DiagnosticInfo = diagnostic?.GetLog()
+                    Message = "Znaleziono kod pocztowy"
                 };
+                result.AddDiagnostic($"Kod: {match.Kod}");
+                result.AddDiagnostic($"Miasto: {match.Miasto.Nazwa}");
+                if (match.Ulica != null)
+                    result.AddDiagnostic($"Ulica: {BuildFullStreetName(match.Ulica)}");
+                return result;
             }
 
             // Wiele dopasowań
             diagnostic?.Log($"⚠ Znaleziono {kodPocztowyRecords.Count} dopasowań");
-            
-            return new AddressSearchResult
+
+            var multiResult = new AddressSearchResult
             {
                 Status = AddressSearchStatus.MultipleMatches,
-                KodPocztowy = kodPocztowyRecords[0], // Pierwszy z dopasowań
+                KodPocztowy = kodPocztowyRecords[0],
                 Miasto = kodPocztowyRecords[0].Miasto,
                 Ulica = kodPocztowyRecords[0].Ulica,
-                Message = $"Znaleziono {kodPocztowyRecords.Count} kodów pocztowych pasujących do kryteriów",
-                DiagnosticInfo = diagnostic?.GetLog()
+                Message = $"Znaleziono {kodPocztowyRecords.Count} kodów pocztowych pasujących do kryteriów"
             };
+            multiResult.AddDiagnostic($"Liczba dopasowań: {kodPocztowyRecords.Count}");
+            multiResult.AddDiagnostic($"Kod: {request.KodPocztowy}");
+
+            foreach (var rec in kodPocztowyRecords.Take(5))
+            {
+                var streetInfo = rec.Ulica != null ? BuildFullStreetName(rec.Ulica) : "brak ulicy";
+                multiResult.AddDiagnostic($"  • {rec.Miasto.Nazwa}, {streetInfo}");
+            }
+
+            if (kodPocztowyRecords.Count > 5)
+                multiResult.AddDiagnostic($"  ... i {kodPocztowyRecords.Count - 5} więcej");
+
+            return multiResult;
         }
 
         /// <summary>

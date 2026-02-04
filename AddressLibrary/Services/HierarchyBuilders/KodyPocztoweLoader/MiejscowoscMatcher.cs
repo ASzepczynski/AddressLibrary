@@ -12,14 +12,14 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     {
         private readonly Dictionary<string, List<Gmina>> _gminyDict;
         private readonly Dictionary<int, Dictionary<string, Miasto>> _miastaDict;
-        private readonly LoadLogger? _logger;
+        private readonly PostalCodesLogger? _logger;
 
         public int CorrectedCount { get; private set; }
 
         public MiastoMatcher(
             Dictionary<string, List<Gmina>> gminyDict,
             Dictionary<int, Dictionary<string, Miasto>> miastaDict,
-            LoadLogger? logger)
+            PostalCodesLogger? logger)
         {
             _gminyDict = gminyDict;
             _miastaDict = miastaDict;

@@ -23,7 +23,7 @@ namespace AddressLibrary.Services.AddressSearch
             Ulica? ulica,
             string? normalizedBuildingNumber,
             string? normalizedApartmentNumber,
-            ILogger? diagnostic)
+            GeneralLogger? diagnostic)
         {
             diagnostic?.Log("\n--- TWORZENIE WYNIKU ---");
 
@@ -41,36 +41,52 @@ namespace AddressLibrary.Services.AddressSearch
                     errorMessage = "Nie znaleziono kodu pocztowego dla podanych parametrów";
                 }
 
-                return new AddressSearchResult
+                var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.KodPocztowyNotFound,
                     Miasto = miasto,
                     Ulica = ulica,
                     Message = errorMessage,
                     NormalizedBuildingNumber = normalizedBuildingNumber,
-                    NormalizedApartmentNumber = normalizedApartmentNumber,
-                    DiagnosticInfo = diagnostic?.GetLog()
+                    NormalizedApartmentNumber = normalizedApartmentNumber
                 };
+
+                // ✅ Dodaj diagnostykę zamiast całego logu
+                result.AddDiagnostic($"Miasto: {miasto.Nazwa} (ID={miasto.Id})");
+                if (ulica != null)
+                    result.AddDiagnostic($"Ulica: {ulica.Nazwa1} (ID={ulica.Id})");
+                result.AddDiagnostic($"Numer budynku: {normalizedBuildingNumber ?? "brak"}");
+                result.AddDiagnostic($"Liczba znalezionych kodów: 0");
+                
+                return result;
             }
 
             if (kodyPocztowe.Count == 1)
             {
                 var kod = kodyPocztowe[0];
                 diagnostic?.Log($"✓ Jedno dopasowanie: {kod.Kod}");
-                return new AddressSearchResult
+                
+                var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.Success,
                     KodPocztowy = kod,
                     Miasto = miasto,
                     Ulica = ulica,
                     NormalizedBuildingNumber = normalizedBuildingNumber,
-                    NormalizedApartmentNumber = normalizedApartmentNumber,
-                    DiagnosticInfo = diagnostic?.GetLog()
+                    NormalizedApartmentNumber = normalizedApartmentNumber
                 };
+
+                // ✅ Dodaj diagnostykę
+                result.AddDiagnostic($"Znaleziono: {kod.Kod}");
+                result.AddDiagnostic($"Miasto: {miasto.Nazwa}");
+                if (ulica != null)
+                    result.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
+                
+                return result;
             }
 
             // 🆕 WIELE DOPASOWAŃ: Pokaż kody pocztowe + ORYGINALNE nazwy ulic
-            diagnostic?.Log($"⚠ Znaleziono wiele dopasowań [Z]: {kodyPocztowe.Count}");
+            diagnostic?.Log($"⚠ Znaleziono wiele dopasowań: {kodyPocztowe.Count}");
             
             // Pobierz ulice z cache
             if (!_cache.TryGetUlice(miasto.Id, out var cachedUlice))
@@ -88,7 +104,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             foreach (var kod in kodyPocztowe)
             {
-                diagnostic?.Log($"  Kod: {kod.Kod}, UlicaId: {kod.UlicaId.ToString() }");
+                diagnostic?.Log($"  Kod: {kod.Kod}, UlicaId: {kod.UlicaId}");
 
                 if (processedCodes.Add(kod.Kod)) // Dodaj tylko unikalne kody
                 {
@@ -102,7 +118,7 @@ namespace AddressLibrary.Services.AddressSearch
                         {
                             // 🆕 Użyj oryginalnej nazwy z cache (nieznormalizowanej)
                             var streetName = _cache.GetOriginalStreetName(street);
-                            codeInfo = $"{kod.Kod} ({streetName}/{kod.UlicaId})";
+                            codeInfo = $"{kod.Kod} ({streetName})";
                             diagnostic?.Log($"    ✓ {codeInfo}");
                         }
                     }
@@ -117,16 +133,16 @@ namespace AddressLibrary.Services.AddressSearch
             if (postalCodeInfoList.Count > 0)
             {
                 var codeList = string.Join(", ", postalCodeInfoList);
-                message = $"Znaleziono wiele dopasowań [X] ({postalCodeInfoList.Count}): {codeList}";
+                message = $"Znaleziono wiele dopasowań ({postalCodeInfoList.Count}): {codeList}";
                 diagnostic?.Log($"  ✓ Komunikat: {message}");
             }
             else
             {
-                message = $"Znaleziono wiele dopasowań [Y] ({kodyPocztowe.Count})";
+                message = $"Znaleziono wiele dopasowań ({kodyPocztowe.Count})";
                 diagnostic?.Log($"  ⚠ Nie udało się utworzyć szczegółowego komunikatu");
             }
 
-            return new AddressSearchResult
+            var multiResult = new AddressSearchResult
             {
                 Status = AddressSearchStatus.MultipleMatches,
                 Miasto = miasto,
@@ -135,9 +151,24 @@ namespace AddressLibrary.Services.AddressSearch
                 AlternativeMatches = kodyPocztowe,
                 Message = message,
                 NormalizedBuildingNumber = normalizedBuildingNumber,
-                NormalizedApartmentNumber = normalizedApartmentNumber,
-                DiagnosticInfo = diagnostic?.GetLog()
+                NormalizedApartmentNumber = normalizedApartmentNumber
             };
+
+            // ✅ Dodaj diagnostykę
+            multiResult.AddDiagnostic($"Liczba dopasowań: {kodyPocztowe.Count}");
+            multiResult.AddDiagnostic($"Miasto: {miasto.Nazwa}");
+            if (ulica != null)
+                multiResult.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
+            
+            foreach (var codeInfo in postalCodeInfoList.Take(5)) // Max 5 przykładów
+            {
+                multiResult.AddDiagnostic($"  • {codeInfo}");
+            }
+            
+            if (postalCodeInfoList.Count > 5)
+                multiResult.AddDiagnostic($"  ... i {postalCodeInfoList.Count - 5} więcej");
+
+            return multiResult;
         }
 
         private bool CityHasStreets(int miastoId)

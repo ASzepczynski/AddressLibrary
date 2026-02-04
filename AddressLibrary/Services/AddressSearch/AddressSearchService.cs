@@ -105,12 +105,14 @@ namespace AddressLibrary.Services.AddressSearch
             var miasta = FindAllMiasta(request.Miasto, request.KodPocztowy, searchLogger);
             if (miasta == null || miasta.Count == 0)
             {
-                return new AddressSearchResult
+                var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.MiastoNotFound,
-                    Message = $"Nie znaleziono miejscowości: {request.Miasto}",
-                    DiagnosticInfo = searchLogger?.GetLog()
+                    Message = $"Nie znaleziono miejscowości: {request.Miasto}"
                 };
+                result.AddDiagnostic($"Szukana miejscowość: {request.Miasto}");
+                result.AddDiagnostic($"Znormalizowana nazwa: {_normalizer.Normalize(request.Miasto)}");
+                return result;
             }
 
             // Wybierz strategię wyszukiwania
@@ -189,7 +191,7 @@ namespace AddressLibrary.Services.AddressSearch
         private Miasto? FindSimilarCity(
             string normalizedCityName,
             string? postalCode, // 🆕 DODANE
-            ILogger? searchLogger)
+            GeneralLogger? searchLogger)
         {
             var allCities = _cache.GetAllCities();
 

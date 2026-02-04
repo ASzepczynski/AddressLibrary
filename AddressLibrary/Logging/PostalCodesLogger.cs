@@ -8,9 +8,9 @@ namespace AddressLibrary.Logging
     /// <summary>
     /// Logger dla procesu ładowania kodów pocztowych, dziedziczący z GeneralLogger
     /// </summary>
-    public class LoadLogger : GeneralLogger
+    public class PostalCodesLogger : GeneralLogger
     {
-        public LoadLogger(string? appDataPath) 
+        public PostalCodesLogger(string? appDataPath) 
             : base(appDataPath, "PostalCodesLoader.txt","Log ładowania kodów pocztowych")
         {
         }
