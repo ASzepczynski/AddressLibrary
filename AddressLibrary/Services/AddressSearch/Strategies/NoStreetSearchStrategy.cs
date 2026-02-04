@@ -34,7 +34,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             List<Miasto> miasta,
             GeneralLogger? diagnostic)
         {
-            diagnostic?.Log("\n--- STRATEGIA: Szukanie bez ulicy ---");
+            diagnostic?.Log("");
+            diagnostic?.Log("--- STRATEGIA: Szukanie bez ulicy ---");
 
             var selectedMiasto = SelectCity(request, miasta, diagnostic);
 

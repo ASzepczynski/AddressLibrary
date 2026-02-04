@@ -27,7 +27,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             string normalizedBuildingNumber,
             GeneralLogger? diagnostic)
         {
-            diagnostic?.Log("\n--- STRATEGIA: Zwracanie kodu miasta dla ulicy bez kodu ---");
+            diagnostic?.Log("");
+            diagnostic?.Log("--- STRATEGIA: Zwracanie kodu miasta dla ulicy bez kodu ---");
 
             if (!_cache.TryGetKodyPocztowe(miasto.Id, out var kodyPocztowe))
             {

@@ -52,8 +52,8 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 await InitializeAsync();
             }
-           
-            searchLogger?.Log($"\r\n==== Rozpoczynam poszukiwanie ====");
+
+            searchLogger?.Log($"{Environment.NewLine}==== Rozpoczynam poszukiwanie ====");
             searchLogger?.Log($"  Kod: ({ request.KodPocztowy})");
             searchLogger?.Log($"  Miasto: ({request.Miasto})");
             searchLogger?.Log($"  Ulica: ({request.Ulica})");

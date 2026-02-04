@@ -45,7 +45,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             List<Miasto> miasta,
             GeneralLogger? searchLogger)
         {
-            searchLogger?.Log("\n--- STRATEGIA: Szukanie z ulicą ---");
+            searchLogger?.Log("");
+            searchLogger?.Log("--- STRATEGIA: Szukanie z ulicą ---");
 
             // Normalizuj ulicę i wyciągnij numer
             var (normalizedStreet, extractedNumber) = _normalizer.NormalizeStreetWithNumber(request.Ulica);
@@ -164,6 +165,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             var resolvedStreet = ResolveAmbiguity.ResolveStreetAmbiguity(
                 streets,
                 sPrefiks,
+                sStreet,
+                "", // nie znamy dzielnicy
                 request.KodPocztowy,
                 firstMiasto.Nazwa,
                 searchLogger); 
@@ -322,7 +325,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             if (suggestedStreet != null && suggestedMiasto != null)
             {
-                diagnostic?.Log($"\n--- RETRY: Ponowne wyszukiwanie z sugerowaną ulicą ---");
+                diagnostic?.Log($"");
+                diagnostic?.Log($"--- RETRY: Ponowne wyszukiwanie z sugerowaną ulicą ---");
 
                 var foundUlica = new Ulica
                 {
@@ -373,7 +377,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             string normalizedStreet,
             GeneralLogger? diagnostic)
         {
-            diagnostic?.Log($"\n🔄 Sprawdzam czy '{request.Ulica}' to miejscowość zamiast ulicy...");
+            diagnostic?.Log($"{Environment.NewLine}🔄 Sprawdzam czy '{request.Ulica}' to miejscowość zamiast ulicy...");
 
             // ✅ WALIDACJA 1: Jeśli ulica ma prefix (os., al., pl., ul.), to NIE ZAMIENIAJ!
             var streetPrefixes = new[] { "os.", "os ", "al.", "al ", "pl.", "pl ", "ul.", "ul " };
@@ -436,7 +440,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 NumerMieszkania = request.NumerMieszkania
             };
 
-            diagnostic?.Log($"\n--- RETRY: Wyszukiwanie bez ulicy (bo '{request.Ulica}' to miejscowość) ---");
+            diagnostic?.Log($"{Environment.NewLine}--- RETRY: Wyszukiwanie bez ulicy (bo '{request.Ulica}' to miejscowość) ---");
 
             // Wyszukaj ponownie BEZ ulicy
             var noStreetStrategy = new NoStreetSearchStrategy(_cache, _normalizer, _filters, _resultFactory);

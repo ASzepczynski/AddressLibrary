@@ -79,7 +79,8 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                     // 🆕 Próba rozstrzygnięcia niejednoznaczności
                     if (sPrefiks == "") sPrefiks = "ulica";
-                    ulica = AddressLibrary.Helpers.ResolveAmbiguity.ResolveStreetAmbiguity(exactMatches, sPrefiks, kodPocztowy, miasto.Nazwa,_PostalCodesLogger);
+                    // Nie podajemy kodu pocztowego, bo właśnie go ładujemy - to jest ładowanie kodów pocztowych
+                    ulica = AddressLibrary.Helpers.ResolveAmbiguity.ResolveStreetAmbiguity(exactMatches, sPrefiks, currentUlica, currentDzielnica , "---", miasto.Nazwa,_PostalCodesLogger);
 
                     if (ulica != null)
                     {
@@ -167,7 +168,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             var message = "";
             if (correctedUlica != ulicaNazwa)
             {
-                message = $" Próbowano korekty: '{correctedUlica}\r\n'";
+                message = $" Próbowano korekty: '{correctedUlica}{Environment.NewLine}'";
             }
             message += $" Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
 

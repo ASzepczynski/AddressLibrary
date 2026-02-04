@@ -17,6 +17,8 @@ namespace AddressLibrary.Helpers
         public static Ulica? ResolveStreetAmbiguity(
             List<Ulica> candidates,
             string sPrefiks,
+            string sStreet,
+            string sDzielnica,
             string kodPocztowy,
             string miastoNazwa,
             GeneralLogger? _PostalCodesLogger)
@@ -24,14 +26,15 @@ namespace AddressLibrary.Helpers
             if (candidates.Count <= 1)
                 return candidates.FirstOrDefault();
 
-            // ✅ POPRAWKA: Case-insensitive porównanie
-            var cechyPriorytet = new[] { "ul.", "al.", "pl." };  // ← WSZYSTKO lowercase!
             
             _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] ✓ Wykryto niejednoznaczność - próba rozstrzygnięcia, szukany prefiks '{sPrefiks}'");
 
             foreach (var ulica in candidates)
             {
-                var line = $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""}".Trim();
+                  string kody = ulica.KodyPocztowe != null && ulica.KodyPocztowe.Any()
+                       ? string.Join(", ", ulica.KodyPocztowe.Select(k => k.Kod).Distinct().OrderBy(k => k))
+                       : "brak";
+                var line = $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""} {kody}".Trim();
                 _PostalCodesLogger?.LogInfo($"[ResolveAmbiguity] Kandydat: {line}");
             }
 
@@ -50,7 +53,35 @@ namespace AddressLibrary.Helpers
 				return Pasujace[0];
 			}
 
-			foreach (var cecha in cechyPriorytet)
+            Pasujace.Clear();
+
+
+
+            if (!string.IsNullOrWhiteSpace(kodPocztowy))
+            {
+                _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] ✓ Szukanie po kodzie pocztowym '{kodPocztowy}'");
+                var kodNormalized = UliceUtils.NormalizujKodPocztowy(kodPocztowy);
+
+                foreach (var ulica in candidates)
+                {
+                    // ✅ Sprawdź czy ulica ma przypisany ten kod pocztowy
+                    if (ulica.KodyPocztowe != null && ulica.KodyPocztowe.Any(k => k.Kod == kodNormalized))
+                    {
+                        Pasujace.Add(ulica);
+                    }
+                }
+            }
+
+            if (Pasujace.Count() == 1)
+            {
+                _PostalCodesLogger?.LogInfo($"Istnieje dokładnie jeden obiekt z kodem [{kodPocztowy}]");
+                return Pasujace[0];
+            }
+
+            // ✅ POPRAWKA: Case-insensitive porównanie
+            var cechyPriorytet = new[] { "ul.", "al.", "pl." };  // ← WSZYSTKO lowercase!
+
+            foreach (var cecha in cechyPriorytet)
             {
                 // ✅ POPRAWKA: Porównanie case-insensitive
                 var matches = candidates
@@ -74,7 +105,6 @@ namespace AddressLibrary.Helpers
                     return matches[0];
                 }
             }
-
             _PostalCodesLogger?.LogError($"[ResolveAmbiguity] ✗ Nie można rozstrzygnąć - zwracam null");
             return null;
         }

@@ -60,7 +60,7 @@ namespace AddressLibrary.Services
                     {
                         ProcessedRecords = 0,
                         TotalRecords = totalLines - 1,
-                        CurrentAction = $"Nag³ówek: '{line}'\nPomijam i przechodzê do danych..."
+                        CurrentAction = $"Nag³ówek: '{line}'{Environment.NewLine}Pomijam i przechodzê do danych..."
                     });
                     continue;
                 }
@@ -81,7 +81,7 @@ namespace AddressLibrary.Services
                     {
                         ProcessedRecords = 0,
                         TotalRecords = totalLines - 1,
-                        CurrentAction = $"Przyk³adowa linia danych [1]: '{line.Substring(0, Math.Min(150, line.Length))}'\nLiczba kolumn: {parts.Length}\nFormat: KOD;MIEJSCOWOŒÆ;ULICA;NUMERY;GMINA;POWIAT;WOJEWÓDZTWO"
+                        CurrentAction = $"Przyk³adowa linia danych [1]: '{line.Substring(0, Math.Min(150, line.Length))}'{Environment.NewLine}Liczba kolumn: {parts.Length}{Environment.NewLine}Format: KOD;MIEJSCOWOŒÆ;ULICA;NUMERY;GMINA;POWIAT;WOJEWÓDZTWO"
                     });
                 }
 
@@ -96,7 +96,7 @@ namespace AddressLibrary.Services
                         {
                             ProcessedRecords = processedLines,
                             TotalRecords = totalLines - 1,
-                            CurrentAction = $"Pominiêto liniê {i}: tylko {parts.Length} kolumn (wymagane 7)\nLinia: {line.Substring(0, Math.Min(150, line.Length))}"
+                            CurrentAction = $"Pominiêto liniê {i}: tylko {parts.Length} kolumn (wymagane 7){Environment.NewLine}Linia: {line.Substring(0, Math.Min(150, line.Length))}"
                         });
                     }
                     continue;
@@ -159,7 +159,7 @@ namespace AddressLibrary.Services
             {
                 ProcessedRecords = processedLines,
                 TotalRecords = totalLines - 1,
-                CurrentAction = $"Zakoñczono!\nPrzetworzone: {processedLines}\nZ dzielnic¹: {dzielnicaCount}\nPuste linie: {emptyLines}\nNieprawid³owe: {invalidLines}\nRazem linii (bez nag³ówka): {totalLines - 1}"
+                CurrentAction = $"Zakoñczono!{Environment.NewLine}Przetworzone: {processedLines}{Environment.NewLine}Z dzielnic¹: {dzielnicaCount}{Environment.NewLine}Puste linie: {emptyLines}{Environment.NewLine}Nieprawid³owe: {invalidLines}{Environment.NewLine}Razem linii (bez nag³ówka): {totalLines - 1}"
             });
         }
 

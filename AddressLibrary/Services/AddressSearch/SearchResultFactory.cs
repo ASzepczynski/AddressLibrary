@@ -25,7 +25,8 @@ namespace AddressLibrary.Services.AddressSearch
             string? normalizedApartmentNumber,
             GeneralLogger? diagnostic)
         {
-            diagnostic?.Log("\n--- TWORZENIE WYNIKU ---");
+            diagnostic?.Log("");
+            diagnostic?.Log("--- TWORZENIE WYNIKU ---");
 
             if (kodyPocztowe.Count == 0)
             {

@@ -57,7 +57,7 @@ public static partial class PdfProcessor
                 {
                     File.AppendAllText(logPath, $"  ⚠️ Brak słów - fallback do raw text{Environment.NewLine}");
                     // fallback to raw text if no words
-                    var rawLines = page.Text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    var rawLines = page.Text.Split(new[] { "{Environment.NewLine}", "{Environment.NewLine}" }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (var rawLine in rawLines)
                     {
                         var normalized = Regex.Replace(rawLine.Trim(), "\\s{2,}", Delimiter);
