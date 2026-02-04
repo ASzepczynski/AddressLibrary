@@ -32,7 +32,11 @@ namespace AddressLibrary.Helpers
             foreach (var ulica in candidates)
             {
                   string kody = ulica.KodyPocztowe != null && ulica.KodyPocztowe.Any()
-                       ? string.Join(", ", ulica.KodyPocztowe.Select(k => k.Kod).Distinct().OrderBy(k => k))
+                       ? string.Join(", ", ulica.KodyPocztowe
+                           .Select(k => k.Kod)
+                           .Where(kod => !string.IsNullOrWhiteSpace(kod))
+                           .Distinct()
+                           .OrderBy(k => k))
                        : "brak";
                 var line = $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""} {kody}".Trim();
                 _PostalCodesLogger?.LogInfo($"[ResolveAmbiguity] Kandydat: {line}");
@@ -76,7 +80,11 @@ namespace AddressLibrary.Helpers
             {
                 _PostalCodesLogger?.LogInfo($"Istnieje dokładnie jeden obiekt z kodem [{kodPocztowy}]");
                 return Pasujace[0];
+            } else
+            {
+                _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] Liczba ulic o kodzie '{kodPocztowy}':{Pasujace.Count()}");
             }
+            _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] Szukanie po priorytecie ulic");
 
             // ✅ POPRAWKA: Case-insensitive porównanie
             var cechyPriorytet = new[] { "ul.", "al.", "pl." };  // ← WSZYSTKO lowercase!

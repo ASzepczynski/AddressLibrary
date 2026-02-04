@@ -69,10 +69,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// ⚠️ WYJĄTEK: 
         /// NIE dodawaj klucza tylko Nazwa1, aby uniknąć kolizji z krótszymi nazwami.
         /// 
+        /// ✅ EAGER LOADING: Ładuje relację KodyPocztowe dla rozstrzygania niejednoznaczności
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, List<Ulica>>>> BuildUliceDictionaryAsync()
         {
-            var uliceAllList = await _context.Ulice.ToListAsync();
+            // ✅ POPRAWKA: Dodano .Include(u => u.KodyPocztowe)
+            var uliceAllList = await _context.Ulice
+                .Include(u => u.KodyPocztowe)
+                .ToListAsync();
+            
             var uliceDict = new Dictionary<int, Dictionary<string, List<Ulica>>>();
 
             foreach (var ulica in uliceAllList)
