@@ -19,7 +19,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         public MiastoMatcher(
             Dictionary<string, List<Gmina>> gminyDict,
             Dictionary<int, Dictionary<string, Miasto>> miastaDict,
-            LoadLogger? logger = null)
+            LoadLogger? logger)
         {
             _gminyDict = gminyDict;
             _miastaDict = miastaDict;

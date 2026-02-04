@@ -11,7 +11,7 @@ namespace AddressLibrary.Helpers
     public static class ResolveAmbiguity
     {
         /// <summary>
-        /// 🆕 Próbuje rozstrzygnąć niejednoznaczność na podstawie kodu pocztowego
+        /// 🆕 Próbuje rozstrzygnąć niejednoznaczność na podstawie hierarchii cech ulic
         /// </summary>
         public static Ulica? ResolveAmbiguityPostal(
             List<Ulica> candidates,
@@ -22,30 +22,45 @@ namespace AddressLibrary.Helpers
             if (candidates.Count <= 1)
                 return candidates.FirstOrDefault();
 
-            // STRATEGIA 1: Lista cech w kolejności priorytetu
-            var cechyPriorytet = new[] { "ul.", "Al.", "Pl." };
-            _loadLogger?.LogWarning($"[UlicaMatcher] ✓ Wykryto niejednoznaczność - próba rozstrzygnięcia");
+            var caseId = $"{kodPocztowy}_{miastoNazwa}_{DateTime.Now:HHmmss.fff}";
+            
+            // ✅ POPRAWKA: Case-insensitive porównanie
+            var cechyPriorytet = new[] { "ul.", "al.", "pl." };  // ← WSZYSTKO lowercase!
+            
+            _loadLogger?.LogWarning($"[ResolveAmbiguity #{caseId}] ✓ Wykryto niejednoznaczność - próba rozstrzygnięcia");
+
             foreach (var ulica in candidates)
             {
-                _loadLogger?.LogInfo($"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""}".Trim());
+                var line = $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""}".Trim();
+                _loadLogger?.LogInfo($"[ResolveAmbiguity #{caseId}] Kandydat: {line}");
             }
 
             foreach (var cecha in cechyPriorytet)
             {
-                var matches = candidates.Where(u => u.Cecha == cecha).ToList();
-                var pominieteCechy = candidates.Where(u => u.Cecha != cecha).Select(x => x.Cecha).ToList();
+                // ✅ POPRAWKA: Porównanie case-insensitive
+                var matches = candidates
+                    .Where(u => u.Cecha.Equals(cecha, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                    
                 if (matches.Count == 1)
                 {
-                    _loadLogger?.LogError($"[UlicaMatcher] ✓ Wybrano cechę {kodPocztowy} {miastoNazwa} '{cecha}': '{UliceUtils.GetPelnaNazwa(matches[0])}'");
+                    var pominieteCechy = candidates
+                        .Where(u => !u.Cecha.Equals(cecha, StringComparison.OrdinalIgnoreCase))
+                        .Select(x => x.Cecha)
+                        .Distinct()
+                        .ToList();
+                        
+                    _loadLogger?.LogInfo($"[ResolveAmbiguity #{caseId}] ✓ Wybrano cechę '{cecha}': '{UliceUtils.GetPelnaNazwa(matches[0])}'");
+                    
                     if (pominieteCechy.Count > 0)
                     {
-                        _loadLogger?.LogError($"[UlicaMatcher] Pominięto cechy: {string.Join(", ", pominieteCechy)}");
+                        _loadLogger?.LogInfo($"[ResolveAmbiguity #{caseId}] Pominięto cechy: {string.Join(", ", pominieteCechy)}");
                     }
                     return matches[0];
                 }
             }
 
-            _loadLogger?.LogError($"[UlicaMatcher] ✗ Nie można rozstrzygnąć - zwracam null");
+            _loadLogger?.LogError($"[ResolveAmbiguity #{caseId}] ✗ Nie można rozstrzygnąć - zwracam null");
             return null;
         }
 

@@ -15,7 +15,7 @@ namespace AddressLibrary
         private AddressDbContext _context;
         private readonly string? _appDataPath;
 
-        public AddressDatabase(string connectionString, string? appDataPath = null)
+        public AddressDatabase(string connectionString, string? appDataPath)
         {
             _connectionString = connectionString;
             _appDataPath = appDataPath;

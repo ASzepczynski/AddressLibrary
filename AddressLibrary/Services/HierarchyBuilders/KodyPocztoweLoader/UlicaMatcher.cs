@@ -69,17 +69,17 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     // ✅ Dokładnie jedna ulica - OK
                     ulica = exactMatches[0];
                     ulicaFound = true;
-                    Console.WriteLine($"[UlicaMatcher] ✓ Znaleziono dokładnie jedną ulicę: '{UliceUtils.GetPelnaNazwa(ulica)}'");
+                    _loadLogger.LogInfo($"[UlicaMatcher] ✓ Znaleziono dokładnie jedną ulicę: '{UliceUtils.GetPelnaNazwa(ulica)}'");
                 }
                 else if (exactMatches.Count > 1)
                 {
                     // ⚠️ Wiele ulic - NIEJEDNOZNACZNOŚĆ
                     AmbiguousCount++;
-                    Console.WriteLine($"[UlicaMatcher] ⚠️ NIEJEDNOZNACZNOŚĆ: Znaleziono {exactMatches.Count} ulic pasujących do '{currentUlica}':");
+                    _loadLogger.LogWarning($"[UlicaMatcher] ⚠️ NIEJEDNOZNACZNOŚĆ: Znaleziono {exactMatches.Count} ulic pasujących do '{currentUlica}':");
 
                     foreach (var match in exactMatches)
                     {
-                        Console.WriteLine($"    - ID={match.Id}: '{UliceUtils.GetPelnaNazwa(match)}'");
+                        _loadLogger.LogInfo($"[UlicaMatcher] ID={match.Id}: '{UliceUtils.GetPelnaNazwa(match)}'");
                     }
 
                     // 🆕 Próba rozstrzygnięcia niejednoznaczności
@@ -87,12 +87,12 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                     if (ulica != null)
                     {
-                        Console.WriteLine($"[UlicaMatcher] ✓ Rozstrzygnięto: wybrano '{UliceUtils.GetPelnaNazwa(ulica)}' na podstawie kodu {kodPocztowy}");
+                        _loadLogger.LogInfo($"[UlicaMatcher] ✓ Rozstrzygnięto: wybrano '{UliceUtils.GetPelnaNazwa(ulica)}' na podstawie kodu {kodPocztowy}");
                         ulicaFound = true;
                     }
                     else
                     {
-                        Console.WriteLine($"[UlicaMatcher] ✗ Nie udało się rozstrzygnąć niejednoznaczności");
+                        _loadLogger.LogError($"[UlicaMatcher] ✗ Nie udało się rozstrzygnąć niejednoznaczności");
                         // Zwróć null - błąd zostanie zalogowany
                         return (null, currentUlica);
                     }
@@ -103,7 +103,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     if (ulice.TryGetValueAgain(currentUlica, out ulica))
                     {
                         ulicaFound = true;
-                        Console.WriteLine($"[UlicaMatcher] ✓ Fuzzy matching znalazł: '{UliceUtils.GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
+                        _loadLogger.LogError($"[UlicaMatcher] ✓ Fuzzy matching znalazł: '{UliceUtils.GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
                     }
                 }
             }

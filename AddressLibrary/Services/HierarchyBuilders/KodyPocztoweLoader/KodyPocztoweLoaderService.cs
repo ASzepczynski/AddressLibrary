@@ -9,7 +9,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     /// <summary>
     /// Ładuje kody pocztowe z tablicy PNA do struktury hierarchicznej.
     /// </summary>
-    public class KodyPocztoweLoaderService
+    public class KodyPocztoweLoaderService : IDisposable
     {
         private readonly AddressDbContext _context;
         private readonly LoadLogger _logger;
@@ -26,6 +26,13 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             List<Pna> pnaData,
             IProgress<LoadProgressInfo>? progress = null)
         {
+            Console.WriteLine($"[KodyPocztoweLoaderService] ========== START LoadAsync ==========");
+            Console.WriteLine($"[KodyPocztoweLoaderService] PNA count: {pnaData.Count}");
+            
+            Console.WriteLine($"[KodyPocztoweLoaderService] Wywołuję _logger.InitializeAsync()...");
+            await _logger.InitializeAsync();
+            Console.WriteLine($"[KodyPocztoweLoaderService] ✓ _logger.InitializeAsync() zakończone");
+
             // DODANO: Wyczyść tabelę KodyPocztowe przed rozpoczęciem ładowania
             var progressInfo = new LoadProgressInfo
             {
@@ -218,6 +225,12 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                 throw;
             }
+        }
+
+        // ✅ Dispose loggera
+        public void Dispose()
+        {
+            _logger?.Dispose();
         }
     }
 }
