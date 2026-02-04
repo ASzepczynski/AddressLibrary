@@ -102,7 +102,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             };
 
             // Znajdź kody pocztowe
-            if (!_cache.TryGetKodyPocztowe(foundMiasto.Id, out var kodyPocztowe))
+            if (!_cache.TryGetKodyPocztoweMiasta(foundMiasto.Id, out var kodyPocztowe))
             {
                 searchLogger?.Log($"✗ Brak kodów pocztowych dla miejscowości ID: {foundMiasto.Id}");
                 return _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
@@ -134,8 +134,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             List<(UlicaCached street, Miasto miasto)> matchingStreets,
             GeneralLogger? searchLogger)
         {
-            // Wyciągnij tylko listę ulic (bez miast)
-
             // Jeśli na liście matchingStreets są ulice z więcej niż jednego miasta, poddajemy się
             var uniqueCities = matchingStreets.Select(m => m.miasto.Id).Distinct().Count();
             if (uniqueCities > 1)
@@ -144,24 +142,34 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 return null;
             }
 
-
             var firstMiasto = matchingStreets[0].miasto;
+            
+            // ✅ POPRAWKA: Załaduj kody pocztowe z cache dla miasta
+            if (!_cache.TryGetKodyPocztoweMiasta(firstMiasto.Id, out var kodyPocztowe))
+            {
+                kodyPocztowe = new List<KodPocztowy>();
+            }
+
+            // ✅ POPRAWKA: Przekształć UlicaCached na Ulica Z kodami pocztowymi
             var streets = matchingStreets
-    .Select(m => new Ulica
-    {
-        Id = m.street.Id,
-        MiastoId = m.street.MiastoId,
-        Cecha = m.street.Cecha,
-        Nazwa1 = m.street.Nazwa1,
-        Nazwa2 = m.street.Nazwa2,
-        Miasto = m.street.Miasto
-    })
-    .ToList();
+                .Select(m => new Ulica
+                {
+                    Id = m.street.Id,
+                    MiastoId = m.street.MiastoId,
+                    Cecha = m.street.Cecha,
+                    Nazwa1 = m.street.Nazwa1,
+                    Nazwa2 = m.street.Nazwa2,
+                    Miasto = m.street.Miasto,
+                    // ✅ Dodaj kody pocztowe dla tej ulicy
+                    KodyPocztowe = kodyPocztowe
+                        .Where(k => k.UlicaId == m.street.Id)
+                        .ToList()
+                })
+                .ToList();
 
+            (string sPrefiks, string sStreet) = UliceUtils.SplitStreetAndPrefix(request.Ulica);
 
-            (string sPrefiks,string sStreet) = UliceUtils.SplitStreetAndPrefix(request.Ulica);
-
-            // Użyj AmbiguousStreetResolver
+            // Użyj ResolveAmbiguity
             var resolvedStreet = ResolveAmbiguity.ResolveStreetAmbiguity(
                 streets,
                 sPrefiks,
@@ -169,7 +177,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 "", // nie znamy dzielnicy
                 request.KodPocztowy,
                 firstMiasto.Nazwa,
-                searchLogger); 
+                _cache,
+                searchLogger);
 
             if (resolvedStreet == null)
             {
@@ -200,7 +209,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         {
             // Pobierz kody pocztowe
             var firstMiasto = matchingStreets[0].miasto;
-            if (!_cache.TryGetKodyPocztowe(firstMiasto.Id, out var postalCodes))
+            if (!_cache.TryGetKodyPocztoweMiasta(firstMiasto.Id, out var postalCodes))
             {
                 postalCodes = new List<KodPocztowy>();
             }
@@ -342,7 +351,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
                 var combinedNum = request.NumerDomu ?? string.Empty;
 
-                if (!_cache.TryGetKodyPocztowe(suggestedMiasto.Id, out var kodyPocztowe))
+                if (!_cache.TryGetKodyPocztoweMiasta(suggestedMiasto.Id, out var kodyPocztowe))
                 {
                     return _cityStrategy.Execute(request, suggestedMiasto, foundUlica, combinedNum, diagnostic);
                 }
@@ -413,7 +422,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 var normalizedCode = UliceUtils.NormalizujKodPocztowy(request.KodPocztowy);
 
-                if (_cache.TryGetKodyPocztowe(targetCity.Id, out var targetCityCodes))
+                if (_cache.TryGetKodyPocztoweMiasta(targetCity.Id, out var targetCityCodes))
                 {
                     var hasMatchingCode = targetCityCodes.Any(k => k.Kod == normalizedCode);
 
@@ -490,7 +499,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 {
                     diagnostic?.Log($"Retry bez literki: '{numberOnly}'");
 
-                    if (_cache.TryGetKodyPocztowe(ulicaId, out var allKody))
+                    if (_cache.TryGetKodyPocztoweMiasta(ulicaId, out var allKody))
                     {
                         var byStreet = _filters.FilterByStreet(allKody, ulicaId);
                         filteredKody = _filters.FilterByBuildingNumber(byStreet, numberOnly);

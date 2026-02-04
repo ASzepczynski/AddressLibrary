@@ -80,7 +80,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     // 🆕 Próba rozstrzygnięcia niejednoznaczności
                     if (sPrefiks == "") sPrefiks = "ulica";
                     // Nie podajemy kodu pocztowego, bo właśnie go ładujemy - to jest ładowanie kodów pocztowych
-                    ulica = AddressLibrary.Helpers.ResolveAmbiguity.ResolveStreetAmbiguity(exactMatches, sPrefiks, currentUlica, currentDzielnica , "---", miasto.Nazwa,_PostalCodesLogger);
+                    ulica = AddressLibrary.Helpers.ResolveAmbiguity.ResolveStreetAmbiguity(
+                        exactMatches, 
+                        sPrefiks, 
+                        currentUlica, 
+                        currentDzielnica , 
+                        "", 
+                        miasto.Nazwa,
+                        null,
+                        _PostalCodesLogger);
 
                     if (ulica != null)
                     {

@@ -30,7 +30,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             diagnostic?.Log("");
             diagnostic?.Log("--- STRATEGIA: Zwracanie kodu miasta dla ulicy bez kodu ---");
 
-            if (!_cache.TryGetKodyPocztowe(miasto.Id, out var kodyPocztowe))
+            if (!_cache.TryGetKodyPocztoweMiasta(miasto.Id, out var kodyPocztowe))
             {
                 diagnostic?.Log("✗ Brak kodów pocztowych dla miejscowości");
                 

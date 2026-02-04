@@ -12,7 +12,7 @@ namespace AddressLibrary.Services.AddressSearch
     /// <summary>
     /// Główny serwis do wyszukiwania adresów (orchestrator)
     /// </summary>
-    public class AddressSearchService
+    public class AddressSearchService : IDisposable
     {
         private readonly AddressSearchCache _cache;
         private readonly TextNormalizer _normalizer;
@@ -20,6 +20,7 @@ namespace AddressLibrary.Services.AddressSearch
         private readonly NoStreetSearchStrategy _noStreetSearch;
         private string _appDataPath;
         private SearchLogger searchLogger;
+        private bool _disposed = false;
 
         public AddressSearchService(AddressDbContext context,string appDataPath)
         {
@@ -32,10 +33,10 @@ namespace AddressLibrary.Services.AddressSearch
             var filters = new PostalCodeFilters(numberValidator);
             var resultFactory = new SearchResultFactory(_cache);
             var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
-            var ambiguityResolver = new AmbiguousStreetResolver(_normalizer); // 🆕 DODANE
+            var ambiguityResolver = new AmbiguousStreetResolver(_normalizer);
             searchLogger = new SearchLogger(_appDataPath);
 
-            _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver); // 🆕 DODANE parametr
+            _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver);
             _noStreetSearch = new NoStreetSearchStrategy(_cache, _normalizer, filters, resultFactory);
         }
 
@@ -125,6 +126,7 @@ namespace AddressLibrary.Services.AddressSearch
                 return _noStreetSearch.Execute(request, miasta, searchLogger);
             }
         }
+        
         public async Task<List<AddressSearchResult>> SearchBatchAsync(IEnumerable<AddressSearchRequest> requests)
         {
             if (!_cache.IsInitialized)
@@ -217,7 +219,7 @@ namespace AddressLibrary.Services.AddressSearch
                 // ✅ WALIDACJA KODU POCZTOWEGO - jeśli podano kod, miasto MUSI go mieć!
                 if (normalizedPostalCode != null)
                 {
-                    if (!_cache.TryGetKodyPocztowe(cityCache.Miasto.Id, out var cityCodes))
+                    if (!_cache.TryGetKodyPocztoweMiasta(cityCache.Miasto.Id, out var cityCodes))
                     {
                         continue; // Pomiń miasta bez kodów pocztowych
                     }
@@ -359,7 +361,7 @@ namespace AddressLibrary.Services.AddressSearch
 
                 var citiesWithCode = miasta.Where(m =>
                 {
-                    if (_cache.TryGetKodyPocztowe(m.Id, out var codes))
+                    if (_cache.TryGetKodyPocztoweMiasta(m.Id, out var codes))
                     {
                         bool hasCode = codes.Any(k => k.Kod == normalizedCode);
                         if (hasCode)
@@ -466,6 +468,26 @@ namespace AddressLibrary.Services.AddressSearch
 
             searchLogger?.Log($"    → Brak jednoznacznego wyboru");
             return null;
+        }
+
+        // ✅ IMPLEMENTACJA IDisposable
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    searchLogger?.Dispose();
+                }
+
+                _disposed = true;
+            }
         }
     }
 }

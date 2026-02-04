@@ -57,7 +57,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             diagnostic?.Log($"Wybrano miasto: {selectedMiasto.Nazwa} (ID: {selectedMiasto.Id})");
 
             // Znajdź kody pocztowe
-            if (!_cache.TryGetKodyPocztowe(selectedMiasto.Id, out var kodyPocztowe))
+            if (!_cache.TryGetKodyPocztoweMiasta(selectedMiasto.Id, out var kodyPocztowe))
             {
                 diagnostic?.Log($"✗ Brak kodów pocztowych dla miasta ID: {selectedMiasto.Id}");
                 
@@ -143,7 +143,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             foreach (var miasto in miasta)
             {
-                if (_cache.TryGetKodyPocztowe(miasto.Id, out var kody))
+                if (_cache.TryGetKodyPocztoweMiasta(miasto.Id, out var kody))
                 {
                     for (int i = 0; i < kody.Count; i++)
                     {

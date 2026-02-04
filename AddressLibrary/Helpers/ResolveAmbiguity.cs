@@ -1,5 +1,6 @@
 ﻿using AddressLibrary.Logging;
 using AddressLibrary.Models;
+using AddressLibrary.Services.AddressSearch;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,7 @@ namespace AddressLibrary.Helpers
             string sDzielnica,
             string kodPocztowy,
             string miastoNazwa,
+            AddressSearchCache? cache,
             GeneralLogger? _PostalCodesLogger)
         {
             if (candidates.Count <= 1)
@@ -68,10 +70,12 @@ namespace AddressLibrary.Helpers
 
                 foreach (var ulica in candidates)
                 {
-                    // ✅ Sprawdź czy ulica ma przypisany ten kod pocztowy
-                    if (ulica.KodyPocztowe != null && ulica.KodyPocztowe.Any(k => k.Kod == kodNormalized))
-                    {
-                        Pasujace.Add(ulica);
+                    if(cache.TryGetKodyPocztoweUlicy(ulica.Id, out List<KodPocztowy> kody)) {
+                        // ✅ Sprawdź czy ulica ma przypisany ten kod pocztowy
+                        if (kody.Select(x=>x.Kod).Contains(kodNormalized))
+                        {
+                            Pasujace.Add(ulica);
+                        }
                     }
                 }
             }

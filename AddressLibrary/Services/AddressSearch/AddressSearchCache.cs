@@ -17,7 +17,8 @@ namespace AddressLibrary.Services.AddressSearch
 
         private Dictionary<string, List<Miasto>>? _miastaDict;
         private Dictionary<int, List<UlicaCached>>? _uliceDict;
-        private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweDict;
+        private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweMiastDict;
+        private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweUlicDict;
         private bool _isInitialized;
 
         public AddressSearchCache(AddressDbContext context, TextNormalizer normalizer)
@@ -69,7 +70,7 @@ namespace AddressLibrary.Services.AddressSearch
                 Nazwa2 = u.Nazwa2,
                 Miasto = u.Miasto,
 
-              
+
                 NormalizedNazwa1 = _normalizer.Normalize(u.Nazwa1),
 
                 // ✅ Kombinacja: Nazwa2 + " " + Nazwa1 (jeśli Nazwa2 nie jest pusta)
@@ -92,11 +93,15 @@ namespace AddressLibrary.Services.AddressSearch
                 .ToListAsync();
 
             // Słownik: miasto ID -> lista kodów pocztowych
-            _kodyPocztoweDict = kodyPocztowe
+            _kodyPocztoweMiastDict = kodyPocztowe
                 .GroupBy(k => k.MiastoId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // 🔍 DEBUG: Loguj ulicę Axentowicza
+            // Słownik: ulica ID -> lista kodów pocztowych
+            _kodyPocztoweUlicDict = kodyPocztowe
+                .Where(k => k.UlicaId > 0)
+                .GroupBy(k => k.UlicaId)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
             _isInitialized = true;
         }
@@ -130,15 +135,27 @@ namespace AddressLibrary.Services.AddressSearch
         /// <summary>
         /// Znajduje kody pocztowe dla podanego miasta
         /// </summary>
-        public bool TryGetKodyPocztowe(int miastoId, out List<KodPocztowy> kody)
+        public bool TryGetKodyPocztoweMiasta(int miastoId, out List<KodPocztowy> kody)
         {
             kody = new List<KodPocztowy>();
 
-            if (_kodyPocztoweDict == null)
+            if (_kodyPocztoweMiastDict == null)
                 return false;
 
-            var ok = _kodyPocztoweDict.TryGetValue(miastoId, out kody!);
-            return ok;
+            return _kodyPocztoweMiastDict.TryGetValue(miastoId, out kody!);
+        }
+
+        /// <summary>
+        /// Znajduje kody pocztowe dla podanej ulicy
+        /// </summary>
+        public bool TryGetKodyPocztoweUlicy(int ulicaId, out List<KodPocztowy> kody)
+        {
+            kody = new List<KodPocztowy>();
+
+            if (_kodyPocztoweUlicDict == null)
+                return false;
+
+            return _kodyPocztoweUlicDict.TryGetValue(ulicaId, out kody!);
         }
 
         /// <summary>
@@ -147,7 +164,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public string GetOriginalStreetName(UlicaCached ulica)
         {
-           return $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1}".Replace("  ", " ").Trim();
+            return $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1}".Replace("  ", " ").Trim();
         }
 
         /// <summary>
