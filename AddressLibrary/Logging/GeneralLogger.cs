@@ -14,10 +14,10 @@ namespace AddressLibrary.Logging
     {
         /// <summary>Zapis bezpośrednio do pliku (thread-safe, z auto-flush)</summary>
         FileLog,
-        
+
         /// <summary>Buforowany zapis (auto-flush co N wpisów)</summary>
         Buffered,
-        
+
         /// <summary>Dummy logger - nie wykonuje żadnych operacji</summary>
         Dummy
     }
@@ -35,10 +35,10 @@ namespace AddressLibrary.Logging
         private readonly StringBuilder? _buffer;
         private readonly object _lock = new();
         private bool _disposed = false;
-        
+
         // ✅ Dodane dla auto-flush w trybie Buffered
         private int _bufferedLineCount = 0;
-        private const int MaxBufferedLines = 10000; // Auto-flush co 100 linii
+        private const int MaxBufferedLines = 100; // Auto-flush co 100 linii
 
         public string LogFilePath => _logFilePath;
         public LoggerMode Mode => _mode;
@@ -58,7 +58,7 @@ namespace AddressLibrary.Logging
 
             // Przygotuj ścieżkę do pliku
             string logsDir;
-            
+
             if (!string.IsNullOrEmpty(appDataPath))
             {
                 logsDir = Path.Combine(appDataPath, "AppData", "Logs");
@@ -77,17 +77,18 @@ namespace AddressLibrary.Logging
             if (_mode == LoggerMode.FileLog)
             {
                 // FileLog mode - otwórz plik ze StreamWriter
-                _writer = new StreamWriter(_logFilePath, append: false)
+                _writer = new StreamWriter(_logFilePath, append: false, Encoding.UTF8) // ✅ Explicit UTF8
                 {
-                    AutoFlush = true  // Auto-flush dla FileLog
+                    AutoFlush = true,
+                    NewLine = Environment.NewLine // ✅ POPRAWKA: Wymuszaj spójne zakończenia linii
                 };
                 _writer.WriteLine($"=== {logTitle} ===");
             }
             else if (_mode == LoggerMode.Buffered)
             {
-                // Buffered mode - użyj StringBuilder
+                // ✅ Buffered mode - użyj StringBuilder z explicit NewLine
                 _buffer = new StringBuilder();
-                _buffer.AppendLine($"=== {logTitle} ===");
+                _buffer.AppendLine($"=== {logTitle} ==="); // AppendLine używa Environment.NewLine
                 _bufferedLineCount = 1;
             }
         }
@@ -102,7 +103,8 @@ namespace AddressLibrary.Logging
             if (_buffer == null || _disposed)
                 return;
 
-            _buffer.AppendLine(message);
+            _buffer.AppendLine(message); // ✅ AppendLine używa Environment.NewLine
+
             _bufferedLineCount++;
 
             // ✅ Auto-flush co MaxBufferedLines linii
@@ -119,8 +121,8 @@ namespace AddressLibrary.Logging
 
             try
             {
-                // Append do pliku (nie replace!)
-                File.AppendAllText(_logFilePath, _buffer.ToString());
+                // ✅ POPRAWKA: Użyj UTF8 + jawne zakończenia linii
+                File.AppendAllText(_logFilePath, _buffer.ToString(), Encoding.UTF8);
                 _buffer.Clear();
                 _bufferedLineCount = 0;
             }
@@ -179,10 +181,10 @@ namespace AddressLibrary.Logging
                 if (_mode == LoggerMode.FileLog && _writer != null)
                 {
                     _writer.Flush();
-                    
+
                     try
                     {
-                        return File.ReadAllText(_logFilePath);
+                        return File.ReadAllText(_logFilePath, Encoding.UTF8); // ✅ Explicit UTF8
                     }
                     catch
                     {
@@ -193,17 +195,17 @@ namespace AddressLibrary.Logging
                 {
                     // Flush bufora + odczyt całego pliku
                     FlushBufferToFile();
-                    
+
                     try
                     {
-                        return File.ReadAllText(_logFilePath);
+                        return File.ReadAllText(_logFilePath, Encoding.UTF8); // ✅ Explicit UTF8
                     }
                     catch
                     {
                         return string.Empty;
                     }
                 }
-                
+
                 return string.Empty;
             }
         }
@@ -227,7 +229,7 @@ namespace AddressLibrary.Logging
                     FlushBufferToFile();
                 }
             }
-            
+
             return Task.CompletedTask;
         }
 
@@ -252,7 +254,7 @@ namespace AddressLibrary.Logging
                     FlushBufferToFile(); // Flush na końcu
                 }
             }
-            
+
             await Task.CompletedTask;
         }
 
