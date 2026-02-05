@@ -24,20 +24,13 @@ namespace AddressLibrary.Services.Tools
             char delimiter = '|')
         {
             // Wczytaj identyfikatory z pliku b³êdów
-            var errorIds = File.ReadLines(errorsPath)
-                .Select(line => line.Split(delimiter)[0].Trim())
-                .Where(x => !string.IsNullOrEmpty(x))
-                .ToHashSet();
+            var filteredLines = File.ReadLines(errorsPath)
+              .Select(line => string.Join(delimiter.ToString(), line.Split(delimiter).Skip(1)))
+              .Where(x => !string.IsNullOrEmpty(x))
+              .ToList();
 
-            // Przefiltruj linie z pliku adresów
-            var filtered = File.ReadLines(inputPath)
-                .Where(line =>
-                {
-                    var firstCol = line.Split(delimiter)[0].Trim();
-                    return errorIds.Contains(firstCol);
-                });
-
-            File.WriteAllLines(outputPath, filtered);
+            
+            File.WriteAllLines(outputPath, filteredLines);
         }
     }
 }

@@ -145,11 +145,11 @@ namespace AddressLibrary.Helpers
             { "ulica",    new List<string> { "ul.", "ul", "ulica" } }
         };
         /// <summary>
-/// Zwraca preferowany skrót dla typu ulicy (np. "aleja" → "al.", "plac" → "pl.")
-/// Korzysta z pierwszego wariantu ze słownika StreetPrefixes jako preferowanego skrótu
-/// </summary>
-/// <param name="text">Nazwa typu ulicy (np. "aleja", "al.", "plac", "ulica")</param>
-/// <returns>Preferowany skrót (pierwszy wariant ze słownika) lub oryginalny tekst</returns>
+        /// Zwraca preferowany skrót dla typu ulicy (np. "aleja" → "al.", "plac" → "pl.")
+        /// Korzysta z pierwszego wariantu ze słownika StreetPrefixes jako preferowanego skrótu
+        /// </summary>
+        /// <param name="text">Nazwa typu ulicy (np. "aleja", "al.", "plac", "ulica")</param>
+        /// <returns>Preferowany skrót (pierwszy wariant ze słownika) lub oryginalny tekst</returns>
         public static string GetStreetAbbreviation(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -400,6 +400,29 @@ namespace AddressLibrary.Helpers
             }
 
             return streetName;
+        }
+        
+        public static (string street, string houseNumber) ExtractHouseNumberFromStreet(string streetName)
+        {
+            if (string.IsNullOrWhiteSpace(streetName))
+                return (streetName, "");
+
+            // Regex dopasowujący numer na końcu ulicy
+            // Przykłady: "ul.1 Maja 52", "3Maja 126b", "A.Krajowej 7"
+            var match = System.Text.RegularExpressions.Regex.Match(
+                streetName,
+                @"^(.+?)\s+(\d+[a-zA-Z]?)$",
+                System.Text.RegularExpressions.RegexOptions.RightToLeft
+            );
+
+            if (match.Success)
+            {
+                var street = match.Groups[1].Value.Trim();
+                var number = match.Groups[2].Value.Trim();
+                return (street, number);
+            }
+
+            return (streetName, "");
         }
     }
 }

@@ -73,10 +73,23 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (string.IsNullOrWhiteSpace(request.NumerDomu))
             {
-                return new AddressSearchResult
+                (string sUlica, string sNumer) = UliceUtils.ExtractHouseNumberFromStreet(request.Ulica);
+                if (string.IsNullOrWhiteSpace(sNumer))
                 {
-                    Status = AddressSearchStatus.ValidationError,
-                    Message = "Numer domu jest wymagany"
+                    return new AddressSearchResult
+                    {
+                        Status = AddressSearchStatus.ValidationError,
+                        Message = "Numer domu jest wymagany"
+                    };
+                }
+                // Popraw ulicę i numer domu
+                request = new AddressSearchRequest
+                {
+                    KodPocztowy = request.KodPocztowy,
+                    Miasto = request.Miasto,
+                    Ulica = sUlica, 
+                    NumerDomu = sNumer,
+                    NumerMieszkania = request.NumerMieszkania
                 };
             }
 

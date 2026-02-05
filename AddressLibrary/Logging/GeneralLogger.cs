@@ -74,22 +74,35 @@ namespace AddressLibrary.Logging
 
             _logFilePath = Path.Combine(logsDir, _logFileName);
 
-            if (_mode == LoggerMode.FileLog)
+            try
             {
-                // FileLog mode - otwórz plik ze StreamWriter
-                _writer = new StreamWriter(_logFilePath, append: false, Encoding.UTF8) // ✅ Explicit UTF8
+                if (_mode == LoggerMode.FileLog)
                 {
-                    AutoFlush = true,
-                    NewLine = Environment.NewLine // ✅ POPRAWKA: Wymuszaj spójne zakończenia linii
-                };
-                _writer.WriteLine($"=== {logTitle} ===");
+                    // FileLog mode - otwórz plik ze StreamWriter
+                    _writer = new StreamWriter(_logFilePath, append: false, Encoding.UTF8) // ✅ Explicit UTF8
+                    {
+                        AutoFlush = true,
+                        NewLine = Environment.NewLine // ✅ POPRAWKA: Wymuszaj spójne zakończenia linii
+                    };
+                    _writer.WriteLine($"=== {logTitle} ===");
+                }
+                else if (_mode == LoggerMode.Buffered)
+                {
+                    // ✅ Buffered mode - test zapisu do pliku
+                    File.WriteAllText(_logFilePath, $"=== {logTitle} ==={Environment.NewLine}", Encoding.UTF8);
+                    
+                    _buffer = new StringBuilder();
+                    _bufferedLineCount = 0;
+                }
             }
-            else if (_mode == LoggerMode.Buffered)
+            catch (IOException ex)
             {
-                // ✅ Buffered mode - użyj StringBuilder z explicit NewLine
-                _buffer = new StringBuilder();
-                _buffer.AppendLine($"=== {logTitle} ==="); // AppendLine używa Environment.NewLine
-                _bufferedLineCount = 1;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"\n[BŁĄD KRYTYCZNY] Nie można otworzyć pliku logu: {_logFilePath}");
+                Console.WriteLine($"Plik jest używany przez inny proces lub brak uprawnień do zapisu.");
+                Console.WriteLine($"Szczegóły: {ex.Message}");
+                Console.ResetColor();
+                Environment.Exit(1);
             }
         }
 
@@ -126,9 +139,22 @@ namespace AddressLibrary.Logging
                 _buffer.Clear();
                 _bufferedLineCount = 0;
             }
+            catch (IOException ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"\n[BŁĄD KRYTYCZNY] Nie można zapisać do pliku logu: {_logFilePath}");
+                Console.WriteLine($"Plik jest używany przez inny proces lub brak uprawnień do zapisu.");
+                Console.WriteLine($"Szczegóły: {ex.Message}");
+                Console.ResetColor();
+                Environment.Exit(1);
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GeneralLogger] Błąd zapisu bufora: {ex.Message}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"\n[BŁĄD KRYTYCZNY] Nieoczekiwany błąd zapisu do logu: {_logFilePath}");
+                Console.WriteLine($"Szczegóły: {ex.Message}");
+                Console.ResetColor();
+                Environment.Exit(1);
             }
         }
 
