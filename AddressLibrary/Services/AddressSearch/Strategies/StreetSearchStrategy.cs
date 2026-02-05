@@ -409,33 +409,39 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             diagnostic?.Log($"  ✓ Znaleziono {citiesMatchingStreet.Count} miejscowości o nazwie '{request.Ulica}'!");
 
-            // Wybierz pierwszą miejscowość
-            var targetCity = citiesMatchingStreet.FirstOrDefault();
 
-            if (targetCity == null)
-            {
-                return null;
-            }
-
+            var Pasujace = new List<Miasto>();
             // ✅ WALIDACJA 2: Jeśli podano kod pocztowy, sprawdź czy pasuje do nowej miejscowości
             if (!string.IsNullOrWhiteSpace(request.KodPocztowy))
             {
-                var normalizedCode = UliceUtils.NormalizujKodPocztowy(request.KodPocztowy);
-
-                if (_cache.TryGetKodyPocztoweMiasta(targetCity.Id, out var targetCityCodes))
+                foreach (var city in citiesMatchingStreet)
                 {
-                    var hasMatchingCode = targetCityCodes.Any(k => k.Kod == normalizedCode);
+                    var normalizedCode = UliceUtils.NormalizujKodPocztowy(request.KodPocztowy);
 
-                    if (!hasMatchingCode)
+                    if (_cache.TryGetKodyPocztoweMiasta(city.Id, out var targetCityCodes))
                     {
-                        diagnostic?.Log($"  ✗ Kod pocztowy '{request.KodPocztowy}' NIE pasuje do miejscowości '{targetCity.Nazwa}' - NIE zamieniaj!");
-                        return null;
-                    }
+                        var hasMatchingCode = targetCityCodes.Any(k => k.Kod == normalizedCode);
 
-                    diagnostic?.Log($"  ✓ Kod pocztowy '{request.KodPocztowy}' pasuje do miejscowości '{targetCity.Nazwa}'");
+                        if (hasMatchingCode)
+                        {
+                            Pasujace.Add(city);
+                            diagnostic?.Log($"  ✓ Kod pocztowy '{request.KodPocztowy}' pasuje do miejscowości '{city.Nazwa}'");
+                        }
+                    }
                 }
             }
+            if (Pasujace.Count() == 0)
+            {
+                diagnostic?.Log($" Ulica nie jest miastem, zwracam null");
+                return null;
+            }
 
+            if (Pasujace.Count() != 1)
+            {
+                diagnostic?.Log($"  🔄 Istnieje wiele miast '{request.Ulica}' o kodzie Ulica='{request.KodPocztowy}'");
+                diagnostic?.Log($"  Nie potrafię rozstrzygnąć, zwracam null");
+                return null;
+            }
             diagnostic?.Log($"  🔄 ZAMIANA: Miasto='{request.Miasto}' ↔ Ulica='{request.Ulica}'");
             diagnostic?.Log($"  ➡️ Nowe wyszukiwanie: Miasto='{request.Ulica}' (bez ulicy)");
 
@@ -453,7 +459,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             // Wyszukaj ponownie BEZ ulicy
             var noStreetStrategy = new NoStreetSearchStrategy(_cache, _normalizer, _filters, _resultFactory);
-            return noStreetStrategy.Execute(swappedRequest, new List<Miasto> { targetCity }, diagnostic);
+            return noStreetStrategy.Execute(swappedRequest, new List<Miasto> { Pasujace[0] }, diagnostic);
         }
 
         private (UlicaCached? street, Miasto? miasto) FindSimilarStreet(
