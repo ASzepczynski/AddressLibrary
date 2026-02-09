@@ -385,8 +385,14 @@ namespace AddressLibrary.Helpers
             if (fullType == null)
                 return streetName;
 
+
             // Pobierz wszystkie warianty prefiksu dla danego typu
             var allVariants = StreetPrefixes[fullType];
+
+            if (streetType == "al.")
+            {
+                allVariants.Add("Aleje");
+            }
 
             // Sprawdź, czy streetName zaczyna się od dowolnego wariantu (np. "aleja", "al.", "al")
             foreach (var variant in allVariants.OrderByDescending(v => v.Length))
@@ -402,16 +408,23 @@ namespace AddressLibrary.Helpers
             return streetName;
         }
         
+        /// <summary>
+        /// Wyodrębnia numer domu z końca nazwy ulicy
+        /// Obsługuje formaty: "52", "126b", "25a/87", "10/12"
+        /// </summary>
         public static (string street, string houseNumber) ExtractHouseNumberFromStreet(string streetName)
         {
             if (string.IsNullOrWhiteSpace(streetName))
                 return (streetName, "");
 
-            // Regex dopasowujący numer na końcu ulicy
-            // Przykłady: "ul.1 Maja 52", "3Maja 126b", "A.Krajowej 7"
+            // ✅ Rozszerzony regex dopasowujący różne formaty numerów:
+            // - Prosty numer: "52"
+            // - Z literą: "126b", "25a"
+            // - Z ukośnikiem: "25/87", "25a/87", "10/12"
+            // Przykłady: "ul.1 Maja 52", "3Maja 126b", "A.Krajowej 7", "Główna 25a/87"
             var match = System.Text.RegularExpressions.Regex.Match(
                 streetName,
-                @"^(.+?)\s+(\d+[a-zA-Z]?)$",
+                @"^(.+?)\s+(\d+[a-zA-Z]?(?:/\d+[a-zA-Z]?)?)$",
                 System.Text.RegularExpressions.RegexOptions.RightToLeft
             );
 

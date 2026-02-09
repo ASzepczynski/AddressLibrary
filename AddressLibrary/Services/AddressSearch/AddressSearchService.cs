@@ -73,25 +73,42 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (string.IsNullOrWhiteSpace(request.NumerDomu))
             {
-                (string sUlica, string sNumer) = UliceUtils.ExtractHouseNumberFromStreet(request.Ulica);
-                if (string.IsNullOrWhiteSpace(sNumer))
+                (string sMiasto, string sNumer) = UliceUtils.ExtractHouseNumberFromStreet(request.Miasto);
+                if (!string.IsNullOrWhiteSpace(sNumer))
                 {
-                    return new AddressSearchResult
+                    // Popraw miasto i numer domu
+                    request = new AddressSearchRequest
                     {
-                        Status = AddressSearchStatus.ValidationError,
-                        Message = "Numer domu jest wymagany"
+                        KodPocztowy = request.KodPocztowy,
+                        Miasto = sMiasto,
+                        Ulica = request.Ulica,
+                        NumerDomu = sNumer,
+                        NumerMieszkania = request.NumerMieszkania
                     };
                 }
-                // Popraw ulicę i numer domu
-                request = new AddressSearchRequest
+                else
                 {
-                    KodPocztowy = request.KodPocztowy,
-                    Miasto = request.Miasto,
-                    Ulica = sUlica, 
-                    NumerDomu = sNumer,
-                    NumerMieszkania = request.NumerMieszkania
-                };
+                    (string sUlica, sNumer) = UliceUtils.ExtractHouseNumberFromStreet(request.Ulica);
+                    if (string.IsNullOrWhiteSpace(sNumer))
+                    {
+                        return new AddressSearchResult
+                        {
+                            Status = AddressSearchStatus.ValidationError,
+                            Message = "Numer domu jest wymagany"
+                        };
+                    }
+                    // Popraw ulicę i numer domu
+                    request = new AddressSearchRequest
+                    {
+                        KodPocztowy = request.KodPocztowy,
+                        Miasto = request.Miasto,
+                        Ulica = sUlica,
+                        NumerDomu = sNumer,
+                        NumerMieszkania = request.NumerMieszkania
+                    };
+                }
             }
+
 
             // ✅ NORMALIZACJA: Jeśli miasto i ulica są identyczne, wyczyść ulicę
             if (!string.IsNullOrWhiteSpace(request.Ulica))

@@ -450,7 +450,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 KodPocztowy = request.KodPocztowy,
                 Miasto = request.Ulica,  // 🔄 Zamiana!
-                Ulica = null,             // 🔄 Usuń ulicę
+                Ulica = "",             // 🔄 Usuń ulicę
                 NumerDomu = request.NumerDomu,
                 NumerMieszkania = request.NumerMieszkania
             };
