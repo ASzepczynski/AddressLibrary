@@ -148,51 +148,7 @@ namespace AddressLibrary.Services.AddressSearch
             return text;
         }
 
-        private string RemoveTrailingNumbers(string text, out string extractedNumber)
-        {
-            extractedNumber = string.Empty;
-
-            // Znajdź ostatnie słowo - jeśli jest liczbą lub zaczyna się od liczby, wyciągnij je
-            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length > 1)
-            {
-                var lastWord = words[^1];
-                
-                // Sprawdź czy ostatnie słowo to liczba lub zawiera cyfry na początku
-                if (char.IsDigit(lastWord[0]) || lastWord.All(char.IsDigit))
-                {
-                    // WYJĄTEK: Nie usuwaj numerów z nazw jednostek wojskowych
-                    // np. "Dywizjonu 303", "Pułku 72", "Batalionu 101"
-                    if (words.Length >= 2)
-                    {
-                        var secondLastWord = words[^2].ToLowerInvariant();
-                        
-                        // Lista słów kluczowych jednostek wojskowych
-                        var militaryUnits = new[]
-                        {
-                            "dywizjonu", "dywizjon",
-                            "pulku", "pułku", "pułk", "pulk",
-                            "batalionu", "batalion",
-                            "regimentu", "regiment",
-                            "brygady",
-                            "kompanii"
-                        };
-
-                        if (militaryUnits.Contains(secondLastWord))
-                        {
-                            // Nie wyciągaj numeru - jest częścią nazwy ulicy
-                            return text;
-                        }
-                    }
-                    
-                    extractedNumber = lastWord;
-                    return string.Join(" ", words.Take(words.Length - 1));
-                }
-            }
-
-            return text;
-        }
-        
+               
         /// <summary>
         /// Usuwa tytuły wojskowe, religijne, naukowe z tekstu
         /// </summary>
@@ -205,20 +161,6 @@ namespace AddressLibrary.Services.AddressSearch
             var filtered = words.Where(w => !titles.Contains(w)).ToList();
             
             return string.Join(" ", filtered);
-        }
-
-        /// <summary>
-        /// Normalizuje nazwę ulicy i wyciąga z niej numer (jeśli występuje)
-        /// </summary>
-        public (string NormalizedStreet, string ExtractedNumber) NormalizeStreetWithNumber(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return (string.Empty, string.Empty);
-
-            var normalized = Normalize(text.Trim());
-            normalized = RemoveTrailingNumbers(normalized, out string extractedNumber);
-
-            return (normalized, extractedNumber);
         }
    
     }

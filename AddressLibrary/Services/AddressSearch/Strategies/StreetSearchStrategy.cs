@@ -49,16 +49,10 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             searchLogger?.Log("--- STRATEGIA: Szukanie z ulicą ---");
 
             // Normalizuj ulicę i wyciągnij numer
-            var (normalizedStreet, extractedNumber) = _normalizer.NormalizeStreetWithNumber(request.Ulica);
+            var normalizedStreet = _normalizer.Normalize(request.Ulica);
             searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{normalizedStreet}'");
 
-            if (!string.IsNullOrEmpty(extractedNumber))
-            {
-                searchLogger?.Log($"Wyciągnięto numer z ulicy: '{extractedNumber}'");
-            }
-
-            var combinedBuildingNumber = CombineNumbers(extractedNumber, request.NumerDomu);
-            searchLogger?.Log($"Połączony numer budynku: '{combinedBuildingNumber}'");
+            var combinedBuildingNumber = request.NumerDomu;
 
             // 🆕 KROK 1: Znajdź WSZYSTKIE pasujące ulice w WSZYSTKICH miastach o podanej nazwie
             var matchingStreets = FindAllMatchingStreets(request, miasta, normalizedStreet, searchLogger);
