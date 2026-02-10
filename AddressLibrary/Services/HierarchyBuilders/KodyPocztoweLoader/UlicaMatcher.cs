@@ -108,7 +108,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     if (ulice.TryGetValueAgain(currentUlica, out ulica))
                     {
                         ulicaFound = true;
-                        _PostalCodesLogger.LogError($"[UlicaMatcher] ✓ Fuzzy matching znalazł: '{UliceUtils.GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
+                        _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Fuzzy matching dla [{currentUlica}] znalazł: '{UliceUtils.GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
                     }
                 }
             }
@@ -145,7 +145,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// <summary>
         /// Generuje diagnostyczny komunikat o braku ulicy
         /// </summary>
-        public string GetNotFoundMessage(string ulicaNazwa, Miasto miasto, string miastoNazwa, string correctedUlica)
+        public string GetNotFoundMessage(string ulicaNazwa, Miasto miasto, string miastoNazwa, string sKorekcja)
         {
             var miastoInfo = $"{miastoNazwa} (MiastoId={miasto.Id})";
             var uliceCountInfo = _uliceDict.ContainsKey(miasto.Id)
@@ -153,10 +153,10 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 : "brak ulic w słowniku";
 
             var message = "";
-            if (correctedUlica != ulicaNazwa)
-            {
-                message = $" Próbowano korekty: '{correctedUlica}{Environment.NewLine}'";
-            }
+ 
+            
+            message = $" Próbowano korekty: '{sKorekcja}'";
+            
             message += $" Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
 
 

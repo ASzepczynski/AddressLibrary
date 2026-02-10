@@ -12,8 +12,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         public int SkippedCount { get; set; }
         public int DuplicateCount { get; set; }
         public int MultipleGminFound { get; set; }
-        public int CorrectedMiastaCount { get; set; }
-        public int CorrectedUliceCount { get; set; }
+        public int CorrectionsCount { get; set; }
         public int ProcessedCount { get; set; }
 
         public string FormatSummary(int totalRecords)
@@ -24,8 +23,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                    $"Pominiête (brak miejscowoœci): {SkippedCount}{Environment.NewLine}" +
                    $"Duplikaty pominiête: {DuplicateCount}{Environment.NewLine}" +
                    $"Przypadki wielokrotnych gmin: {MultipleGminFound}{Environment.NewLine}" +
-                   $"POPRAWIONE Miejscowoœci: {CorrectedMiastaCount}{Environment.NewLine}" +
-                   $"POPRAWIONE Ulice: {CorrectedUliceCount}{Environment.NewLine}" +
+                   $"POPRAWKI: {CorrectionsCount}{Environment.NewLine}" +
                    $"£¹cznie rekordów: {totalRecords}{Environment.NewLine}";
         }
     }

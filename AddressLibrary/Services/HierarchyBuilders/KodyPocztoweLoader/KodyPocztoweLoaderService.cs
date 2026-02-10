@@ -14,6 +14,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         private readonly AddressDbContext _context;
         private readonly PostalCodesLogger _logger;
         private readonly PnaCorrectionHelper _pnaCorrections; // 🆕 DODANE
+        string sKorekcja = "";
 
         public string LogFilePath => _logger.LogFilePath;
 
@@ -77,6 +78,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             progress?.Report(progressInfo);
 
             var stats = new LoadStatistics();
+            stats.CorrectionsCount = 0;
 
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
@@ -87,8 +89,18 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             {
                 try
                 {
+                    sKorekcja = "";
+                    Pna pna=pna_src;
                     // 🆕 KROK 1: Zastosuj korektę jeśli istnieje
-                    var pna = KorektaPna(pna_src);
+                    if (KorektaPna(pna, out var pnaCorrected)){
+                        stats.CorrectionsCount++;
+                        sKorekcja = "Tak";
+                        
+                        if (pnaCorrected.Kod != "???")
+                        {
+                            pna = pnaCorrected;
+                        }
+                    };
 
                     // 1a. Znajdź miasto
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
@@ -105,8 +117,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                     if (miasto == null)
                     {
-                        // POPRAWIONE KOMUNIKATY:
-                        if (gmina == null)
+                         if (gmina == null)
                         {
                             // Sytuacja 1: Nie znaleziono gminy w bazie
                             _logger.LogError($"Nie znaleziono gminy: {gminaNazwa} w powiecie {pna.Powiat}, woj. {pna.Wojewodztwo} dla kodu {pna.Kod}");
@@ -131,21 +142,22 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 2. Znajdź ulicę (jeśli jest)
-                    string sUlica = pna.Ulica.Replace("-go","");
+                    string? sUlica = pna.Ulica.Replace("-go","");
                     
                     // Rozkładamy ulicę na prefix i część pozostałą
                     (string sPrefix,sUlica) = UliceUtils.SplitStreetPrefix(sUlica);
                     // Usuwamy duplikat prefiksu, przykład os. Osiedle Kolorowe
                     sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix,sUlica);
                     
-                    var ulicaResult = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
-                    var ulica = ulicaResult.ulica;
-                    var ulicaNazwa = ulicaResult.ulicaNazwa;
-
+                    (var ulica,var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
+                    
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
                     {
-                        _logger.LogError(ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, ulicaNazwa) + $" dla kodu {pna.Kod}");
+                        _logger.LogError(ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, sKorekcja) + $" dla kodu {pna.Kod}");
                         stats.ErrorCount++;
+                        stats.SkippedCount++;
+                        stats.ProcessedCount++;
+                        continue;
                     }
 
                     string dzielnica = "";
@@ -170,19 +182,14 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 }
 
                 stats.ProcessedCount++;
-
-                
                 
                 // Raportuj postęp
                 if (stats.ProcessedCount % reportInterval == 0 || stats.ProcessedCount == pnaData.Count)
                 {
-                    stats.CorrectedMiastaCount = 0;
-                    stats.CorrectedUliceCount = 0;
-
                     progressInfo.ProcessedCount = stats.ProcessedCount;
                     progressInfo.SuccessCount = stats.SuccessCount;
                     progressInfo.ErrorCount = stats.ErrorCount;
-                    progressInfo.CurrentOperation = $"Przetworzono {stats.ProcessedCount}/{pnaData.Count} (Sukces: {stats.SuccessCount}, Błędy: {stats.ErrorCount}, Korekty: M={stats.CorrectedMiastaCount}, U={stats.CorrectedUliceCount})";
+                    progressInfo.CurrentOperation = $"Przetworzono {stats.ProcessedCount}/{pnaData.Count} (Sukces: {stats.SuccessCount}, Błędy: {stats.ErrorCount}, Korekty: {stats.CorrectionsCount})";
                     progress?.Report(progressInfo);
                 }
             }
@@ -196,10 +203,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     .ToList();
                 await SaveBatchAsync(uniqueRecords, stats);
             }
-
-            // Raport końcowy - do zrobienia, bo się nie wypisuje
-            stats.CorrectedMiastaCount = 0;
-            stats.CorrectedUliceCount = 0;
 
             progressInfo.ProcessedCount = stats.ProcessedCount;
             progressInfo.SuccessCount = stats.SuccessCount;
@@ -239,17 +242,17 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         /// </summary>
         /// <param name="pna">Oryginalny rekord PNA</param>
         /// <returns>Skorygowany rekord PNA lub oryginalny jeśli brak korekty</returns>
-        private Pna KorektaPna(Pna pna)
+        private bool KorektaPna(Pna pna, out Pna corrected)
         {
-            var corrected = _pnaCorrections.TryCorrect(pna);
+            corrected = _pnaCorrections.TryCorrect(pna);
             
             if (corrected != null)
             {
-                _logger.LogInfo($"✓ Korekta PNA: {pna.Kod} '{pna.Miasto}/{pna.Ulica}' -> '{corrected.Miasto}/{corrected.Ulica}'");
-                return corrected;
+                _logger.LogInfo($"✓ Korekta PNA: '{pna.Kod}' '{pna.Miasto}/{pna.Ulica}' -> '{corrected.Kod}' '{corrected.Miasto}/{corrected.Ulica}'");
+                return true;
             }
 
-            return pna; // Bez zmian
+            return false; // Bez zmian
         }
 
         // ✅ Dispose loggera

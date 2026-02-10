@@ -345,7 +345,7 @@ namespace AddressLibrary.Helpers
                 .ToList();
         }
 
-        public static (string? Prefix, string Name) SplitStreetPrefix(string streetName)
+        public static (string? Prefix, string? Name) SplitStreetPrefix(string? streetName)
         {
             if (string.IsNullOrWhiteSpace(streetName))
                 return (null, streetName);

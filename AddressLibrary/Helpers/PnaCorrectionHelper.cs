@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Packaging;
+ï»¿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using AddressLibrary.Models;
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ namespace AddressLibrary.Helpers
 
             if (!File.Exists(excelPath))
             {
-                // Plik nie istnieje - helper bêdzie pusty (bezpieczne)
+                // Plik nie istnieje - helper bÄ™dzie pusty (bezpieczne)
                 return;
             }
 
@@ -42,7 +42,7 @@ namespace AddressLibrary.Helpers
             if (sheetData == null)
                 return;
 
-            var rows = sheetData.Elements<Row>().Skip(1).ToList(); // Pomiñ nag³ówek
+            var rows = sheetData.Elements<Row>().Skip(1).ToList(); // PomiÅ„ nagÅ‚Ã³wek
 
             // Przetwarzaj pary wierszy (stary rekord + nowy rekord)
             for (int i = 0; i < rows.Count - 1; i += 2)
@@ -50,8 +50,8 @@ namespace AddressLibrary.Helpers
                 var oldRow = rows[i];
                 var newRow = rows[i + 1];
 
-                var oldPna = ParsePnaFromRow(workbookPart, oldRow, out _);
-                var newPna = ParsePnaFromRow(workbookPart, newRow, out var comment);
+                var oldPna = ParsePnaFromRow(workbookPart, oldRow, out var comment);
+                var newPna = ParsePnaFromRow(workbookPart, newRow, out _);
 
                 if (oldPna != null && newPna != null)
                 {
@@ -67,34 +67,28 @@ namespace AddressLibrary.Helpers
 
         /// <summary>
         /// Parsuje rekord PNA z wiersza Excel
+        /// âœ… POPRAWKA: ObsÅ‚uguje puste komÃ³rki w Å›rodku wiersza
         /// </summary>
         private PnaWithComment? ParsePnaFromRow(WorkbookPart? workbookPart, Row row, out string comment)
         {
             comment = string.Empty;
-            var cells = row.Elements<Cell>().ToList();
-
-            if (cells.Count < 7) // Minimum 7 kolumn (bez komentarza)
-                return null;
 
             try
             {
                 var pna = new PnaWithComment
                 {
-                    Kod = GetCellValue(workbookPart, cells[0]).Trim(),
-                    Miasto = GetCellValue(workbookPart, cells[1]).Trim(),
-                    Ulica = GetCellValue(workbookPart, cells[2]).Trim(),
-                    Numery = GetCellValue(workbookPart, cells[3]).Trim(),
-                    Gmina = GetCellValue(workbookPart, cells[4]).Trim(),
-                    Powiat = GetCellValue(workbookPart, cells[5]).Trim(),
-                    Wojewodztwo = GetCellValue(workbookPart, cells[6]).Trim()
+                    Kod = GetCellValueByColumn(workbookPart, row, "A").Trim(),
+                    Miasto = GetCellValueByColumn(workbookPart, row, "B").Trim(),
+                    Ulica = GetCellValueByColumn(workbookPart, row, "C").Trim(),
+                    Numery = GetCellValueByColumn(workbookPart, row, "D").Trim(),
+                    Gmina = GetCellValueByColumn(workbookPart, row, "E").Trim(),
+                    Powiat = GetCellValueByColumn(workbookPart, row, "F").Trim(),
+                    Wojewodztwo = GetCellValueByColumn(workbookPart, row, "G").Trim()
                 };
 
-                // Opcjonalna kolumna komentarza (8. kolumna)
-                if (cells.Count > 7)
-                {
-                    comment = GetCellValue(workbookPart, cells[7]).Trim();
-                    pna.Comment = comment;
-                }
+                // Opcjonalna kolumna komentarza (8. kolumna = H)
+                comment = GetCellValueByColumn(workbookPart, row, "H").Trim();
+                pna.Comment = comment;
 
                 return pna;
             }
@@ -105,7 +99,30 @@ namespace AddressLibrary.Helpers
         }
 
         /// <summary>
-        /// Pobiera wartoœæ komórki Excel (obs³uguje SharedString)
+        /// âœ… NOWA METODA: Pobiera wartoÅ›Ä‡ komÃ³rki na podstawie nazwy kolumny (np. "A", "B", "C")
+        /// ObsÅ‚uguje brakujÄ…ce komÃ³rki (zwraca pusty string)
+        /// </summary>
+        private string GetCellValueByColumn(WorkbookPart? workbookPart, Row row, string columnName)
+        {
+            if (row == null || workbookPart == null)
+                return string.Empty;
+
+            var rowIndex = row.RowIndex?.Value.ToString();
+            if (string.IsNullOrEmpty(rowIndex))
+                return string.Empty;
+
+            // ZnajdÅº komÃ³rkÄ™ o adresie np. "A5", "B5", "C5"
+            var cellReference = $"{columnName}{rowIndex}";
+            var cell = row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == cellReference);
+
+            if (cell == null)
+                return string.Empty; // âœ… KomÃ³rka nie istnieje (pusta)
+
+            return GetCellValue(workbookPart, cell);
+        }
+
+        /// <summary>
+        /// Pobiera wartoÅ›Ä‡ komÃ³rki Excel (obsÅ‚uguje SharedString)
         /// </summary>
         private string GetCellValue(WorkbookPart? workbookPart, Cell cell)
         {
@@ -114,7 +131,7 @@ namespace AddressLibrary.Helpers
 
             var value = cell.CellValue.InnerText;
 
-            // SprawdŸ czy to SharedString
+            // SprawdÅº czy to SharedString
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
             {
                 var stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
@@ -130,10 +147,10 @@ namespace AddressLibrary.Helpers
         }
 
         /// <summary>
-        /// Próbuje znaleŸæ korektê dla podanego rekordu PNA
+        /// PrÃ³buje znaleÅºÄ‡ korektÄ™ dla podanego rekordu PNA
         /// </summary>
         /// <param name="pna">Rekord PNA do sprawdzenia</param>
-        /// <returns>Skorygowany rekord PNA jeœli znaleziono dopasowanie, null w przeciwnym razie</returns>
+        /// <returns>Skorygowany rekord PNA jeÅ›li znaleziono dopasowanie, null w przeciwnym razie</returns>
         public Pna? TryCorrect(Pna pna)
         {
             if (pna == null)
@@ -143,7 +160,7 @@ namespace AddressLibrary.Helpers
             {
                 if (IsMatch(pna, correction.OldPna))
                 {
-                    // Znaleziono dopasowanie - zwróæ nowy rekord
+                    // Znaleziono dopasowanie - zwrÃ³Ä‡ nowy rekord
                     return new Pna
                     {
                         Kod = correction.NewPna.Kod,
@@ -161,7 +178,7 @@ namespace AddressLibrary.Helpers
         }
 
         /// <summary>
-        /// Sprawdza czy rekord PNA pasuje do wzorca (porównuje wszystkie pola)
+        /// Sprawdza czy rekord PNA pasuje do wzorca (porÃ³wnuje wszystkie pola)
         /// </summary>
         private bool IsMatch(Pna pna, PnaWithComment pattern)
         {
@@ -175,7 +192,7 @@ namespace AddressLibrary.Helpers
         }
 
         /// <summary>
-        /// Zwraca liczbê za³adowanych korekt
+        /// Zwraca liczbÄ™ zaÅ‚adowanych korekt
         /// </summary>
         public int Count => _corrections.Count;
     }
