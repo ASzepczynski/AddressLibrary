@@ -14,8 +14,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         private readonly Dictionary<int, Dictionary<string, Miasto>> _miastaDict;
         private readonly PostalCodesLogger? _logger;
 
-        public int CorrectedCount { get; private set; }
-
         public MiastoMatcher(
             Dictionary<string, List<Gmina>> gminyDict,
             Dictionary<int, Dictionary<string, Miasto>> miastaDict,
@@ -37,16 +35,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             var currentMiasto = pna.Miasto;
             var currentGmina = pna.Gmina;
 
-            // KROK 1: Sprawdź czy jest korekta gminy
-            var correctedGmina = KorektyMiasta.PoprawGmina(currentMiasto, currentGmina, pna.Kod);
-            if (correctedGmina != currentGmina)
-            {
-                _logger?.LogError($"✓ KOREKTA GMINY dla kodu {pna.Kod}: '{currentGmina}' → '{correctedGmina}' (miasto: {currentMiasto})");
-                currentGmina = correctedGmina;
-                CorrectedCount++;
-            }
-
-            // KROK 2: Znajdź gminę
+            // Znajdź gminę
             var gminaKey = $"{pna.Wojewodztwo}|{pna.Powiat}|{currentGmina}".ToLowerInvariant();
 
             if (!_gminyDict.TryGetValue(gminaKey, out var gminyList))
@@ -74,31 +63,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
                 }
             }
-
-            // KROK 4: Nie znaleziono - spróbuj korekty
-            var correctedMiasto = KorektyMiasta.Popraw(currentMiasto, currentGmina, pna.Powiat, pna.Wojewodztwo, pna.Kod);
-
-            if (correctedMiasto != currentMiasto)
-            {
-                _logger?.LogError($"✓ KOREKTA MIASTA dla kodu {pna.Kod}: '{currentMiasto}' → '{correctedMiasto}' (gmina: {currentGmina})");
-                
-                // Spróbuj ponownie z skorygowaną nazwą - TYLKO DOKŁADNE DOPASOWANIE
-                foreach (var gmina in gminyList)
-                {
-                    if (_miastaDict.TryGetValue(gmina.Id, out var miasta))
-                    {
-                        if (miasta.TryGetValue(correctedMiasto.ToLowerInvariant(), out var miasto))
-                        {
-                            CorrectedCount++;
-                            return (miasto, gmina, correctedMiasto, currentGmina, gminyCount);
-                        }
-                    }
-                }
-
-                // Jeśli nadal nie znaleziono
-                _logger?.LogError($"⚠️ KOREKTA NIE POMOGŁA dla kodu {pna.Kod}: skorygowano '{currentMiasto}' → '{correctedMiasto}', ale nadal nie znaleziono w gminie '{currentGmina}'");
-            }
-
             // Nie znaleziono - zwróć pierwszą gminę jako kontekst
             return (null, gminyList.First(), currentMiasto, currentGmina, gminyCount);
         }

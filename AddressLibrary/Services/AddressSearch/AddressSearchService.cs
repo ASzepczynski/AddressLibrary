@@ -21,8 +21,9 @@ namespace AddressLibrary.Services.AddressSearch
         private string _appDataPath;
         private SearchLogger searchLogger;
         private bool _disposed = false;
+        private readonly NameCorrectionHelper _corrections;
 
-        public AddressSearchService(AddressDbContext context,string appDataPath)
+        public AddressSearchService(AddressDbContext context, string appDataPath)
         {
             _appDataPath = appDataPath;
             _normalizer = new TextNormalizer();
@@ -38,6 +39,8 @@ namespace AddressLibrary.Services.AddressSearch
 
             _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver);
             _noStreetSearch = new NoStreetSearchStrategy(_cache, _normalizer, filters, resultFactory);
+            _corrections = new NameCorrectionHelper(appDataPath);
+            Console.WriteLine($"Załadowano {_corrections.Count} korekt ({_corrections.GetCountByType("M")} miast, {_corrections.GetCountByType("U")} ulic)");
         }
 
         public async Task InitializeAsync()
@@ -130,6 +133,32 @@ namespace AddressLibrary.Services.AddressSearch
                         NumerMieszkania = request.NumerMieszkania
                     };
                 }
+            }
+
+            if (_corrections.TryCorrect("M", request.Miasto, out var correctedCity))
+            {
+                Console.WriteLine($"Skorygowano miasto: '{request.Miasto}' -> '{correctedCity}'");
+                request = new AddressSearchRequest
+                {
+                    KodPocztowy = request.KodPocztowy,
+                    Miasto = correctedCity,
+                    Ulica = request.Ulica, 
+                    NumerDomu = request.NumerDomu,
+                    NumerMieszkania = request.NumerMieszkania
+                };
+            }
+
+            if (_corrections.TryCorrect("U", request.Ulica, out var correctedStreet))
+            {
+                Console.WriteLine($"Skorygowano ulicę: '{request.Ulica}' -> '{correctedStreet}'");
+                request = new AddressSearchRequest
+                {
+                    KodPocztowy = request.KodPocztowy,
+                    Miasto = request.Miasto,
+                    Ulica = correctedStreet,
+                    NumerDomu = request.NumerDomu,
+                    NumerMieszkania = request.NumerMieszkania
+                };
             }
 
             // Znajdź miasta o podanej nazwie

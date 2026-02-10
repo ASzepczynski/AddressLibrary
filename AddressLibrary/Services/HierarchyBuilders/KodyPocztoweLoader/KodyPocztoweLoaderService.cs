@@ -13,6 +13,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
     {
         private readonly AddressDbContext _context;
         private readonly PostalCodesLogger _logger;
+        private readonly PnaCorrectionHelper _pnaCorrections; // 🆕 DODANE
 
         public string LogFilePath => _logger.LogFilePath;
 
@@ -20,6 +21,9 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
         {
             _context = context;
             _logger = new PostalCodesLogger(appDataPath);
+            _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty); // 🆕 DODANE
+            
+            Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
         }
 
         public async Task LoadAsync(
@@ -79,11 +83,14 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             const int logFlushInterval = 100;
 
             //foreach (var pna in pnaData.Where(x=>x.Ulica=="Cicha" && x.Miasto=="Warszawa"))
-            foreach (var pna in pnaData)
+            foreach (var pna_src in pnaData)
             {
                 try
                 {
-                    // 1. Znajdź miasto
+                    // 🆕 KROK 1: Zastosuj korektę jeśli istnieje
+                    var pna = KorektaPna(pna_src);
+
+                    // 1a. Znajdź miasto
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
                     var miasto = matchResult.miasto;
 
@@ -158,7 +165,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Błąd: {pna.Kod}: {ex.Message}");
+                    _logger.LogError($"Błąd: {pna_src.Kod}: {ex.Message}");
                     stats.ErrorCount++;
                 }
 
@@ -169,8 +176,8 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 // Raportuj postęp
                 if (stats.ProcessedCount % reportInterval == 0 || stats.ProcessedCount == pnaData.Count)
                 {
-                    stats.CorrectedMiastaCount = miastoMatcher.CorrectedCount;
-                    stats.CorrectedUliceCount = ulicaMatcher.CorrectedCount;
+                    stats.CorrectedMiastaCount = 0;
+                    stats.CorrectedUliceCount = 0;
 
                     progressInfo.ProcessedCount = stats.ProcessedCount;
                     progressInfo.SuccessCount = stats.SuccessCount;
@@ -191,8 +198,8 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             }
 
             // Raport końcowy - do zrobienia, bo się nie wypisuje
-            stats.CorrectedMiastaCount = miastoMatcher.CorrectedCount;
-            stats.CorrectedUliceCount = ulicaMatcher.CorrectedCount;
+            stats.CorrectedMiastaCount = 0;
+            stats.CorrectedUliceCount = 0;
 
             progressInfo.ProcessedCount = stats.ProcessedCount;
             progressInfo.SuccessCount = stats.SuccessCount;
@@ -225,6 +232,24 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
 
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 🆕 Stosuje korektę do rekordu PNA jeśli istnieje w słowniku korekt
+        /// </summary>
+        /// <param name="pna">Oryginalny rekord PNA</param>
+        /// <returns>Skorygowany rekord PNA lub oryginalny jeśli brak korekty</returns>
+        private Pna KorektaPna(Pna pna)
+        {
+            var corrected = _pnaCorrections.TryCorrect(pna);
+            
+            if (corrected != null)
+            {
+                _logger.LogInfo($"✓ Korekta PNA: {pna.Kod} '{pna.Miasto}/{pna.Ulica}' -> '{corrected.Miasto}/{corrected.Ulica}'");
+                return corrected;
+            }
+
+            return pna; // Bez zmian
         }
 
         // ✅ Dispose loggera

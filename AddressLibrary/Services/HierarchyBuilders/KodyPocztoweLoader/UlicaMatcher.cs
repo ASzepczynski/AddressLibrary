@@ -112,27 +112,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
                 }
             }
-
-            // KROK 2: Jeśli nie znaleziono ulicy, ZAWSZE spróbuj korekty
-            if (!ulicaFound)
-            {
-                var correctedUlica = KorektyUlic.Popraw(currentUlica, miasto.Nazwa, kodPocztowy);
-
-                // KROK 2a: Sprawdź czy korekta zwróciła inną nazwę
-                if (correctedUlica != currentUlica)
-                {
-                    // KROK 2b: Spróbuj znaleźć skorygowaną ulicę
-                    if (_uliceDict.TryGetValue(miasto.Id, out var ulice2))
-                    {
-                        if (ulice2.TryGetValue(correctedUlica.ToLowerInvariant(), out var lUlica) && lUlica.Count==1)
-                        {
-                            currentUlica = correctedUlica;
-                            CorrectedCount++;
-                            ulicaFound = true;
-                        }
-                    }
-                }
-            }
             return (ulica, currentUlica);
         }
 

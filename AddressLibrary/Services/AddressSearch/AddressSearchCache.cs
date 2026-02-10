@@ -69,14 +69,15 @@ namespace AddressLibrary.Services.AddressSearch
                 Nazwa1 = u.Nazwa1,
                 Nazwa2 = u.Nazwa2,
                 Miasto = u.Miasto,
+                Dzielnica = u.Dzielnica,
 
-
+                // ✅ POPRAWKA 1: Normalizuj tylko Nazwa1 (nazwisko)
                 NormalizedNazwa1 = _normalizer.Normalize(u.Nazwa1),
 
-                // ✅ Kombinacja: Nazwa2 + " " + Nazwa1 (jeśli Nazwa2 nie jest pusta)
+                // ✅ POPRAWKA 2: Jeśli jest Nazwa2, normalizuj jako "Nazwa2 Nazwa1" (bez NormalizeOrdinalNumber!)
                 NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2)
                     ? null
-                    : _normalizer.Normalize($"{UliceUtils.NormalizeOrdinalNumber(u.Nazwa2)} {u.Nazwa1}")
+                    : _normalizer.Normalize($"{u.Nazwa2} {u.Nazwa1}")
 
             }).ToList();
 

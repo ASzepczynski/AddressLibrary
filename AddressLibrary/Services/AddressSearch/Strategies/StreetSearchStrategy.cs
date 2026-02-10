@@ -250,6 +250,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
                     foreach (var ulica in ulice)
                     {
+
                         // ✅ Sprawdź dokładne dopasowanie
                         if (_streetMatcher.IsMatch(ulica, normalizedStreet))
                         {

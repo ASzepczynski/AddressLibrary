@@ -407,7 +407,7 @@ namespace AddressLibrary.Helpers
 
             return streetName;
         }
-        
+
         /// <summary>
         /// Wyodrębnia numer domu z końca nazwy ulicy
         /// Obsługuje formaty: "52", "126b", "25a/87", "10/12"
@@ -422,20 +422,33 @@ namespace AddressLibrary.Helpers
             // - Z literą: "126b", "25a"
             // - Z ukośnikiem: "25/87", "25a/87", "10/12"
             // Przykłady: "ul.1 Maja 52", "3Maja 126b", "A.Krajowej 7", "Główna 25a/87"
+            //
+            // Poprawiłem by nie było więcej niż 3 cyfry, bo kradło lata 1863r i 1945
+            //
             var match = System.Text.RegularExpressions.Regex.Match(
                 streetName,
-                @"^(.+?)\s+(\d+[a-zA-Z]?(?:/\d+[a-zA-Z]?)?)$",
+                @"^(.+?)\s+(\d{1,3}[a-zA-Z]?(?:/\d+[a-zA-Z]?)?)$",
                 System.Text.RegularExpressions.RegexOptions.RightToLeft
             );
 
-            if (match.Success)
+            if (!match.Success)
             {
-                var street = match.Groups[1].Value.Trim();
-                var number = match.Groups[2].Value.Trim();
-                return (street, number);
+                return (streetName, "");
             }
+            var street = match.Groups[1].Value.Trim();
+            var number = match.Groups[2].Value.Trim();
 
-            return (streetName, "");
+            // Unikamy obcięcia osiedla Dywizjonu 303 
+            if (street.EndsWith("dywizjonu", StringComparison.OrdinalIgnoreCase))
+            {
+                return (streetName, "");
+            }
+            // Unikamy obcięcia Jana Pawła 2
+            if (street.EndsWith("jana pawła", StringComparison.OrdinalIgnoreCase) && (number == "2"))
+            {
+                return (streetName, "");
+            }
+            return (street, number);
         }
     }
 }
