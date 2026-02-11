@@ -161,7 +161,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 })
                 .ToList();
 
-            (string sPrefiks, string sStreet) = UliceUtils.SplitStreetAndPrefix(request.Ulica);
+            (string? sPrefiks, string? sStreet) = UliceUtils.SplitStreetPrefix(request.Ulica);
 
             // Użyj ResolveAmbiguity
             var resolvedStreet = ResolveAmbiguity.ResolveStreetAmbiguity(

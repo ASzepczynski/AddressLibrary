@@ -47,7 +47,7 @@ namespace AddressLibrary.Helpers
             var Pasujace = new List<Ulica>();
 			foreach (var ulica in candidates)
 			{
-                if (ulica.Cecha == sPrefiks || ulica.Cecha == UliceUtils.GetStreetAbbreviation(sPrefiks))
+                if (ulica.Cecha == sPrefiks || ulica.Cecha == sPrefiks)
 				{
 					Pasujace.Add(ulica);
 				}

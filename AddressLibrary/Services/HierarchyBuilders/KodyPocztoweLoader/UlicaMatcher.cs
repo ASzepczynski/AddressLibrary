@@ -78,7 +78,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     _PostalCodesLogger.LogWarning($"[UlicaMatcher] ⚠️ NIEJEDNOZNACZNOŚĆ: Znaleziono {exactMatches.Count} ulic pasujących do '{currentUlica}':");
 
                     // 🆕 Próba rozstrzygnięcia niejednoznaczności
-                    if (sPrefiks == "") sPrefiks = "ulica";
+                    if (sPrefiks == "") sPrefiks = "ul.";
                     // Nie podajemy kodu pocztowego, bo właśnie go ładujemy - to jest ładowanie kodów pocztowych
                     ulica = AddressLibrary.Helpers.ResolveAmbiguity.ResolveStreetAmbiguity(
                         exactMatches, 

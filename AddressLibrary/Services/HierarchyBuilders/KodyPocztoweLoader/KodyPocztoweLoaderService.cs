@@ -72,7 +72,6 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             // Inicjalizuj matchery - PRZEKAŻ LOGGER
             var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger);
             var ulicaMatcher = new UlicaMatcher(uliceDict,_logger);
-            var recordBuilder = new KodPocztowyRecordBuilder();
 
             progressInfo.CurrentOperation = "Przetwarzanie kodów pocztowych...";
             progress?.Report(progressInfo);
@@ -167,7 +166,15 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     }
 
                     // 4. Utwórz rekord
-                    var kodPocztowy = recordBuilder.Build(pna, miasto, ulica);
+
+                    var kodPocztowy = new KodPocztowy
+                    {
+                        Kod = pna.Kod,
+                        Numery = pna.Numery,
+                        MiastoId = miasto.Id,
+                        UlicaId = ulica?.Id ?? -1
+                    };
+
                     pendingRecords.Add(kodPocztowy);
 
                     if (ulica != null || string.IsNullOrEmpty(pna.Ulica))
