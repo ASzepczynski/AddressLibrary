@@ -1,6 +1,7 @@
 ﻿using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch;
+using DocumentFormat.OpenXml.Vml;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,11 +41,30 @@ namespace AddressLibrary.Helpers
                            .Distinct()
                            .OrderBy(k => k))
                        : "brak";
-                var line = $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1} {ulica.Dzielnica ?? ""} {kody}".Trim();
+                var line = $"{ulica.Cecha}|{ulica.Nazwa2}|{ulica.Nazwa1}|{ulica.Dzielnica ?? ""}|{kody}".Trim();
                 _PostalCodesLogger?.LogInfo($"[ResolveAmbiguity] Kandydat: {line}");
             }
 
+// Porównanie dokładne po nazwie
             var Pasujace = new List<Ulica>();
+            foreach (var ulica in candidates)
+            {
+                if ((ulica.Nazwa2+" "+ulica.Nazwa1).Trim() == sStreet)
+                {
+                    Pasujace.Add(ulica);
+                }
+            }
+
+            if (Pasujace.Count() == 1)
+            {
+                _PostalCodesLogger?.LogInfo($"Istnieje dokładnie jeden obiekt dokładnie zgodny z [{sStreet}]");
+                return Pasujace[0];
+            }
+
+            _PostalCodesLogger?.LogInfo($"Niestety istnieje {Pasujace.Count} obiektów dokładnie zgodnych z ulicą [{sStreet}]");
+
+            Pasujace.Clear();
+            // Porównanie po prefiksie
 			foreach (var ulica in candidates)
 			{
                 if (ulica.Cecha == sPrefiks || ulica.Cecha == sPrefiks)
@@ -58,11 +78,12 @@ namespace AddressLibrary.Helpers
 				_PostalCodesLogger?.LogInfo($"Istnieje dokładnie jeden obiekt z prefiksem [{sPrefiks}]");
 				return Pasujace[0];
 			}
+            _PostalCodesLogger?.LogInfo($"Niestety istnieje {Pasujace.Count} obiektów dokładnie zgodnych z prefiksem [{sPrefiks}]");
 
             Pasujace.Clear();
 
 
-
+// Porównanie po kodzie pocztowym
             if (!string.IsNullOrWhiteSpace(kodPocztowy))
             {
                 _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] ✓ Szukanie po kodzie pocztowym '{kodPocztowy}'");
@@ -84,10 +105,9 @@ namespace AddressLibrary.Helpers
             {
                 _PostalCodesLogger?.LogInfo($"Istnieje dokładnie jeden obiekt z kodem [{kodPocztowy}]");
                 return Pasujace[0];
-            } else
-            {
-                _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] Liczba ulic o kodzie '{kodPocztowy}':{Pasujace.Count()}");
             }
+            _PostalCodesLogger?.LogInfo($"Niestety istnieje {Pasujace.Count} obiektów dokładnie zgodnych z kodem [{kodPocztowy}]");
+
             _PostalCodesLogger?.LogWarning($"[ResolveAmbiguity] Szukanie po priorytecie ulic");
 
             // ✅ POPRAWKA: Case-insensitive porównanie

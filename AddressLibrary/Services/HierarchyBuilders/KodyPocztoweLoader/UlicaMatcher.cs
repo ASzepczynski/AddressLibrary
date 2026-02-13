@@ -75,7 +75,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 {
                     // ⚠️ Wiele ulic - NIEJEDNOZNACZNOŚĆ
                     AmbiguousCount++;
-                    _PostalCodesLogger.LogWarning($"[UlicaMatcher] ⚠️ NIEJEDNOZNACZNOŚĆ: Znaleziono {exactMatches.Count} ulic pasujących do '{currentUlica}':");
+                    _PostalCodesLogger.LogWarning($"[UlicaMatcher] ⚠️ NIEJEDNOZNACZNOŚĆ: Znaleziono {exactMatches.Count} ulic w mieście [{miasto.Nazwa}] pasujących do '{currentUlica}':");
 
                     // 🆕 Próba rozstrzygnięcia niejednoznaczności
                     if (sPrefiks == "") sPrefiks = "ul.";

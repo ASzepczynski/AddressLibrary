@@ -12,20 +12,21 @@ namespace AddressLibrary.Services.HierarchyBuilders
     {
         private readonly AddressDbContext _context;
         private readonly HierarchyStreetLogger _logger;
-        private readonly StreetNamePersonalConverter _personalConverter; // 🆕 DODANE
+        private readonly PrefixChangeLogger _prefixLogger; // 🆕 DODANE
+        private readonly StreetNamePersonalConverter _personalConverter;
 
         public UliceLoader(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
             _logger = new HierarchyStreetLogger(appDataPath);
-            _personalConverter = new StreetNamePersonalConverter(appDataPath ?? string.Empty); // 🆕 DODANE
+            _prefixLogger = new PrefixChangeLogger(appDataPath); // 🆕 DODANE
+            _personalConverter = new StreetNamePersonalConverter(appDataPath ?? string.Empty);
 
-            // 🆕 Log informacji o załadowanym słowniku
             _logger.LogInfo($"Załadowano {_personalConverter.Count} konwersji ulic osobowych z Excel");
             
-            // 🆕 DEBUG - Pokaż wszystkie klucze ze słownika
+            // Debug słownika konwersji
             _logger.LogInfo("=== ZAWARTOŚĆ SŁOWNIKA KONWERSJI ===");
-            var debugKeys = _personalConverter.GetAllKeys(); // ← Musisz dodać tę metodę
+            var debugKeys = _personalConverter.GetAllKeys();
             foreach (var key in debugKeys.Take(20))
             {
                 _logger.LogInfo($"  Klucz: ('{key.Item1}', '{key.Item2}')");
@@ -39,12 +40,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _logger.LogInfo($"Liczba ulic do przetworzenia: {ulicData.Count}");
             _logger.LogInfo($"Liczba miejscowości w słowniku: {miastoDict.Count}");
 
-
             int przetworzono = 0;
             int brakujacych = 0;
             int cityWithRightsProcessed = 0;
             int regularProcessed = 0;
-            int convertedFromExcel = 0; // 🆕 DODANE - licznik konwersji
+            int convertedFromExcel = 0;
+            int prefixChanges = 0; // 🆕 DODANE - licznik zmian prefiksów
 
             // Dla miast na prawach powiatu - załaduj raz na początku
             _logger.LogInfo("Przygotowuję mapowanie miast na prawach powiatu...");
@@ -101,7 +102,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             // Lista wszystkich ulic do wstawienia
             var allUlice = new List<Ulica>(ulicData.Count);
 
-            // Główna pętla - tylko przygotowanie danych
+            // Główna pętla - przygotowanie danych
             var wojDict = _context.Wojewodztwa.AsNoTracking().ToDictionary(x => x.Kod);
             var powDict = _context.Powiaty.AsNoTracking().ToDictionary(x => x.Kod);
             var gmiDict = _context.TerytTerc.AsNoTracking().ToDictionary(x => (x.Wojewodztwo, x.Powiat, x.Gmina, x.RodzajGminy));
@@ -168,6 +169,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 string? dzielnica = null;
                 string? Nazwa1 = ulic.Ulica.Nazwa1;
                 string? Nazwa2 = ulic.Ulica.Nazwa2;
+                string? Cecha = ulic.Ulica.Cecha;
 
                 // 🔄 KROK 1: Zastosuj wstępne transformacje
                 dzielnica = UliceUtils.Wesola(ulic);
@@ -179,16 +181,41 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 (Nazwa1, Nazwa2) = UliceUtils.GetCorrectedStreetName(Nazwa1, Nazwa2);
 
                 // Tutaj usuwamy duplikaty
-                Nazwa1 = UliceUtils.RemoveStreetTypeDuplication(ulic.Ulica.Cecha, Nazwa1);
+                Nazwa1 = UliceUtils.RemoveStreetTypeDuplication(Cecha, Nazwa1);
+
+                // 🆕 KROK 1.5: Sprawdź czy Nazwa1 zaczyna się od prefiksu i przenieś go do Cecha
+                var (changedPrefix, extractedPrefix, cleanedName) = ExtractPrefixFromName(Nazwa1);
+                
+                if (changedPrefix)
+                {
+                    var oldCecha = Cecha;
+                    var oldNazwa1 = Nazwa1;
+                    
+                    Cecha = extractedPrefix;
+                    Nazwa1 = cleanedName;
+                    
+                    prefixChanges++;
+                    
+                    // Loguj zmianę
+                    _prefixLogger.LogPrefixChange(
+                        oldCecha ?? "(brak)", 
+                        oldNazwa1, 
+                        Cecha, 
+                        Nazwa1, 
+                        miasto?.Nazwa ?? "?" 
+                    );
+                }
 
                 // 🆕 KROK 2: sprawdź konwersję z Excel
                 if (_personalConverter.TryConvert(
-                    ulic.Ulica.Cecha,
+                    Cecha,
                     Nazwa1,
                     Nazwa2,
+                    out var convertedCecha,
                     out var convertedNazwa1,
                     out var convertedNazwa2))
                 {
+                    Cecha = convertedCecha;
                     Nazwa1 = convertedNazwa1;
                     Nazwa2 = convertedNazwa2;
                     convertedFromExcel++;
@@ -197,7 +224,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
-                    Cecha = ulic.Ulica.Cecha,
+                    Cecha = Cecha,
                     Nazwa1 = Nazwa1,
                     Nazwa2 = Nazwa2,
                     MiastoId = miasto.Id,
@@ -231,14 +258,37 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _logger.LogInfo($"Dodano: {dodano}");
             _logger.LogInfo($"  - Dla miast na prawach powiatu: {cityWithRightsProcessed}");
             _logger.LogInfo($"  - Dla zwykłych miejscowości: {regularProcessed}");
-            _logger.LogInfo($"  - Skonwertowano z Excel: {convertedFromExcel}"); // 🆕 DODANE
+            _logger.LogInfo($"  - Skonwertowano z Excel: {convertedFromExcel}");
+            _logger.LogInfo($"  - Zmieniono prefiksy: {prefixChanges}"); // 🆕 DODANE
             _logger.LogInfo($"Pominięto (brak miejscowości): {brakujacych}");
             _logger.LogInfo($"Pominięto (duplikaty): {duplikaty}");
+        }
+
+        /// <summary>
+        /// 🆕 Sprawdza czy Nazwa1 zaczyna się od prefiksu i wyodrębnia go
+        /// </summary>
+        /// <returns>Tuple (czy zmieniono, nowy prefix, oczyszczona nazwa)</returns>
+        private (bool changed, string? prefix, string cleanedName) ExtractPrefixFromName(string nazwa1)
+        {
+            if (string.IsNullOrWhiteSpace(nazwa1))
+                return (false, null, nazwa1);
+
+            // Użyj istniejącej metody SplitStreetPrefix z UliceUtils
+            var (extractedPrefix, remainingName) = UliceUtils.SplitStreetPrefix(nazwa1);
+
+            // Jeśli znaleziono prefix (nie jest pusty)
+            if (!string.IsNullOrEmpty(extractedPrefix) && !string.IsNullOrEmpty(remainingName))
+            {
+                return (true, extractedPrefix, remainingName);
+            }
+
+            return (false, null, nazwa1);
         }
 
         public void Dispose()
         {
             _logger?.Dispose();
+            _prefixLogger?.Dispose(); // 🆕 DODANE
         }
     }
 }

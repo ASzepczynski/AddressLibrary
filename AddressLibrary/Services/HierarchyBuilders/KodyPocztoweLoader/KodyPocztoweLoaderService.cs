@@ -84,10 +84,16 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             const int logFlushInterval = 100;
 
             //foreach (var pna in pnaData.Where(x=>x.Ulica=="Cicha" && x.Miasto=="Warszawa"))
-            foreach (var pna_src in pnaData)
+            foreach (var pna_raw in pnaData)
             {
                 try
                 {
+                    var pna_src = pna_raw;
+                    // Usunięcie cudzysłowów charakterystycznych dla plików CSV
+   
+                    pna_src.Miasto =UliceUtils.RemoveQuote(pna_src.Miasto);
+                    pna_src.Ulica = UliceUtils.RemoveQuote(pna_src.Ulica);
+                    pna_src.Numery = UliceUtils.RemoveQuote(pna_src.Numery);
                     sKorekcja = "";
                     Pna pna=pna_src;
                     // 🆕 KROK 1: Zastosuj korektę jeśli istnieje
@@ -184,7 +190,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Błąd: {pna_src.Kod}: {ex.Message}");
+                    _logger.LogError($"Błąd: {pna_raw.Kod}: {ex.Message}");
                     stats.ErrorCount++;
                 }
 
@@ -232,12 +238,21 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             {
                 _logger.LogError($"BŁĄD ZAPISU PARTII (batch {stats.ProcessedCount / 1000}):");
                 _logger.LogError($"Message: {dbEx.Message}");
-                _logger.LogError($"Inner: {dbEx.InnerException?.Message}");
+                
+                // ✅ DODAJ: Wyświetl pełny inner exception
+                var innerEx = dbEx.InnerException;
+                while (innerEx != null)
+                {
+                    _logger.LogError($"Inner Exception: {innerEx.Message}");
+                    _logger.LogError($"Inner Type: {innerEx.GetType().Name}");
+                    innerEx = innerEx.InnerException;
+                }
 
-                for (int i = 0; i < Math.Min(5, pendingRecords.Count); i++)
+                // ✅ Pokaż pierwsze 10 rekordów z tej partii
+                for (int i = 0; i < Math.Min(10, pendingRecords.Count); i++)
                 {
                     var rec = pendingRecords[i];
-                    _logger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}");
+                    _logger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}, Numery={rec.Numery}");
                 }
 
                 throw;

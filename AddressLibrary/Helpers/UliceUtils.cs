@@ -337,6 +337,7 @@ namespace AddressLibrary.Helpers
             }
             return ("", streetName);
         }
+
         public static string RemoveStreetTypeDuplication(string streetType, string streetName)
         {
             if (string.IsNullOrWhiteSpace(streetType) || string.IsNullOrWhiteSpace(streetName))
@@ -415,6 +416,29 @@ namespace AddressLibrary.Helpers
                 return (streetName, "");
             }
             return (street, number);
+        }
+
+        /// <summary>
+        /// Poprawia cudzysłowy w tekstach CSV - usuwa zewnętrzne i konwertuje podwójne na pojedyncze
+        /// Przykład: "Fieldorfa ""Nila""" -> Fieldorfa "Nila"
+        /// </summary>
+        public static string RemoveQuote(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text ?? string.Empty;
+
+            var result = text.Trim();
+
+            // 1. Usuń zewnętrzne cudzysłowy (początkowy i końcowy)
+            if (result.StartsWith("\"") && result.EndsWith("\""))
+            {
+                result = result.Substring(1, result.Length - 2);
+            }
+
+            // 2. Zamień podwójne cudzysłowy ("") na pojedyncze (")
+            result = result.Replace("\"\"", "\"");
+
+            return result;
         }
     }
 }
