@@ -269,7 +269,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             MiastoCached? bestMatch = null;
             int bestScore = int.MinValue;
-            const int minScore = 5;
+            const int minScore = 80;
 
             var searchTokens = normalizedCityName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -354,7 +354,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (bestMatch != null && bestScore >= minScore)
             {
-                searchLogger?.Log($"    Najlepsze dopasowanie: '{bestMatch.Miasto.Nazwa}' (score: {bestScore})");
+                searchLogger?.Log($"    Najlepsze dopasowanie zamiast {normalizedCityName}: '{bestMatch.Miasto.Nazwa}' (score: {bestScore})");
                 return bestMatch.Miasto;
             }
 

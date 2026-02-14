@@ -79,7 +79,6 @@ namespace AddressLibrary.Services.AddressSearch
             normalized = normalized.Replace("  ", " ").Trim();
             normalized = normalized.Replace("-go", "").Trim();
 
-            normalized = RemoveStreetPrefixes(normalized);
             normalized = RemoveTitles(normalized);
             normalized = RemoveInitialsPrefix(normalized);
 
@@ -101,54 +100,7 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
 
-        public string RemoveStreetPrefixes(string text)
-        {
-            // ✅ WALIDACJA: Sprawdź czy ostatnie słowo to skrót nazwy miasta
-            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length > 1)
-            {
-                var lastWord = words[^1];
-                
-                // Sprawdź czy to skrót miasta (z kropką lub bez)
-                foreach (var cityAbbr in CityAbbreviations)
-                {
-                    if (lastWord.Equals(cityAbbr, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // To jest skrót miasta - ZATRZYMAJ usuwanie prefixów!
-                        // Nie usuwaj NICZEGO, zwróć oryginalny tekst
-                        return text;
-                    }
-                }
-            }
-
-            // Usuń przedrostki ulic (istniejący kod bez zmian)
-            var sortedPrefixes = UliceUtils.GetAllStreetPrefixes().OrderByDescending(p => p.Length);
-
-            foreach (var prefix in sortedPrefixes)
-            {
-                if (text.StartsWith(prefix + " ", StringComparison.OrdinalIgnoreCase))
-                {
-                    return text.Substring(prefix.Length + 1).Trim();
-                }
-
-                if (prefix.EndsWith(".") && text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    var afterPrefix = text.Substring(prefix.Length);
-                    if (afterPrefix.Length > 0 && char.IsLetter(afterPrefix[0]))
-                    {
-                        return afterPrefix.Trim();
-                    }
-                }
-
-                if (text.Equals(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    return string.Empty;
-                }
-            }
-            return text;
-        }
-
-               
+                      
         /// <summary>
         /// Usuwa tytuły wojskowe, religijne, naukowe z tekstu
         /// </summary>

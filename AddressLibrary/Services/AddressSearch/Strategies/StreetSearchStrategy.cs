@@ -48,18 +48,21 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             searchLogger?.Log("");
             searchLogger?.Log("--- STRATEGIA: Szukanie z ulicą ---");
 
+
+            // Wyodrębnij prefiks z ulicy
+            (var Prefix, var normalizedStreet) = UliceUtils.SplitStreetPrefix(request.Ulica);
             // Normalizuj ulicę i wyciągnij numer
-            var normalizedStreet = _normalizer.Normalize(request.Ulica);
-            searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{normalizedStreet}'");
+            normalizedStreet = _normalizer.Normalize(normalizedStreet);
+            searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{Prefix}/{normalizedStreet}'");
 
             var combinedBuildingNumber = request.NumerDomu;
 
             // 🆕 KROK 1: Znajdź WSZYSTKIE pasujące ulice w WSZYSTKICH miastach o podanej nazwie
-            var matchingStreets = FindAllMatchingStreets(request, miasta, normalizedStreet, searchLogger);
+            var matchingStreets = FindAllMatchingStreets(request, miasta, Prefix, normalizedStreet, searchLogger);
 
             if (matchingStreets.Count == 0)
             {
-                return HandleStreetNotFound(request, miasta, normalizedStreet, searchLogger);
+                return HandleStreetNotFound(request, miasta, Prefix, normalizedStreet, searchLogger);
             }
 
             // 🆕 KROK 2: Jeśli jest WIĘCEJ NIŻ JEDNA ulica - użyj AmbiguousStreetResolver
@@ -235,10 +238,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         private List<(UlicaCached street, Miasto miasto)> FindAllMatchingStreets(
             AddressSearchRequest request,
             List<Miasto> miasta,
+            string Prefix,
             string normalizedStreet,
             GeneralLogger? diagnostic)
         {
-            diagnostic?.Log($"Szukam WSZYSTKICH ulic pasujących do: '{request.Ulica}' -> znormalizowana: '{normalizedStreet}'");
+            diagnostic?.Log($"Szukam WSZYSTKICH ulic pasujących do: '{request.Ulica}' -> znormalizowana: '{Prefix}/{normalizedStreet}'");
 
             var matchingStreets = new List<(UlicaCached street, Miasto miasto)>();
 
@@ -260,11 +264,19 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     }
                 }
             }
+
             if (matchingStreets.Count > 0)
             {
                 diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic");
                 return matchingStreets;
             }
+
+            /// 🆕 Znajduje ulicę metodą HIERARCHICZNĄ:
+            /// 1. Dokładne dopasowanie (equality)
+            /// 2. Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
+            /// 3. Dopasowanie częściowe (contains) jako ostateczny fallback
+
+            diagnostic?.Log($"Poszukiwanie mniej dokładne miasto:{request.Miasto} ulica:{request.Ulica}");
 
             foreach (var miasto in miasta)
             {
@@ -280,25 +292,29 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     }
                 }
             }
-            diagnostic?.Log($"Włączenie fuzzy matching - łącznie znaleziono {matchingStreets.Count} pasujących ulic");
+            diagnostic?.Log($"Łącznie znaleziono mniej dokładnie {matchingStreets.Count} pasujących ulic");
             return matchingStreets;
         }
 
         private AddressSearchResult HandleStreetNotFound(
             AddressSearchRequest request,
             List<Miasto> miasta,
+            string Prefix,
             string normalizedStreet,
             GeneralLogger? diagnostic)
         {
             diagnostic?.Log($"✗ Nie znaleziono ulicy '{request.Ulica}' w żadnej z miejscowości");
 
             // KROK 1: Sprawdź czy "ulica" to w rzeczywistości miejscowość
-            var streetAsCityResult = TrySwapCityAndStreet(request, normalizedStreet, diagnostic);
-            if (streetAsCityResult != null)
+            if (Prefix == "")
             {
-                return streetAsCityResult;
-            }
+                var streetAsCityResult = TrySwapCityAndStreet(request, normalizedStreet, diagnostic);
+                if (streetAsCityResult != null)
+                {
+                    return streetAsCityResult;
+                }
 
+            }
             // KROK 2: Sprawdź globalnie - czy ulica istnieje GDZIEKOLWIEK?
             var otherLocations = _cache.FindStreetGlobally(normalizedStreet);
 
