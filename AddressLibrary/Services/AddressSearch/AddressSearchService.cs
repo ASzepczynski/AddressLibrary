@@ -269,12 +269,15 @@ namespace AddressLibrary.Services.AddressSearch
 
             MiastoCached? bestMatch = null;
             int bestScore = int.MinValue;
-            const int minScore = 80;
+            const int minScore = 20;
 
             var searchTokens = normalizedCityName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-            foreach (var cityCache in allCities)
+            int LiczbaMiast = 0;
+            var zestaw = allCities.Where(x => x.Miasto.Nazwa.Contains("Piwniczna")).ToList();
+            foreach (var cityCache in zestaw)
             {
+
                 // ✅ WALIDACJA KODU POCZTOWEGO - jeśli podano kod, miasto MUSI go mieć!
                 if (normalizedPostalCode != null)
                 {
@@ -282,8 +285,8 @@ namespace AddressLibrary.Services.AddressSearch
                     {
                         continue; // Pomiń miasta bez kodów pocztowych
                     }
-
-                    bool hasMatchingCode = cityCodes.Any(k => k.Kod == normalizedPostalCode);
+                    // Dopuszczamy błędy na 3 ostatnich cyfrach kodu
+                    bool hasMatchingCode = cityCodes.Any(k => k.Kod.Substring(1,2) == normalizedPostalCode.Substring(1,2));
                     if (!hasMatchingCode)
                     {
                         continue; // ✅ POMIŃ miasto jeśli kod się NIE ZGADZA!
@@ -291,7 +294,7 @@ namespace AddressLibrary.Services.AddressSearch
                 }
 
                 int score = 0;
-
+                LiczbaMiast++;
                 // ✅ METODA 1: Dokładne dopasowanie
                 if (cityCache.NormalizedNazwa == normalizedCityName)
                 {
@@ -351,6 +354,9 @@ namespace AddressLibrary.Services.AddressSearch
                     bestMatch = cityCache;
                 }
             }
+
+            searchLogger?.Log($" Przeanalizowano:{LiczbaMiast}");
+
 
             if (bestMatch != null && bestScore >= minScore)
             {
