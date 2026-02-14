@@ -231,6 +231,31 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     Dzielnica = dzielnica
                 };
 
+                // 🆕 KROK 3: Obsługa specjalnego przypadku "Most"
+                // Jeśli cecha nie jest "most", a Nazwa1 zaczyna się od "Most ", to przenieś do cechy
+                if (string.Equals(ulica.Cecha, "inne", StringComparison.OrdinalIgnoreCase) &&
+                    ulica.Nazwa1.StartsWith("Most ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var oldCecha = ulica.Cecha;
+                    var oldNazwa1 = ulica.Nazwa1;
+
+                    ulica.Cecha = "most";
+                    ulica.Nazwa1 = ulica.Nazwa1.Substring(5).Trim(); // Usuń "Most " (5 znaków)
+
+                    prefixChanges++;
+
+                    // Loguj zmianę
+                    _prefixLogger.LogPrefixChange(
+                        oldCecha ?? "(brak)",
+                        oldNazwa1,
+                        ulica.Cecha,
+                        ulica.Nazwa1,
+                        miasto?.Nazwa ?? "?"
+                    );
+
+                    _logger.LogInfo($"[Most] Zmieniono: '{oldCecha ?? "(brak)"}' '{oldNazwa1}' → 'most' '{ulica.Nazwa1}' w {miasto?.Nazwa}");
+                }
+
                 allUlice.Add(ulica);
             }
 

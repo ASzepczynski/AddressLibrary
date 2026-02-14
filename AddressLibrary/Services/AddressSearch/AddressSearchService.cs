@@ -409,6 +409,8 @@ namespace AddressLibrary.Services.AddressSearch
         {
             if (miasta.Count == 1)
                 return miasta[0];
+            if (miasta.Count == 0)
+                return null;
 
             searchLogger?.Log($"  🔍 Wybór najlepszej z {miasta.Count} miejscowości...");
 
@@ -451,80 +453,14 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // ✅ KRYTERIUM 1: Dokładne dopasowanie oryginalnej nazwy (case-insensitive)
-            var exactMatch = miasta.FirstOrDefault(m =>
-                m.Nazwa.Equals(originalCityName, StringComparison.OrdinalIgnoreCase));
+            var exactMatch = miasta.Where(m =>
+                m.Nazwa.Equals(originalCityName, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            if (exactMatch != null)
+            if (exactMatch.Count == 1)
             {
-                searchLogger?.Log($"    → Dokładne dopasowanie: '{exactMatch.Nazwa}'");
-                return exactMatch;
+                searchLogger?.Log($"    → Dokładne dopasowanie: '{exactMatch[0].Nazwa}'");
+                return exactMatch[0];
             }
-
-            // ✅ KRYTERIUM 2: Tokenizacja i partial matching (dla "OSTROWIEC ŚW." → "Ostrowiec Świętokrzyski")
-            var normalizedOriginal = _normalizer.Normalize(originalCityName);
-            var originalTokens = normalizedOriginal.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            var cityScores = miasta.Select(m =>
-            {
-                var normalizedCity = _normalizer.Normalize(m.Nazwa);
-                var cityTokens = normalizedCity.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                int score = 0;
-
-                // Sprawdź dokładne dopasowanie całości
-                if (normalizedCity == normalizedOriginal)
-                {
-                    score = 100;
-                }
-                else
-                {
-                    // Odległość Levenshteina
-                    var distance = CalculateLevenshteinDistance(normalizedOriginal, normalizedCity);
-                    score = Math.Max(0, 50 - (distance * 5));
-
-                    // Tokenizacja - dopasowanie fragmentów
-                    int tokenScore = 0;
-                    for (int i = 0; i < originalTokens.Length && i < cityTokens.Length; i++)
-                    {
-                        if (cityTokens[i] == originalTokens[i])
-                        {
-                            tokenScore += 20; // Dokładne dopasowanie tokenu
-                        }
-                        else if (cityTokens[i].StartsWith(originalTokens[i]))
-                        {
-                            tokenScore += 15; // Prefix match
-                        }
-                        else if (originalTokens[i].StartsWith(cityTokens[i]))
-                        {
-                            tokenScore += 10; // Partial match
-                        }
-                        else
-                        {
-                            var tokenDist = CalculateLevenshteinDistance(originalTokens[i], cityTokens[i]);
-                            tokenScore += Math.Max(0, 10 - (tokenDist * 3));
-                        }
-                    }
-
-                    score = Math.Max(score, tokenScore);
-                }
-
-                return new { City = m, Score = score };
-            }).OrderByDescending(x => x.Score).ToList();
-
-            var best = cityScores.FirstOrDefault();
-            if (best != null && best.Score > 0)
-            {
-                searchLogger?.Log($"    → Najlepszy match: '{best.City.Nazwa}' (score: {best.Score})");
-
-                // Debug: pokaż wszystkie wyniki
-                foreach (var result in cityScores.Take(3))
-                {
-                    searchLogger?.Log($"       {result.City.Nazwa}: score={result.Score}");
-                }
-
-                return best.City;
-            }
-
             searchLogger?.Log($"    → Brak jednoznacznego wyboru");
             return null;
         }
