@@ -129,7 +129,7 @@ namespace AddressLibrary.Helpers
 
         public static readonly Dictionary<string, List<string>> StreetPrefixes = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "aleja",    new List<string> { "al.", "al", "aleja" } },
+            { "aleja",    new List<string> { "al.", "al", "aleje", "aleja" } },
             { "bulwar",   new List<string> { "bulw.", "bulwar"} },
             { "droga",    new List<string> { "droga" } },
             { "ogród",    new List<string> { "ogród"}},
@@ -356,11 +356,6 @@ namespace AddressLibrary.Helpers
             // Pobierz wszystkie warianty prefiksu dla danego typu
             var allVariants = StreetPrefixes[fullType];
 
-            if (streetType == "al.")
-            {
-                allVariants.Add("Aleje");
-            }
-
             // Sprawdź, czy streetName zaczyna się od dowolnego wariantu (np. "aleja", "al.", "al")
             foreach (var variant in allVariants.OrderByDescending(v => v.Length))
             {
@@ -416,6 +411,224 @@ namespace AddressLibrary.Helpers
                 return (streetName, "");
             }
             return (street, number);
+        }
+
+        /// <summary>
+        /// Porównuje string z wzorcem podobnie do LIKE w SQL.
+        /// Automatycznie zamienia wszystkie spacje i znaki specjalne na wildcard '%'.
+        /// Przykłady:
+        /// - "Boh. Września" -> "Boh%Wrzes%" pasuje do "Bohaterów Września"
+        /// - "Bat.Chłopskich" -> "Bat%Chłopskich" pasuje do "Batalionów Chłopskich"
+        /// </summary>
+        /// <param name="input">String do sprawdzenia</param>
+        /// <param name="pattern">Wzorzec (będzie przekształcony na wzorzec LIKE)</param>
+        /// <returns>True jeśli input pasuje do wzorca</returns>
+        public static bool IsLikePattern(string input, string pattern)
+        {
+            if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(pattern))
+                return false;
+
+            // ✅ KROK 1: Znormalizuj oba stringi (lowercase, bez diakrytyków)
+            var normalizedInput = NormalizeForPattern(input);
+            var normalizedPattern = NormalizeForPattern(pattern);
+
+            // ✅ KROK 2: Zamień wszystkie spacje i znaki specjalne na '%'
+            var wildcardPattern = ConvertToWildcardPattern(normalizedPattern);
+
+            // ✅ KROK 3: Przekształć wzorzec SQL LIKE na regex
+            var regexPattern = ConvertLikeToRegex(wildcardPattern);
+
+            // ✅ KROK 4: Sprawdź dopasowanie
+            return System.Text.RegularExpressions.Regex.IsMatch(
+                normalizedInput,
+                regexPattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        /// <summary>
+        /// Normalizuje string do porównania (lowercase + usunięcie diakrytyków)
+        /// </summary>
+        private static string NormalizeForPattern(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            // Usuń diakrytyki i zamień na lowercase
+            return UliceUtils.RemoveDiacritics(text.ToLowerInvariant());
+        }
+
+        /// <summary>
+        /// Zamienia wszystkie spacje i znaki specjalne na '%'
+        /// Przykład: "Boh. Września" -> "Boh%Wrzesnia"
+        /// </summary>
+        public static string ConvertToWildcardPattern(string pattern)
+        {
+            var result = new System.Text.StringBuilder();
+            bool lastWasWildcard = false;
+
+            foreach (char c in pattern)
+            {
+                // ✅ Jeśli to litera lub cyfra - dodaj do wzorca
+                if (char.IsLetterOrDigit(c))
+                {
+                    result.Append(c);
+                    lastWasWildcard = false;
+                }
+                // ✅ Jeśli to spacja, kropka, myślnik, ukośnik itp. - zamień na '%'
+                else if (char.IsWhiteSpace(c) || c == '.' || c == '-' || c == '/' || c == ',' || c == ';')
+                {
+                    if (!lastWasWildcard) // Unikaj duplikacji '%%'
+                    {
+                        result.Append('%');
+                        lastWasWildcard = true;
+                    }
+                }
+                // ✅ Inne znaki specjalne - zachowaj wildcard
+                else if (c == '%' || c == '_')
+                {
+                    result.Append(c);
+                    lastWasWildcard = (c == '%');
+                }
+            }
+            result.Append("%");
+            return result.ToString();
+        }
+
+                /// <summary>
+        /// ⚡ SZYBKA funkcja sprawdzająca czy wzorzec pasuje do tekstu od lewej do prawej
+        /// Pomija spacje i znaki specjalne we wzorcu, pozwala na dodatkowe litery w tekście.
+        /// Przykłady:
+        /// - "Bat.Chłopskich" pasuje do "Batalionów Chłopskich" ✅
+        /// - "Boh.Września" pasuje do "Bohaterów Września" ✅
+        /// </summary>
+        public static bool IsLeftToRightMatch(string str1, string str2)
+        {
+            if (string.IsNullOrEmpty(str1) || string.IsNullOrEmpty(str2))
+                return false;
+
+            // Znormalizuj oba stringi
+            var normalized1 = UliceUtils.RemoveDiacritics(str1.ToLowerInvariant());
+            var normalized2 = UliceUtils.RemoveDiacritics(str2.ToLowerInvariant());
+
+            // Automatycznie wykryj który jest wzorcem (krótszy) a który tekstem (dłuższy)
+            string text, pattern;
+            if (normalized1.Length <= normalized2.Length)
+            {
+                pattern = normalized1;
+                text = normalized2;
+            }
+            else
+            {
+                pattern = normalized2;
+                text = normalized1;
+            }
+
+            int textIndex = 0;
+            int patternIndex = 0;
+
+            while (patternIndex < pattern.Length && textIndex < text.Length)
+            {
+                char patternChar = pattern[patternIndex];
+
+                // ✅ Pomiń spacje i znaki specjalne WE WZORCU
+                if (char.IsWhiteSpace(patternChar) || 
+                    patternChar == '.' || 
+                    patternChar == '-' || 
+                    patternChar == '/' ||
+                    patternChar == ',')
+                {
+                    patternIndex++;
+                    continue;
+                }
+
+                // ✅ KLUCZOWA ZMIANA: Szukaj następnego dopasowania w tekście
+                // Pozwól na pominięcie dodatkowych liter w tekście
+                bool found = false;
+                while (textIndex < text.Length)
+                {
+                    char textChar = text[textIndex];
+
+                    // Pomiń spacje w tekście
+                    if (char.IsWhiteSpace(textChar))
+                    {
+                        textIndex++;
+                        continue;
+                    }
+
+                    // Sprawdź czy znaki się zgadzają
+                    if (textChar == patternChar)
+                    {
+                        textIndex++;
+                        patternIndex++;
+                        found = true;
+                        break;
+                    }
+            
+            // ✅ ZMIANA: Znak się nie zgadza - pomiń go w tekście i szukaj dalej
+            // ALE tylko jeśli jesteśmy w środku słowa (nie po spacji)
+            if (textIndex > 0 && !char.IsWhiteSpace(text[textIndex - 1]))
+            {
+                textIndex++;
+            }
+            else
+            {
+                // Nowe słowo zaczyna się inną literą - BRAK dopasowania
+                return false;
+            }
+        }
+
+        if (!found)
+        {
+            return false;
+        }
+    }
+
+    // Dopasowanie udane jeśli przetworzono cały wzorzec
+    return patternIndex >= pattern.Length;
+}
+        /// <summary>
+        /// Konwertuje wzorzec SQL LIKE (z % i _) na regex
+        /// % = dowolna ilość znaków (.*?)
+        /// _ = dokładnie jeden znak (.)
+        /// </summary>
+        public static string ConvertLikeToRegex(string likePattern)
+        {
+            var regex = new System.Text.StringBuilder("^");
+
+            foreach (char c in likePattern)
+            {
+                switch (c)
+                {
+                    case '%':
+                        regex.Append(".*?"); // Non-greedy match
+                        break;
+                    case '_':
+                        regex.Append("."); // Dokładnie jeden znak
+                        break;
+                    case '.':
+                    case '*':
+                    case '+':
+                    case '?':
+                    case '|':
+                    case '{':
+                    case '}':
+                    case '[':
+                    case ']':
+                    case '(':
+                    case ')':
+                    case '^':
+                    case '$':
+                    case '\\':
+                        regex.Append('\\').Append(c); // Escape regex special chars
+                        break;
+                    default:
+                        regex.Append(c);
+                        break;
+                }
+            }
+
+            regex.Append('$');
+            return regex.ToString();
         }
 
         /// <summary>

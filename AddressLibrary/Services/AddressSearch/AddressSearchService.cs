@@ -58,7 +58,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             searchLogger?.Log($"{Environment.NewLine}==== Rozpoczynam poszukiwanie ====");
-            searchLogger?.Log($"  Kod: ({ request.KodPocztowy})");
+            searchLogger?.Log($"  Kod: ({request.KodPocztowy})");
             searchLogger?.Log($"  Miasto: ({request.Miasto})");
             searchLogger?.Log($"  Ulica: ({request.Ulica})");
             searchLogger?.Log($"  Nr domu: ({request.NumerDomu})");
@@ -73,45 +73,48 @@ namespace AddressLibrary.Services.AddressSearch
                     Message = "Nazwa miejscowości jest wymagana"
                 };
             }
+            (string sMiasto, string sNumer1) = UliceUtils.ExtractHouseNumberFromStreet(request.Miasto);
+            (string sUlica, string sNumer2) = UliceUtils.ExtractHouseNumberFromStreet(request.Ulica);
 
-            if (string.IsNullOrWhiteSpace(request.NumerDomu))
+
+
+            var NumerDomu = "";
+            var NumerMieszkania = "";
+
+            var elementy = new List<string>();
+
+            if (!string.IsNullOrEmpty(sNumer1)){ elementy.Add(sNumer1); }
+            if (!string.IsNullOrEmpty(sNumer2)){ elementy.Add(sNumer2); }
+            if (!string.IsNullOrEmpty(request.NumerDomu)){ elementy.Add(request.NumerDomu); }
+            if (!string.IsNullOrEmpty(request.NumerMieszkania)){ elementy.Add(request.NumerMieszkania); }
+
+            if (elementy.Count() >= 1)
             {
-                (string sMiasto, string sNumer) = UliceUtils.ExtractHouseNumberFromStreet(request.Miasto);
-                if (!string.IsNullOrWhiteSpace(sNumer))
-                {
-                    // Popraw miasto i numer domu
-                    request = new AddressSearchRequest
-                    {
-                        KodPocztowy = request.KodPocztowy,
-                        Miasto = sMiasto,
-                        Ulica = request.Ulica,
-                        NumerDomu = sNumer,
-                        NumerMieszkania = request.NumerMieszkania
-                    };
-                }
-                else
-                {
-                    (string sUlica, sNumer) = UliceUtils.ExtractHouseNumberFromStreet(request.Ulica);
-                    if (string.IsNullOrWhiteSpace(sNumer))
-                    {
-                        return new AddressSearchResult
-                        {
-                            Status = AddressSearchStatus.ValidationError,
-                            Message = "Numer domu jest wymagany"
-                        };
-                    }
-                    // Popraw ulicę i numer domu
-                    request = new AddressSearchRequest
-                    {
-                        KodPocztowy = request.KodPocztowy,
-                        Miasto = request.Miasto,
-                        Ulica = sUlica,
-                        NumerDomu = sNumer,
-                        NumerMieszkania = request.NumerMieszkania
-                    };
-                }
+                NumerDomu = elementy[0];
             }
 
+            if (elementy.Count() >= 2)
+            {
+                NumerMieszkania = string.Join("/", elementy.Skip(1));
+            }
+
+            if (string.IsNullOrWhiteSpace(NumerDomu))
+            {
+                return new AddressSearchResult
+                {
+                    Status = AddressSearchStatus.ValidationError,
+                    Message = "Numer domu jest wymagany"
+                };
+            }
+
+            request = new AddressSearchRequest
+            {
+                KodPocztowy = request.KodPocztowy,
+                Miasto = sMiasto,
+                Ulica = sUlica,
+                NumerDomu = NumerDomu,
+                NumerMieszkania = NumerMieszkania
+            };
 
             // ✅ NORMALIZACJA: Jeśli miasto i ulica są identyczne, wyczyść ulicę
             if (!string.IsNullOrWhiteSpace(request.Ulica))
@@ -142,7 +145,7 @@ namespace AddressLibrary.Services.AddressSearch
                 {
                     KodPocztowy = request.KodPocztowy,
                     Miasto = correctedCity,
-                    Ulica = request.Ulica, 
+                    Ulica = request.Ulica,
                     NumerDomu = request.NumerDomu,
                     NumerMieszkania = request.NumerMieszkania
                 };
@@ -185,7 +188,7 @@ namespace AddressLibrary.Services.AddressSearch
                 return _noStreetSearch.Execute(request, miasta, searchLogger);
             }
         }
-        
+
         public async Task<List<AddressSearchResult>> SearchBatchAsync(IEnumerable<AddressSearchRequest> requests)
         {
             if (!_cache.IsInitialized)
@@ -286,7 +289,7 @@ namespace AddressLibrary.Services.AddressSearch
                         continue; // Pomiń miasta bez kodów pocztowych
                     }
                     // Dopuszczamy błędy na 3 ostatnich cyfrach kodu
-                    bool hasMatchingCode = cityCodes.Any(k => k.Kod.Substring(1,2) == normalizedPostalCode.Substring(1,2));
+                    bool hasMatchingCode = cityCodes.Any(k => k.Kod.Substring(1, 2) == normalizedPostalCode.Substring(1, 2));
                     if (!hasMatchingCode)
                     {
                         continue; // ✅ POMIŃ miasto jeśli kod się NIE ZGADZA!

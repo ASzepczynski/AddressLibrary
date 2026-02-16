@@ -79,6 +79,12 @@ namespace AddressLibrary.Services.AddressSearch
             normalized = normalized.Replace("  ", " ").Trim();
             normalized = normalized.Replace("-go", "").Trim();
 
+
+            if (normalized.Contains("bat."))
+            {
+                int y = 1;
+            }
+    
             normalized = RemoveTitles(normalized);
             normalized = RemoveInitialsPrefix(normalized);
 
@@ -94,7 +100,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             // Wzorzec: 1-3 litery (polskie lub łacińskie), kropka, ewentualnie powtórzone, na początku napisu
             // Przykłady: "J. ", "A.B. ", "M.K. ", "Ł. ", "J.K. ", "A.B.C. "
-            var pattern = @"^(([\p{L}]{1,3}\.)+\s*)+";
+            var pattern = @"^(([\p{L}]{1,2}\.)+\s*)+";
 
             return Regex.Replace(text, pattern, string.Empty).TrimStart();
         }
@@ -110,7 +116,7 @@ namespace AddressLibrary.Services.AddressSearch
                 return text;
 
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var filtered = words.Where(w => !titles.Contains(w)).ToList();
+            var filtered = words.Where(w => !titles.Contains(w.Replace(".", ""))).ToList();
             
             return string.Join(" ", filtered);
         }

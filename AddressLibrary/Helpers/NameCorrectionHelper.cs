@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Packaging;
+﻿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections.Generic;
 using System.IO;
@@ -7,22 +7,27 @@ using System.Linq;
 namespace AddressLibrary.Helpers
 {
     /// <summary>
-    /// Helper do wczytywania i stosowania korekt nazw miast i ulic z pliku Excel (AppData/Updates/Korekty.xlsx)
+    /// Helper do wczytywania i stosowania korekt nazw miast i ulic z pliku Excel (AppData/Updates/KorektyNazw.xlsx)
     /// Format pliku: Typ | Stara nazwa | Nowa nazwa
     /// Typ: M (miasto), U (ulica)
     /// </summary>
     public class NameCorrectionHelper
     {
-        private readonly Dictionary<(string Type, string OldName), string> _corrections;
+        private readonly Dictionary<string, List<(string OldName, string NewName)>> _correctionsByType;
 
         public NameCorrectionHelper(string appDataPath)
         {
-            _corrections = new Dictionary<(string, string), string>(new CorrectionKeyComparer());
+            _correctionsByType = new Dictionary<string, List<(string, string)>>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "M", new List<(string, string)>() },
+                { "U", new List<(string, string)>() }
+            };
+            
             LoadFromExcel(appDataPath);
         }
 
         /// <summary>
-        /// Wczytuje korekty z pliku Excel
+        /// Wczytuje korekty z pliku Excel z obsługą błędów (plik zajęty, brak dostępu)
         /// </summary>
         private void LoadFromExcel(string appDataPath)
         {
@@ -30,46 +35,93 @@ namespace AddressLibrary.Helpers
 
             if (!File.Exists(excelPath))
             {
-                // Plik nie istnieje 
                 Console.WriteLine($"[NameCorrectionHelper] Plik korekt nie istnieje: {excelPath}");
-                return; 
+                return;
             }
 
-            using var document = SpreadsheetDocument.Open(excelPath, false);
-            var workbookPart = document.WorkbookPart;
-            var worksheetPart = workbookPart?.WorksheetParts.First();
-            var sheetData = worksheetPart?.Worksheet.Elements<SheetData>().First();
+            // ✅ RETRY LOGIC - Próbuj otworzyć plik maksymalnie 3 razy
+            const int maxRetries = 3;
+            const int delayMs = 500;
 
-            if (sheetData == null)
-                return;
-
-            var rows = sheetData.Elements<Row>().Skip(1); // Pomi� nag��wek
-
-            foreach (var row in rows)
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                var cells = row.Elements<Cell>().ToList();
+                try
+                {
+                    Console.WriteLine($"[NameCorrectionHelper] Próba {attempt}/{maxRetries} otwarcia pliku: {excelPath}");
 
-                if (cells.Count < 3)
-                    continue;
+                    // ✅ Otwórz w trybie READ-ONLY (FileShare.Read pozwala innym procesom czytać)
+                    using var fileStream = new FileStream(
+                        excelPath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite); // ✅ Pozwól innym procesom na odczyt i zapis
 
-                var type = GetCellValue(workbookPart, cells[0]).Trim().ToUpperInvariant();
-                var oldName = GetCellValue(workbookPart, cells[1]).Trim();
-                var newName = GetCellValue(workbookPart, cells[2]).Trim();
+                    using var document = SpreadsheetDocument.Open(fileStream, false);
+                    var workbookPart = document.WorkbookPart;
+                    var worksheetPart = workbookPart?.WorksheetParts.First();
+                    var sheetData = worksheetPart?.Worksheet.Elements<SheetData>().First();
 
-                // Walidacja typu
-                if (type != "M" && type != "U")
-                    continue;
+                    if (sheetData == null)
+                    {
+                        Console.WriteLine($"[NameCorrectionHelper] Brak danych w arkuszu");
+                        return;
+                    }
 
-                if (string.IsNullOrWhiteSpace(oldName))
-                    continue;
+                    var rows = sheetData.Elements<Row>().Skip(1); // Pomiń nagłówek
+                    int loadedCount = 0;
 
-                var key = (type, oldName);
-                _corrections[key] = newName;
+                    foreach (var row in rows)
+                    {
+                        var cells = row.Elements<Cell>().ToList();
+
+                        if (cells.Count < 3)
+                            continue;
+
+                        var type = GetCellValue(workbookPart, cells[0]).Trim().ToUpperInvariant();
+                        var oldName = GetCellValue(workbookPart, cells[1]).Trim();
+                        var newName = GetCellValue(workbookPart, cells[2]).Trim();
+
+                        // Walidacja typu
+                        if (type != "M" && type != "U")
+                            continue;
+
+                        if (string.IsNullOrWhiteSpace(oldName))
+                            continue;
+
+                        // Dodaj do listy korekt dla danego typu
+                        _correctionsByType[type].Add((oldName, newName));
+                        loadedCount++;
+                    }
+
+                    Console.WriteLine($"[NameCorrectionHelper] ✓ Załadowano {loadedCount} korekt: M={_correctionsByType["M"].Count}, U={_correctionsByType["U"].Count}");
+                    return; // ✅ Sukces - wyjdź z pętli retry
+                }
+                catch (IOException ex) when (attempt < maxRetries)
+                {
+                    // ✅ Plik zajęty - spróbuj ponownie
+                    Console.WriteLine($"[NameCorrectionHelper] ⚠️ Plik zajęty (próba {attempt}/{maxRetries}): {ex.Message}");
+                    Console.WriteLine($"[NameCorrectionHelper] Czekam {delayMs}ms przed kolejną próbą...");
+                    Thread.Sleep(delayMs);
+                }
+                catch (IOException ex)
+                {
+                    // ✅ Ostatnia próba nie powiodła się
+                    Console.WriteLine($"[NameCorrectionHelper] ✗ Nie udało się otworzyć pliku po {maxRetries} próbach: {ex.Message}");
+                    Console.WriteLine($"[NameCorrectionHelper] Kontynuacja bez korekt nazw.");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    // ✅ Inny błąd (np. uszkodzony plik Excel)
+                    Console.WriteLine($"[NameCorrectionHelper] ✗ Błąd wczytywania pliku Excel: {ex.Message}");
+                    Console.WriteLine($"[NameCorrectionHelper] Kontynuacja bez korekt nazw.");
+                    return;
+                }
             }
         }
 
         /// <summary>
-        /// Pobiera warto�� kom�rki Excel (obs�uguje SharedString)
+        /// Pobiera wartość komórki Excel (obsługuje SharedString)
         /// </summary>
         private string GetCellValue(WorkbookPart? workbookPart, Cell cell)
         {
@@ -78,7 +130,7 @@ namespace AddressLibrary.Helpers
 
             var value = cell.CellValue.InnerText;
 
-            // Sprawd� czy to SharedString
+            // Sprawdź czy to SharedString
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
             {
                 var stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
@@ -94,12 +146,9 @@ namespace AddressLibrary.Helpers
         }
 
         /// <summary>
-        /// Pr�buje zastosowa� korekt� nazwy
+        /// Próbuje zastosować korekty nazwy - iteruje przez wszystkie korekty danego typu
+        /// i wykonuje Replace dla każdej. Zwraca true jeśli nazwa się zmieniła.
         /// </summary>
-        /// <param name="type">Typ korekty: "M" (miasto) lub "U" (ulica)</param>
-        /// <param name="oldName">Stara nazwa do sprawdzenia</param>
-        /// <param name="newName">Nowa nazwa (parametr wyj�ciowy)</param>
-        /// <returns>True je�li znaleziono korekt�, false w przeciwnym razie</returns>
         public bool TryCorrect(string type, string? oldName, out string? newName)
         {
             if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(oldName))
@@ -109,52 +158,63 @@ namespace AddressLibrary.Helpers
             }
 
             var normalizedType = type.Trim().ToUpperInvariant();
-            var normalizedOldName = oldName.Trim();
 
-            var key = (normalizedType, normalizedOldName);
-
-            if (_corrections.TryGetValue(key, out var corrected))
+            // Sprawdź czy typ jest obsługiwany
+            if (!_correctionsByType.ContainsKey(normalizedType))
             {
-                newName = corrected;
-                return true;
+                newName = oldName;
+                return false;
             }
 
-            newName = oldName;
-            return false;
+            var result = oldName;
+
+            // Iteruj przez wszystkie korekty danego typu
+            foreach (var (oldPattern, newPattern) in _correctionsByType[normalizedType])
+            {
+                if (result.Contains(oldPattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    result = ReplaceIgnoreCase(result, oldPattern, newPattern);
+                }
+            }
+
+            newName = result;
+
+            // Zwróć true tylko jeśli nazwa faktycznie się zmieniła
+            return !string.Equals(oldName, result, StringComparison.Ordinal);
         }
 
         /// <summary>
-        /// Zwraca liczb� za�adowanych korekt
+        /// Zamienia wszystkie wystąpienia starego tekstu na nowy (case-insensitive)
         /// </summary>
-        public int Count => _corrections.Count;
+        private static string ReplaceIgnoreCase(string text, string oldValue, string newValue)
+        {
+            if (string.IsNullOrEmpty(oldValue))
+                return text;
 
-        /// <summary>
-        /// Zwraca liczb� korekt dla danego typu
-        /// </summary>
+            var sb = new System.Text.StringBuilder();
+            int previousIndex = 0;
+            int index = text.IndexOf(oldValue, StringComparison.OrdinalIgnoreCase);
+
+            while (index != -1)
+            {
+                sb.Append(text.AsSpan(previousIndex, index - previousIndex));
+                sb.Append(newValue);
+                previousIndex = index + oldValue.Length;
+                index = text.IndexOf(oldValue, previousIndex, StringComparison.OrdinalIgnoreCase);
+            }
+
+            sb.Append(text.AsSpan(previousIndex));
+            return sb.ToString();
+        }
+
+        public int Count => _correctionsByType.Values.Sum(list => list.Count);
+
         public int GetCountByType(string type)
         {
             var normalizedType = type.Trim().ToUpperInvariant();
-            return _corrections.Keys.Count(k => k.Item1 == normalizedType);
-        }
-
-        /// <summary>
-        /// Custom comparer dla kluczy s�ownika (case-insensitive dla starej nazwy)
-        /// </summary>
-        private class CorrectionKeyComparer : IEqualityComparer<(string Type, string OldName)>
-        {
-            public bool Equals((string Type, string OldName) x, (string Type, string OldName) y)
-            {
-                return string.Equals(x.Type, y.Type, StringComparison.OrdinalIgnoreCase) &&
-                       string.Equals(x.OldName, y.OldName, StringComparison.OrdinalIgnoreCase);
-            }
-
-            public int GetHashCode((string Type, string OldName) obj)
-            {
-                return HashCode.Combine(
-                    obj.Type?.ToLowerInvariant(),
-                    obj.OldName?.ToLowerInvariant()
-                );
-            }
+            return _correctionsByType.ContainsKey(normalizedType) 
+                ? _correctionsByType[normalizedType].Count 
+                : 0;
         }
     }
 }

@@ -482,7 +482,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 if (_cache.TryGetUlice(miasto.Id, out var ulice))
                 {
-                    var similar = _streetMatcher.FindMostSimilarStreet(ulice, request.Ulica, maxDistance: 1);
+                    var similar = _streetMatcher.FindMostSimilarStreet(ulice, request.Ulica, maxDistance: 3);
                     if (similar != null)
                     {
                         diagnostic?.Log($"  💡 Znaleziono podobną ulicę: {similar.Cecha} {similar.Nazwa1}");

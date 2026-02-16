@@ -1,7 +1,9 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Helpers;
+using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using System.Collections.Generic;
 
 namespace AddressLibrary.Services.AddressSearch
@@ -32,17 +34,17 @@ namespace AddressLibrary.Services.AddressSearch
             // ✅ Sprawdź dokładne dopasowanie kombinacji
             if (ulica.NormalizedCombined != null && ulica.NormalizedCombined == normalizedSearchTerm)
                 return true;
-/*
-            // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedNazwa1)
-            // Obsługuje przypadki: "Axentowicza" → "teodora axentowicza"
-            if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedSearchTerm))
-                return true;
+            /*
+                        // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedNazwa1)
+                        // Obsługuje przypadki: "Axentowicza" → "teodora axentowicza"
+                        if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedSearchTerm))
+                            return true;
 
-            // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedCombined)
-            if (ulica.NormalizedCombined != null && 
-                ulica.NormalizedCombined.EndsWith(" " + normalizedSearchTerm))
-                return true;
-*/
+                        // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedCombined)
+                        if (ulica.NormalizedCombined != null && 
+                            ulica.NormalizedCombined.EndsWith(" " + normalizedSearchTerm))
+                            return true;
+            */
             return false;
         }
 
@@ -129,7 +131,7 @@ namespace AddressLibrary.Services.AddressSearch
                 bool matchesCombined = ulica.NormalizedCombined != null &&
                                       IsPartialMatch(ulica.NormalizedCombined, normalized);
 
-                              if (matchesNazwa1 || matchesCombined )
+                if (matchesNazwa1 || matchesCombined)
                 {
                     results.Add(ulica);
                 }
@@ -154,7 +156,7 @@ namespace AddressLibrary.Services.AddressSearch
                 // 3. Nazwa1 + Nazwa2 (NormalizedCombinedReverse)
 
                 if (ulica.NormalizedNazwa1 == normalizedSearch ||
-                    ulica.NormalizedCombined == normalizedSearch )
+                    ulica.NormalizedCombined == normalizedSearch)
                 {
                     return ulica;
                 }
@@ -198,8 +200,21 @@ namespace AddressLibrary.Services.AddressSearch
             UlicaCached? bestMatch = null;
             int bestDistance = int.MaxValue;
 
+            var listaPodobnych = new List<UlicaCached>();
+
+
             foreach (var ulica in ulice)
             {
+
+                //if (ulica.NormalizedNazwa1.Contains("hlo") && searchTerm.Contains("hlo"))
+                //{
+                //    int y = 1;
+                //}
+                bool isLike = UliceUtils.IsLeftToRightMatch(ulica.NormalizedNazwa1, searchTerm);
+                if (isLike)
+                {
+                    listaPodobnych.Add(ulica);
+                }
                 int distance1 = LevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
 
                 int distanceCombined = int.MaxValue;
@@ -225,10 +240,18 @@ namespace AddressLibrary.Services.AddressSearch
                 // 🔧 POPRAWKA: Wyższy próg dla krótkich słów
                 double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5;
 
-                if (bestDistance <= maxDistance && similarity >= minSimilarity)
-                    return bestMatch;
+
+                if (bestDistance < maxDistance)
+                {
+                    if (bestDistance <= maxDistance && similarity >= minSimilarity)
+                        return bestMatch;
+                }
             }
 
+            if (listaPodobnych.Count == 1)
+            {
+                return listaPodobnych[0];
+            }
             return null;
         }
 
