@@ -3,9 +3,9 @@
 using AddressLibrary.Data;
 using AddressLibrary.Services;
 using AddressLibrary.Services.HierarchyBuilders;
-using AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader;
 using Microsoft.EntityFrameworkCore;
 using AddressLibrary.Models;
+using AddressLibrary.Services.KodyPocztoweLoader;
 
 namespace AddressLibrary
 {

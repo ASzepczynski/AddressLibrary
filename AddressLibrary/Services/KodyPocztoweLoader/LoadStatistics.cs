@@ -1,6 +1,6 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
-namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
+namespace AddressLibrary.Services.KodyPocztoweLoader
 {
     /// <summary>
     /// Statystyki procesu ³adowania kodów pocztowych

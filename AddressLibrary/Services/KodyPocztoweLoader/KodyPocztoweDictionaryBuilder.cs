@@ -4,7 +4,7 @@ using AddressLibrary.Data;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
+namespace AddressLibrary.Services.KodyPocztoweLoader
 {
     /// <summary>
     /// Buduje słowniki pomocnicze dla procesowania kodów pocztowych

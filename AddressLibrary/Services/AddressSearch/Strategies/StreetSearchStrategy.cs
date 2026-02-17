@@ -4,7 +4,7 @@ using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using AddressLibrary.Logging;
 using AddressLibrary.Services.AddressSearch.Filters;
-using AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader;
+using AddressLibrary.Services.KodyPocztoweLoader;
 using System.Collections.Generic;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies

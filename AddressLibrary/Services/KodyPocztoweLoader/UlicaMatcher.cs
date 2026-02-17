@@ -5,9 +5,9 @@ using AddressLibrary.Structures;
 using System.Collections.Immutable;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
+using AddressLibrary.Services.HierarchyBuilders;
 
-
-namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
+namespace AddressLibrary.Services.KodyPocztoweLoader
 {
     /// <summary>
     /// Wyszukuje ulice w miejscowościach z obsługą korekt
@@ -80,7 +80,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
                     // 🆕 Próba rozstrzygnięcia niejednoznaczności
                     if (sPrefiks == "") sPrefiks = "ul.";
                     // Nie podajemy kodu pocztowego, bo właśnie go ładujemy - to jest ładowanie kodów pocztowych
-                    ulica = AddressLibrary.Helpers.ResolveAmbiguity.ResolveStreetAmbiguity(
+                    ulica = ResolveAmbiguity.ResolveStreetAmbiguity(
                         exactMatches, 
                         sPrefiks, 
                         currentUlica, 

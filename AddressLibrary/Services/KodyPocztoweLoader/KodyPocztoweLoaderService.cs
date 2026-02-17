@@ -4,7 +4,8 @@ using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 using AddressLibrary.Helpers;
 
-namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
+
+namespace AddressLibrary.Services.KodyPocztoweLoader
 {
     /// <summary>
     /// Ładuje kody pocztowe z tablicy PNA do struktury hierarchicznej.
@@ -83,7 +84,7 @@ namespace AddressLibrary.Services.HierarchyBuilders.KodyPocztoweLoader
             const int reportInterval = 500;
             const int logFlushInterval = 100;
 
-            //foreach (var pna in pnaData.Where(x=>x.Ulica=="Cicha" && x.Miasto=="Warszawa"))
+            // foreach (var pna_raw in pnaData.Where(x=>x.Kod== "30-233"))
             foreach (var pna_raw in pnaData)
             {
                 try

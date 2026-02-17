@@ -114,7 +114,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     {
                         // FILTR: Pomiń dzielnice (miejscowości będące częścią innej miejscowości)
                         // Jeśli SymbolPodstawowy != Symbol, to jest to dzielnica
-                        if (simc.SymbolPodstawowy != simc.Symbol)
+
+                        // Dla celów testowych ładujemy wszystko
+                        if (false && simc.SymbolPodstawowy != simc.Symbol)
                         {
                             skippedDistrictsCount++;
                             if (skippedDistrictsCount <= 10) // Loguj tylko pierwsze 10

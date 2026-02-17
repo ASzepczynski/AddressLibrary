@@ -50,14 +50,6 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             bool czyParzysty = numer % 2 == 0;
-            if (tylkoNieparzyste && czyParzysty)
-            {
-                return false;
-            }
-            if (tylkoParzyste && !czyParzysty)
-            {
-                return false;
-            }
 
             if (zakres.Contains('-'))
             {
@@ -78,6 +70,23 @@ namespace AddressLibrary.Services.AddressSearch
 
                 if (koniec.Equals("DK", StringComparison.OrdinalIgnoreCase))
                 {
+                    // ✅ NOWA LOGIKA: Jeśli zakres bez (n)/(p), sprawdź parzystość
+                    if (!tylkoNieparzyste && !tylkoParzyste)
+                    {
+                        tylkoParzyste = numerPoczatek % 2 == 0;
+                        tylkoNieparzyste = !tylkoParzyste;
+                    }
+
+                    // Sprawdź parzystość
+                    if (tylkoNieparzyste && czyParzysty)
+                    {
+                        return false;
+                    }
+                    if (tylkoParzyste && !czyParzysty)
+                    {
+                        return false;
+                    }
+
                     return numer >= numerPoczatek;
                 }
 
@@ -87,13 +96,53 @@ namespace AddressLibrary.Services.AddressSearch
                     return false;
                 }
 
+                // ✅ NOWA LOGIKA: Jeśli zakres bez (n)/(p) ma jednakową parzystość na początku i końcu
+                if (!tylkoNieparzyste && !tylkoParzyste && numerPoczatek % 2 == numerKoniec % 2)
+                {
+                    tylkoParzyste = numerPoczatek % 2 == 0;
+                    tylkoNieparzyste = !tylkoParzyste;
+                }
+
+                // Sprawdź parzystość
+                if (tylkoNieparzyste && czyParzysty)
+                {
+                    return false;
+                }
+                if (tylkoParzyste && !czyParzysty)
+                {
+                    return false;
+                }
+
                 return numer >= numerPoczatek && numer <= numerKoniec;
             }
 
-            // Pojedynczy numer (może też mieć literkę, np. "52a")
+            // ✅ NOWA LOGIKA: Pojedynczy numer bez (n)/(p) dziedziczy parzystość z wartości
             if (ExtractNumber(zakres, out int pojedynczyNumer))
             {
-                return numer == pojedynczyNumer;
+                // Jeśli nie ma jawnego oznaczenia (n)/(p), ustal parzystość na podstawie liczby
+                if (!tylkoNieparzyste && !tylkoParzyste)
+                {
+                    tylkoParzyste = pojedynczyNumer % 2 == 0;
+                    tylkoNieparzyste = !tylkoParzyste;
+                }
+
+                // Sprawdź zgodność numeru
+                if (numer != pojedynczyNumer)
+                {
+                    return false;
+                }
+
+                // Sprawdź parzystość
+                if (tylkoNieparzyste && czyParzysty)
+                {
+                    return false;
+                }
+                if (tylkoParzyste && !czyParzysty)
+                {
+                    return false;
+                }
+
+                return true;
             }
 
             return false;
