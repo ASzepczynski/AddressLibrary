@@ -412,10 +412,20 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             // Znajdź miejscowość o nazwie jak "ulica"
             var citiesMatchingStreet = _cache.FindCitiesByName(normalizedStreet);
 
+
             if (citiesMatchingStreet.Count == 0)
             {
-                diagnostic?.Log($"  ✗ '{request.Ulica}' NIE jest miejscowością");
-                return null;
+                var similarCity = CityUtils.FindSimilarCity(_cache,normalizedStreet, request.KodPocztowy, diagnostic); // 🆕 DODANE postalCode
+                if (similarCity != null)
+                {
+                    diagnostic?.Log($"  ✓ Znaleziono podobną miejscowość: '{similarCity.Nazwa}'");
+                    citiesMatchingStreet = new List<Miasto> { similarCity };
+                }
+                else
+                {
+                    diagnostic?.Log($"  ✗ '{request.Ulica}' NIE jest miejscowością");
+                    return null;
+                }
             }
 
             diagnostic?.Log($"  ✓ Znaleziono {citiesMatchingStreet.Count} miejscowości o nazwie '{request.Ulica}'!");
