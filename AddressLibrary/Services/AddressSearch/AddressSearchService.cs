@@ -165,13 +165,13 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // Znajdź miasta o podanej nazwie
-            var miasta = CityUtils.FindAllMiasta(_cache,_normalizer,request.Miasto, request.KodPocztowy, searchLogger);
+            var miasta = CityUtils.FindAllMiasta(_cache,_normalizer,request.Miasto, request.KodPocztowy, searchLogger, out string? method);
             if (miasta == null || miasta.Count == 0)
             {
                 var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.MiastoNotFound,
-                    Message = $"Nie znaleziono miejscowości: {request.Miasto}"
+                    Message = $"Nie znaleziono miejscowości: {request.Miasto}",
                 };
                 result.AddDiagnostic($"Szukana miejscowość: {request.Miasto}");
                 result.AddDiagnostic($"Znormalizowana nazwa: {_normalizer.Normalize(request.Miasto)}");

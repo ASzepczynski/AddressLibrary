@@ -2,7 +2,6 @@ using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
-
 namespace AddressLibrary.Data
 {
     public class AddressDbContext : DbContext
@@ -30,6 +29,9 @@ namespace AddressLibrary.Data
         public DbSet<Miasto> Miasta { get; set; }
         public DbSet<Ulica> Ulice { get; set; }
         public DbSet<KodPocztowy> KodyPocztowe { get; set; }
+
+// Tabela adresów z Asims
+        public DbSet<Adres> Adresy { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Models;
+using System.Collections.Generic;
 using System.Text;
 
 namespace AddressLibrary.Services.AddressSearch
@@ -12,9 +13,9 @@ namespace AddressLibrary.Services.AddressSearch
     {
         Success,              // Znaleziono dokładny adres
         MultipleMatches,      // Znaleziono wiele pasujących adresów
-        MiastoNotFound,       // Nie znaleziono miejscowości
+        MiastoNotFound,       // Nie znaleziono miasta/miejscowości
         UlicaNotFound,        // Nie znaleziono ulicy
-        InvalidStreetName,    // Błędna nazwa ulicy (nie istnieje w całej bazie TERYT)
+        InvalidStreetName,    // Błędna nazwa ulicy
         KodPocztowyNotFound,  // Nie znaleziono kodu pocztowego
         ValidationError       // Błąd walidacji danych wejściowych
     }
@@ -39,41 +40,67 @@ namespace AddressLibrary.Services.AddressSearch
         // W przypadku wielu dopasowań
         public List<KodPocztowy>? AlternativeMatches { get; set; }
 
-        // ✅ POPRAWIONE: Informacje diagnostyczne dla tego konkretnego wyszukiwania
-        private List<string> _diagnosticMessages = new();
-        
-        /// <summary>
-        /// Dodaje wiadomość diagnostyczną
-        /// </summary>
-        public void AddDiagnostic(string message)
+        // Informacje diagnostyczne
+        public string? DiagnosticInfo { get; set; }
+
+        // ✅ NOWE: Metody dopasowania dla poszczególnych komponentów
+        public MatchingMethod? CityMatchingMethod { get; set; }
+        public MatchingMethod? StreetMatchingMethod { get; set; }
+        public MatchingMethod? PostalCodeMatchingMethod { get; set; }
+
+        // ✅ NOWE: Dodatkowe flagi
+        public bool WasCityStreetSwapped { get; set; } = false;
+
+        // ✅ NOWE: Szczegóły dopasowania
+        private List<string> _matchingDetails = new();
+
+        public void AddMatchingDetail(string detail)
         {
-            _diagnosticMessages.Add(message);
+            _matchingDetails.Add(detail);
+        }
+
+        public string GetMatchingDetails()
+        {
+            if (_matchingDetails.Count == 0)
+                return string.Empty;
+
+            var sb = new StringBuilder();
+            foreach (var detail in _matchingDetails)
+            {
+                sb.AppendLine($"  • {detail}");
+            }
+            return sb.ToString();
         }
 
         /// <summary>
-        /// Zwraca wszystkie informacje diagnostyczne jako jeden string
+        /// ✅ Zwraca ogólną metodę dopasowania (Fuzzy jeśli którykolwiek komponent był fuzzy)
         /// </summary>
-        public string? DiagnosticInfo => _diagnosticMessages.Count > 0 
-            ? string.Join(Environment.NewLine, _diagnosticMessages) 
-            : null;
-
-        /// <summary>
-        /// Tworzy podsumowanie diagnostyczne w formacie czytelnym dla człowieka
-        /// </summary>
-        public string GetFormattedDiagnostics()
+        public MatchingMethod GetOverallMethod()
         {
-            if (_diagnosticMessages.Count == 0)
-                return "Brak informacji diagnostycznych";
-
-            var sb = new StringBuilder();
-            sb.AppendLine("=== Informacje diagnostyczne ===");
-            
-            foreach (var msg in _diagnosticMessages)
+            if (CityMatchingMethod == MatchingMethod.Fuzzy ||
+                StreetMatchingMethod == MatchingMethod.Fuzzy ||
+                PostalCodeMatchingMethod == MatchingMethod.Fuzzy ||
+                WasCityStreetSwapped)
             {
-                sb.AppendLine($"  • {msg}");
+                return MatchingMethod.Fuzzy;
             }
 
-            return sb.ToString();
+            return MatchingMethod.Strict;
+        }
+
+        /// <summary>
+        /// ✅ Helper do dodawania diagnostyki
+        /// </summary>
+        public void AddDiagnostic(string message)
+        {
+            if (string.IsNullOrEmpty(DiagnosticInfo))
+            {
+                DiagnosticInfo = message;
+            }
+            else
+            {
+                DiagnosticInfo += "\n" + message;
+            }
         }
     }
 }

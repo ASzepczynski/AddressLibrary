@@ -48,24 +48,23 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             searchLogger?.Log("");
             searchLogger?.Log("--- STRATEGIA: Szukanie z ulicą ---");
 
-
             // Wyodrębnij prefiks z ulicy
             (var Prefix, var normalizedStreet) = UliceUtils.SplitStreetPrefix(request.Ulica);
-            // Normalizuj ulicę i wyciągnij numer
             normalizedStreet = _normalizer.Normalize(normalizedStreet);
             searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{Prefix}/{normalizedStreet}'");
 
             var combinedBuildingNumber = request.NumerDomu;
 
-            // 🆕 KROK 1: Znajdź WSZYSTKIE pasujące ulice w WSZYSTKICH miastach o podanej nazwie
-            var matchingStreets = FindAllMatchingStreets(request, miasta, Prefix, normalizedStreet, searchLogger);
+            // 🆕 KROK 1: Znajdź WSZYSTKIE pasujące ulice
+            var (matchingStreets, wasStreetFuzzy) = FindAllMatchingStreetsWithMethod(
+                request, miasta, Prefix, normalizedStreet, searchLogger);
 
             if (matchingStreets.Count == 0)
             {
                 return HandleStreetNotFound(request, miasta, Prefix, normalizedStreet, searchLogger);
             }
 
-            // 🆕 KROK 2: Jeśli jest WIĘCEJ NIŻ JEDNA ulica - użyj AmbiguousStreetResolver
+            // 🆕 KROK 2: Rozwiązuj niejednoznaczność jeśli potrzeba
             if (matchingStreets.Count > 1)
             {
                 searchLogger?.Log($"⚠ Znaleziono {matchingStreets.Count} pasujących ulic - próba rozwiązania niejednoznaczności");
@@ -74,16 +73,14 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
                 if (resolvedStreet == null)
                 {
-                    // Nie udało się rozwiązać - zwróć błąd z listą wszystkich dopasowań
                     return CreateMultipleMatchesError(matchingStreets, miasta, searchLogger);
                 }
 
-                // ✅ Udało się rozwiązać niejednoznaczność - użyj wybranej ulicy
                 matchingStreets = new List<(UlicaCached street, Miasto miasto)> { resolvedStreet.Value };
                 searchLogger?.Log($"✓ Rozwiązano niejednoznaczność: {_cache.GetOriginalStreetName(resolvedStreet.Value.street)}");
             }
 
-            // 🆕 KROK 3: Dokładnie jedna ulica - kontynuuj normalnie
+            // 🆕 KROK 3: Kontynuuj z wybraną ulicą
             var (foundUlica, foundMiasto) = matchingStreets[0];
             searchLogger?.Log($"✓ Znaleziono dokładnie jedną ulicę: {_cache.GetOriginalStreetName(foundUlica)}");
 
@@ -102,7 +99,16 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (!_cache.TryGetKodyPocztoweMiasta(foundMiasto.Id, out var kodyPocztowe))
             {
                 searchLogger?.Log($"✗ Brak kodów pocztowych dla miejscowości ID: {foundMiasto.Id}");
-                return _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
+                var result = _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
+                
+                // ✅ NOWE: Zapisz metodę dopasowania ulicy
+                result.StreetMatchingMethod = wasStreetFuzzy ? MatchingMethod.Fuzzy : MatchingMethod.Strict;
+                if (wasStreetFuzzy)
+                {
+                    result.AddMatchingDetail($"Ulica: fuzzy matching ('{request.Ulica}' → '{ulica.Nazwa1}')");
+                }
+                
+                return result;
             }
 
             searchLogger?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla miejscowości");
@@ -114,13 +120,94 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (filteredKody.Count == 0)
             {
                 searchLogger?.Log("Ulica nie ma przypisanych kodów pocztowych");
-                return _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
+                var result = _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
+                
+                // ✅ NOWE: Zapisz metodę dopasowania ulicy
+                result.StreetMatchingMethod = wasStreetFuzzy ? MatchingMethod.Fuzzy : MatchingMethod.Strict;
+                if (wasStreetFuzzy)
+                {
+                    result.AddMatchingDetail($"Ulica: fuzzy matching ('{request.Ulica}' → '{ulica.Nazwa1}')");
+                }
+                
+                return result;
             }
 
             // Filtruj po numerze domu
             filteredKody = FilterByBuildingNumber(filteredKody, combinedBuildingNumber, ulica.Id, searchLogger);
 
-            return _resultFactory.CreateResult(filteredKody, foundMiasto, ulica, combinedBuildingNumber, request.NumerMieszkania, searchLogger);
+            var finalResult = _resultFactory.CreateResult(
+                filteredKody, foundMiasto, ulica, combinedBuildingNumber, request.NumerMieszkania, searchLogger);
+            
+            // ✅ NOWE: Zapisz metodę dopasowania ulicy
+            finalResult.StreetMatchingMethod = wasStreetFuzzy ? MatchingMethod.Fuzzy : MatchingMethod.Strict;
+            if (wasStreetFuzzy)
+            {
+                finalResult.AddMatchingDetail($"Ulica: fuzzy matching ('{request.Ulica}' → '{ulica.Nazwa1}')");
+            }
+            
+            return finalResult;
+        }
+
+        /// <summary>
+        /// ✅ NOWA METODA: Znajduje ulice i zwraca informację czy użyto fuzzy matching
+        /// </summary>
+        private (List<(UlicaCached street, Miasto miasto)> streets, bool wasFuzzy) FindAllMatchingStreetsWithMethod(
+            AddressSearchRequest request,
+            List<Miasto> miasta,
+            string Prefix,
+            string normalizedStreet,
+            GeneralLogger? diagnostic)
+        {
+            diagnostic?.Log($"Szukam WSZYSTKICH ulic pasujących do: '{request.Ulica}' -> znormalizowana: '{Prefix}/{normalizedStreet}'");
+
+            var matchingStreets = new List<(UlicaCached street, Miasto miasto)>();
+            bool wasFuzzy = false;
+
+            // KROK 1: Dokładne dopasowanie
+            foreach (var miasto in miasta)
+            {
+                if (_cache.TryGetUlice(miasto.Id, out var ulice))
+                {
+                    diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
+
+                    foreach (var ulica in ulice)
+                    {
+                        if (_streetMatcher.IsMatch(ulica, normalizedStreet))
+                        {
+                            diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
+                            matchingStreets.Add((ulica, miasto));
+                        }
+                    }
+                }
+            }
+
+            if (matchingStreets.Count > 0)
+            {
+                diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic (strict matching)");
+                return (matchingStreets, wasFuzzy: false);
+            }
+
+            // KROK 2: Fuzzy matching
+            diagnostic?.Log($"Poszukiwanie mniej dokładne (fuzzy) miasto:{request.Miasto} ulica:{request.Ulica}");
+
+            foreach (var miasto in miasta)
+            {
+                if (_cache.TryGetUlice(miasto.Id, out var ulice))
+                {
+                    diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
+
+                    var ulica = _streetMatcher.FindStreet(ulice, normalizedStreet);
+                    if (ulica != null)
+                    {
+                        diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę (fuzzy): ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
+                        matchingStreets.Add((ulica, miasto));
+                        wasFuzzy = true;
+                    }
+                }
+            }
+
+            diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic (fuzzy matching)");
+            return (matchingStreets, wasFuzzy);
         }
 
         /// <summary>
@@ -399,7 +486,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         {
             diagnostic?.Log($"{Environment.NewLine}🔄 Sprawdzam czy '{request.Ulica}' to miejscowość zamiast ulicy...");
 
-            // ✅ WALIDACJA 1: Jeśli ulica ma prefix (os., al., pl., ul.), to NIE ZAMIENIAJ!
+            // Walidacja prefiksu
             var streetPrefixes = new[] { "os.", "os ", "al.", "al ", "pl.", "pl ", "ul.", "ul " };
             var ulicaLower = request.Ulica.ToLowerInvariant().TrimStart();
 
@@ -409,16 +496,15 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 return null;
             }
 
-            // Znajdź miejscowość o nazwie jak "ulica"
             var citiesMatchingStreet = _cache.FindCitiesByName(normalizedStreet);
-
 
             if (citiesMatchingStreet.Count == 0)
             {
-                var similarCity = CityUtils.FindSimilarCity(_cache,normalizedStreet, request.KodPocztowy, diagnostic); // 🆕 DODANE postalCode
+                var (similarCity, wasFuzzy) = CityUtils.FindSimilarCityWithMethod(_cache, normalizedStreet, request.KodPocztowy, diagnostic);
+                
                 if (similarCity != null)
                 {
-                    diagnostic?.Log($"  ✓ Znaleziono podobną miejscowość: '{similarCity.Nazwa}'");
+                    diagnostic?.Log($"  ✓ Znaleziono podobną miejscowość: '{similarCity.Nazwa}' (fuzzy: {wasFuzzy})");
                     citiesMatchingStreet = new List<Miasto> { similarCity };
                 }
                 else
@@ -430,9 +516,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             diagnostic?.Log($"  ✓ Znaleziono {citiesMatchingStreet.Count} miejscowości o nazwie '{request.Ulica}'!");
 
-
+            // Walidacja kodu pocztowego
             var Pasujace = new List<Miasto>();
-            // ✅ WALIDACJA 2: Jeśli podano kod pocztowy, sprawdź czy pasuje do nowej miejscowości
             if (!string.IsNullOrWhiteSpace(request.KodPocztowy))
             {
                 foreach (var city in citiesMatchingStreet)
@@ -451,36 +536,37 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     }
                 }
             }
-            if (Pasujace.Count() == 0)
-            {
-                diagnostic?.Log($" Ulica nie jest miastem, zwracam null");
-                return null;
-            }
 
-            if (Pasujace.Count() != 1)
+            if (Pasujace.Count == 0 || Pasujace.Count != 1)
             {
-                diagnostic?.Log($"  🔄 Istnieje wiele miast '{request.Ulica}' o kodzie Ulica='{request.KodPocztowy}'");
                 diagnostic?.Log($"  Nie potrafię rozstrzygnąć, zwracam null");
                 return null;
             }
-            diagnostic?.Log($"  🔄 ZAMIANA: Miasto='{request.Miasto}' ↔ Ulica='{request.Ulica}'");
-            diagnostic?.Log($"  ➡️ Nowe wyszukiwanie: Miasto='{request.Ulica}' (bez ulicy)");
 
-            // Utwórz nowe zapytanie: Miasto = stara "ulica", bez ulicy
+            diagnostic?.Log($"  🔄 ZAMIANA: Miasto='{request.Miasto}' ↔ Ulica='{request.Ulica}'");
+
             var swappedRequest = new AddressSearchRequest
             {
                 KodPocztowy = request.KodPocztowy,
-                Miasto = request.Ulica,  // 🔄 Zamiana!
-                Ulica = "",             // 🔄 Usuń ulicę
+                Miasto = request.Ulica,
+                Ulica = "",
                 NumerDomu = request.NumerDomu,
                 NumerMieszkania = request.NumerMieszkania
             };
 
             diagnostic?.Log($"{Environment.NewLine}--- RETRY: Wyszukiwanie bez ulicy (bo '{request.Ulica}' to miejscowość) ---");
 
-            // Wyszukaj ponownie BEZ ulicy
             var noStreetStrategy = new NoStreetSearchStrategy(_cache, _normalizer, _filters, _resultFactory);
-            return noStreetStrategy.Execute(swappedRequest, new List<Miasto> { Pasujace[0] }, diagnostic);
+            var result = noStreetStrategy.Execute(swappedRequest, new List<Miasto> { Pasujace[0] }, diagnostic);
+
+            // ✅ NOWE: Oznacz że była zamiana
+            if (result != null)
+            {
+                result.WasCityStreetSwapped = true;
+                result.AddMatchingDetail($"Zamiana: ulica '{request.Ulica}' to w rzeczywistości miejscowość");
+            }
+
+            return result;
         }
 
         private (UlicaCached? street, Miasto? miasto) FindSimilarStreet(

@@ -215,12 +215,12 @@ namespace AddressLibrary.Services.AddressSearch
                 {
                     listaPodobnych.Add(ulica);
                 }
-                int distance1 = LevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
+                int distance1 = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
 
                 int distanceCombined = int.MaxValue;
                 if (!string.IsNullOrEmpty(ulica.NormalizedCombined))
                 {
-                    distanceCombined = LevenshteinDistance(normalizedSearch, ulica.NormalizedCombined);
+                    distanceCombined = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedCombined);
                 }
 
                 int minDistance = Math.Min(distance1, distanceCombined);
@@ -253,42 +253,6 @@ namespace AddressLibrary.Services.AddressSearch
                 return listaPodobnych[0];
             }
             return null;
-        }
-
-        /// <summary>
-        /// Oblicza odległość Levenshteina między dwoma stringami
-        /// </summary>
-        private int LevenshteinDistance(string s, string t)
-        {
-            if (string.IsNullOrEmpty(s))
-                return string.IsNullOrEmpty(t) ? 0 : t.Length;
-
-            if (string.IsNullOrEmpty(t))
-                return s.Length;
-
-            int n = s.Length;
-            int m = t.Length;
-            int[,] d = new int[n + 1, m + 1];
-
-            for (int i = 0; i <= n; i++)
-                d[i, 0] = i;
-
-            for (int j = 0; j <= m; j++)
-                d[0, j] = j;
-
-            for (int i = 1; i <= n; i++)
-            {
-                for (int j = 1; j <= m; j++)
-                {
-                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
-
-                    d[i, j] = Math.Min(
-                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
-                        d[i - 1, j - 1] + cost);
-                }
-            }
-
-            return d[n, m];
         }
     }
 }

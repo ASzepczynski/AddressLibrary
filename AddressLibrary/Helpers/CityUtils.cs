@@ -2,6 +2,7 @@
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch;
+using UglyToad.PdfPig.DocumentLayoutAnalysis;
 
 namespace AddressLibrary.Helpers
 {
@@ -12,7 +13,8 @@ namespace AddressLibrary.Helpers
             TextNormalizer _normalizer,
             string miastoName,
             string? postalCode, // 🆕 DODANE
-            SearchLogger? searchLogger)
+            SearchLogger? searchLogger,
+            out string? method)
             {
             var miastoNorm = _normalizer.Normalize(miastoName);
             searchLogger?.Log($"Znormalizowana miejscowość: '{miastoName}' -> '{miastoNorm}'");
@@ -28,12 +30,13 @@ namespace AddressLibrary.Helpers
                     if (bestCity != null)
                     {
                         searchLogger?.Log($"  ✓ Wybrano najlepiej pasującą miejscowość: '{bestCity.Nazwa}'");
+                        method = "CityBestFit";
                         return new List<Miasto> { bestCity };
                     }
 
                     searchLogger?.Log($"  ⚠ Nie można jednoznacznie wybrać miejscowości - zwracam wszystkie {miasta.Count}");
                 }
-
+                method = "AmbiguosCity";
                 return miasta;
             }
 
@@ -45,10 +48,12 @@ namespace AddressLibrary.Helpers
             if (similarCity != null)
             {
                 searchLogger?.Log($"  ✓ Znaleziono podobną miejscowość: '{similarCity.Nazwa}'");
+                method = "FuzzyCity";
                 return new List<Miasto> { similarCity };
             }
 
             searchLogger?.Log($"  ✗ Nie znaleziono podobnej miejscowości");
+            method = null;
             return null;
         }
 
@@ -72,7 +77,17 @@ namespace AddressLibrary.Helpers
             if (!string.IsNullOrWhiteSpace(postalCode))
             {
                 normalizedPostalCode = UliceUtils.NormalizujKodPocztowy(postalCode);
-                searchLogger?.Log($"    Wymagany kod pocztowy: '{normalizedPostalCode}'");
+                
+                // ✅ POPRAWKA: Jeśli normalizacja zwróciła pusty string, zignoruj kod pocztowy
+                if (string.IsNullOrEmpty(normalizedPostalCode))
+                {
+                    searchLogger?.Log($"    ⚠ Nieprawidłowy format kodu pocztowego: '{postalCode}' - ignoruję");
+                    normalizedPostalCode = null;
+                }
+                else
+                {
+                    searchLogger?.Log($"    Wymagany kod pocztowy: '{normalizedPostalCode}'");
+                }
             }
 
             MiastoCached? bestMatch = null;
@@ -93,8 +108,22 @@ namespace AddressLibrary.Helpers
                     {
                         continue; // Pomiń miasta bez kodów pocztowych
                     }
+                    
+                    // ✅ POPRAWKA: Sprawdź długość przed użyciem Substring
+                    if (normalizedPostalCode.Length < 5) // Kod pocztowy musi mieć format XX-XXX (5 znaków)
+                    {
+                        continue; // Pomiń jeśli kod pocztowy jest za krótki
+                    }
+                    
                     // Dopuszczamy błędy na 3 ostatnich cyfrach kodu
-                    bool hasMatchingCode = cityCodes.Any(k => k.Kod.Substring(1, 2) == normalizedPostalCode.Substring(1, 2));
+                    // Porównujemy pierwsze 2 cyfry (po normalizacji: "12-345" -> porównaj "12")
+                    string requiredPrefix = normalizedPostalCode.Substring(0, 2);
+                    
+                    bool hasMatchingCode = cityCodes.Any(k => 
+                        !string.IsNullOrEmpty(k.Kod) && 
+                        k.Kod.Length >= 5 && 
+                        k.Kod.Substring(0, 2) == requiredPrefix);
+                    
                     if (!hasMatchingCode)
                     {
                         continue; // ✅ POMIŃ miasto jeśli kod się NIE ZGADZA!
@@ -111,7 +140,7 @@ namespace AddressLibrary.Helpers
                 // ✅ METODA 2: Odległość Levenshteina
                 else
                 {
-                    var distance = CalculateLevenshteinDistance(normalizedCityName, cityCache.NormalizedNazwa);
+                    var distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedCityName, cityCache.NormalizedNazwa);
                     if (distance <= 2)
                     {
                         score = 50 - (distance * 10);
@@ -140,7 +169,7 @@ namespace AddressLibrary.Helpers
                         }
                         else
                         {
-                            var tokenDist = CalculateLevenshteinDistance(searchTokens[i], cityTokens[i]);
+                            var tokenDist = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(searchTokens[i], cityTokens[i]);
                             if (tokenDist <= 2)
                             {
                                 tokenScore += Math.Max(0, 7 - (tokenDist * 2));
@@ -176,42 +205,7 @@ namespace AddressLibrary.Helpers
             return null;
         }
 
-        /// <summary>
-        /// Oblicza odległość Levenshteina między dwoma ciągami znaków
-        /// </summary>
-        private static int CalculateLevenshteinDistance(string source, string target)
-        {
-            if (string.IsNullOrEmpty(source))
-                return string.IsNullOrEmpty(target) ? 0 : target.Length;
-
-            if (string.IsNullOrEmpty(target))
-                return source.Length;
-
-            int n = source.Length;
-            int m = target.Length;
-            int[,] d = new int[n + 1, m + 1];
-
-            for (int i = 0; i <= n; i++)
-                d[i, 0] = i;
-
-            for (int j = 0; j <= m; j++)
-                d[0, j] = j;
-
-            for (int i = 1; i <= n; i++)
-            {
-                for (int j = 1; j <= m; j++)
-                {
-                    int cost = (source[i - 1] == target[j - 1]) ? 0 : 1;
-
-                    d[i, j] = Math.Min(
-                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
-                        d[i - 1, j - 1] + cost);
-                }
-            }
-
-            return d[n, m];
-        }
-
+        
         /// <summary>
         /// 🆕 Wybiera najlepiej pasującą miejscowość z listy (gdy jest wiele o tej samej znormalizowanej nazwie)
         /// </summary>
@@ -278,6 +272,21 @@ namespace AddressLibrary.Helpers
             }
             searchLogger?.Log($"    → Brak jednoznacznego wyboru");
             return null;
+        }
+
+        public static (Miasto? city, bool wasFuzzy) FindSimilarCityWithMethod(
+            AddressSearchCache _cache,
+            string normalizedCityName,
+            string? postalCode,
+            GeneralLogger? searchLogger)
+        {
+            var city = FindSimilarCity(_cache, normalizedCityName, postalCode, searchLogger);
+            
+            // Jeśli znaleziono miasto i jego nazwa różni się od wyszukiwanej - to fuzzy
+            bool wasFuzzy = city != null && 
+                !city.Nazwa.Equals(normalizedCityName, StringComparison.OrdinalIgnoreCase);
+            
+            return (city, wasFuzzy);
         }
     }
 }

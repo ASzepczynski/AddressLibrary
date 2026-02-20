@@ -210,7 +210,7 @@ namespace AddressLibrary.Helpers
 
             if (cyfry.Length != 5)
             {
-                return kod; // Zwróć oryginalny jeśli nieprawidłowy format
+                return string.Empty; // ✅ POPRAWKA: Zwróć pusty string zamiast oryginalnego kodu
             }
 
             return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
@@ -496,7 +496,7 @@ namespace AddressLibrary.Helpers
 
                 /// <summary>
         /// ⚡ SZYBKA funkcja sprawdzająca czy wzorzec pasuje do tekstu od lewej do prawej
-        /// Pomija spacje i znaki specjalne we wzorcu, pozwala na dodatkowe litery w tekście.
+        /// Usuwa wszystkie znaki oprócz liter i cyfr, następnie szuka każdej litery wzorca w tekście po kolei.
         /// Przykłady:
         /// - "Bat.Chłopskich" pasuje do "Batalionów Chłopskich" ✅
         /// - "Boh.Września" pasuje do "Bohaterów Września" ✅
@@ -506,86 +506,48 @@ namespace AddressLibrary.Helpers
             if (string.IsNullOrEmpty(str1) || string.IsNullOrEmpty(str2))
                 return false;
 
-            // Znormalizuj oba stringi
+            // KROK 1: Znormalizuj oba stringi (usuń diakrytyki, lowercase)
             var normalized1 = UliceUtils.RemoveDiacritics(str1.ToLowerInvariant());
             var normalized2 = UliceUtils.RemoveDiacritics(str2.ToLowerInvariant());
 
-            // Automatycznie wykryj który jest wzorcem (krótszy) a który tekstem (dłuższy)
-            string text, pattern;
-            if (normalized1.Length <= normalized2.Length)
+            // KROK 2: Usuń wszystkie znaki oprócz liter i cyfr
+            var clean1 = new string(normalized1.Where(c => char.IsLetterOrDigit(c)).ToArray());
+            var clean2 = new string(normalized2.Where(c => char.IsLetterOrDigit(c)).ToArray());
+
+            // KROK 3: Automatycznie wykryj który jest wzorcem (krótszy) a który tekstem (dłuższy)
+            string pattern, text;
+            if (clean1.Length <= clean2.Length)
             {
-                pattern = normalized1;
-                text = normalized2;
+                pattern = clean1;
+                text = clean2;
             }
             else
             {
-                pattern = normalized2;
-                text = normalized1;
+                pattern = clean2;
+                text = clean1;
             }
 
+            // KROK 4: Dla każdej litery z wzorca znajdź pierwsze wystąpienie w tekście
             int textIndex = 0;
-            int patternIndex = 0;
 
-            while (patternIndex < pattern.Length && textIndex < text.Length)
+            foreach (char patternChar in pattern)
             {
-                char patternChar = pattern[patternIndex];
+                // Znajdź pierwszą pozycję tej litery w pozostałej części tekstu
+                int foundIndex = text.IndexOf(patternChar, textIndex);
 
-                // ✅ Pomiń spacje i znaki specjalne WE WZORCU
-                if (char.IsWhiteSpace(patternChar) || 
-                    patternChar == '.' || 
-                    patternChar == '-' || 
-                    patternChar == '/' ||
-                    patternChar == ',')
+                if (foundIndex == -1)
                 {
-                    patternIndex++;
-                    continue;
+                    // Nie znaleziono litery - brak dopasowania
+                    return false;
                 }
 
-                // ✅ KLUCZOWA ZMIANA: Szukaj następnego dopasowania w tekście
-                // Pozwól na pominięcie dodatkowych liter w tekście
-                bool found = false;
-                while (textIndex < text.Length)
-                {
-                    char textChar = text[textIndex];
-
-                    // Pomiń spacje w tekście
-                    if (char.IsWhiteSpace(textChar))
-                    {
-                        textIndex++;
-                        continue;
-                    }
-
-                    // Sprawdź czy znaki się zgadzają
-                    if (textChar == patternChar)
-                    {
-                        textIndex++;
-                        patternIndex++;
-                        found = true;
-                        break;
-                    }
-            
-            // ✅ ZMIANA: Znak się nie zgadza - pomiń go w tekście i szukaj dalej
-            // ALE tylko jeśli jesteśmy w środku słowa (nie po spacji)
-            if (textIndex > 0 && !char.IsWhiteSpace(text[textIndex - 1]))
-            {
-                textIndex++;
+                // Przesuń indeks za znalezioną literę
+                textIndex = foundIndex + 1;
             }
-            else
-            {
-                // Nowe słowo zaczyna się inną literą - BRAK dopasowania
-                return false;
-            }
-        }
 
-        if (!found)
-        {
-            return false;
+            // Sukces - znaleziono wszystkie litery wzorca w odpowiedniej kolejności
+            return true;
         }
-    }
-
-    // Dopasowanie udane jeśli przetworzono cały wzorzec
-    return patternIndex >= pattern.Length;
-}
         /// <summary>
         /// Konwertuje wzorzec SQL LIKE (z % i _) na regex
         /// % = dowolna ilość znaków (.*?)
