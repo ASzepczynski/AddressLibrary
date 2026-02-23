@@ -37,7 +37,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             diagnostic?.Log("");
             diagnostic?.Log("--- STRATEGIA: Szukanie bez ulicy ---");
 
-            var selectedMiasto = SelectCity(request, miasta, diagnostic);
+            var (selectedMiasto, wasFuzzyPostalCode) = SelectCityWithMethod(request, miasta, diagnostic);
 
             if (selectedMiasto == null)
             {
@@ -71,6 +71,14 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 };
                 result.AddDiagnostic($"Miasto: {selectedMiasto.Nazwa}");
                 result.AddDiagnostic("Miasto nie ma kodów pocztowych");
+                
+                // ✅ NOWE: Oznacz jako fuzzy jeśli kod pocztowy był podobny
+                if (wasFuzzyPostalCode)
+                {
+                    result.PostalCodeMatchingMethod = MatchingMethod.Fuzzy;
+                    result.AddMatchingDetail($"Kod pocztowy: podobny (pierwsze 3 cyfry z '{request.KodPocztowy}')");
+                }
+                
                 return result;
             }
 
@@ -88,10 +96,19 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 diagnostic?.Log($"Po filtracji po numerze domu '{request.NumerDomu}': {filteredKody.Count} kodów (było: {beforeFilter})");
             }
 
-            return _resultFactory.CreateResult(filteredKody, selectedMiasto, null, request.NumerDomu, request.NumerMieszkania, diagnostic);
+            var finalResult = _resultFactory.CreateResult(filteredKody, selectedMiasto, null, request.NumerDomu, request.NumerMieszkania, diagnostic);
+            
+            // ✅ NOWE: Oznacz jako fuzzy jeśli kod pocztowy był podobny
+            if (wasFuzzyPostalCode)
+            {
+                finalResult.PostalCodeMatchingMethod = MatchingMethod.Fuzzy;
+                finalResult.AddMatchingDetail($"Kod pocztowy: podobny (pierwsze 3 cyfry z '{request.KodPocztowy}')");
+            }
+            
+            return finalResult;
         }
 
-        private Miasto? SelectCity(
+        private (Miasto? miasto, bool wasFuzzyPostalCode) SelectCityWithMethod(
             AddressSearchRequest request,
             List<Miasto> miasta,
             GeneralLogger? diagnostic)
@@ -104,10 +121,10 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 // Próbuj zawęzić po kodzie pocztowym
                 if (!string.IsNullOrWhiteSpace(request.KodPocztowy))
                 {
-                    var cityByCode = SelectCityByPostalCode(request, miasta, diagnostic);
+                    var (cityByCode, wasFuzzy) = SelectCityByPostalCode(request, miasta, diagnostic);
                     if (cityByCode != null)
                     {
-                        return cityByCode;
+                        return (cityByCode, wasFuzzy);
                     }
                     // Jeśli kod nie pomógł - błąd niejednoznaczności
                     diagnostic?.Log($"✗ Nie można jednoznacznie określić miasta - kod pocztowy nie pasuje do żadnego z {miasta.Count} miast");
@@ -118,20 +135,20 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 }
                 
                 // NIE zwracamy pierwszego miasta - zwracamy null
-                return null;
+                return (null, false);
             }
 
             // KROK 1: Tylko jedno miasto - użyj go
             if (miasta.Count == 1)
             {
                 diagnostic?.Log($"✓ Tylko jedno miasto po normalizacji: {miasta[0].Nazwa}");
-                return miasta[0];
+                return (miasta[0], false);
             }
 
-            return null;
+            return (null, false);
         }
 
-        private Miasto? SelectCityByPostalCode(
+        private (Miasto? miasto, bool wasFuzzy) SelectCityByPostalCode(
             AddressSearchRequest request,
             List<Miasto> miasta,
             GeneralLogger? diagnostic)
@@ -140,37 +157,65 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             diagnostic?.Log($"Znaleziono {miasta.Count} miast o nazwie '{request.Miasto}', próba zawężenia po kodzie: {kodNorm}");
 
             var miastaZKodem = new List<Miasto>();
+            var miastaZPodobnymKodem = new List<Miasto>();
 
             foreach (var miasto in miasta)
             {
                 if (_cache.TryGetKodyPocztoweMiasta(miasto.Id, out var kody))
                 {
+                    bool foundExact = false;
+                    bool foundSimilar = false;
+
                     for (int i = 0; i < kody.Count; i++)
                     {
-                        if (kody[i].Kod == kodNorm)
+                        // Dokładne dopasowanie (wszystkie 5 cyfr)
+                        if (!foundExact && kody[i].Kod == kodNorm)
                         {
                             miastaZKodem.Add(miasto);
-                            break;
+                            foundExact = true;
+                            break; // Nie sprawdzaj dalej - znaleźliśmy dokładne dopasowanie
+                        }
+
+                        // ✅ Podobne dopasowanie (pierwsze 3 cyfry: "XX-X")
+                        if (!foundSimilar && !foundExact && kodNorm.Length >= 4 && kody[i].Kod.Length >= 4)
+                        {
+                            // Porównaj pierwsze 4 znaki (np. "12-3" == "12-3")
+                            if (kody[i].Kod.Substring(0, 4) == kodNorm.Substring(0, 4))
+                            {
+                                miastaZPodobnymKodem.Add(miasto);
+                                foundSimilar = true;
+                            }
                         }
                     }
                 }
             }
 
+            // KROK 1: Jeśli jest dokładne dopasowanie - użyj go
             if (miastaZKodem.Count == 1)
             {
-                diagnostic?.Log($"✓ Wybrano miasto po kodzie pocztowym: {miastaZKodem[0].Nazwa} (woj. {miastaZKodem[0].Gmina?.Powiat?.Wojewodztwo?.Nazwa})");
-                return miastaZKodem[0];
+                diagnostic?.Log($"✓ Wybrano miasto po dokładnym kodzie pocztowym: {miastaZKodem[0].Nazwa} (woj. {miastaZKodem[0].Gmina?.Powiat?.Wojewodztwo?.Nazwa})");
+                return (miastaZKodem[0], false); // ✅ Nie jest fuzzy
             }
             else if (miastaZKodem.Count > 1)
             {
-                diagnostic?.Log($"✗ Znaleziono {miastaZKodem.Count} miast z kodem {kodNorm}");
-                return null;
+                diagnostic?.Log($"✗ Znaleziono {miastaZKodem.Count} miast z dokładnym kodem {kodNorm}");
+                return (null, false);
             }
-            else
+
+            // KROK 2: Spróbuj z podobnym kodem (pierwsze 3 cyfry)
+            if (miastaZPodobnymKodem.Count == 1)
             {
-                diagnostic?.Log($"✗ Żadne z {miasta.Count} miast nie ma kodu {kodNorm}");
-                return null;
+                diagnostic?.Log($"✓ Wybrano miasto po podobnym kodzie pocztowym (pierwsze 3 cyfry): {miastaZPodobnymKodem[0].Nazwa} (woj. {miastaZPodobnymKodem[0].Gmina?.Powiat?.Wojewodztwo?.Nazwa})");
+                return (miastaZPodobnymKodem[0], true); // ✅ Jest fuzzy!
             }
+            else if (miastaZPodobnymKodem.Count > 1)
+            {
+                diagnostic?.Log($"✗ Znaleziono {miastaZPodobnymKodem.Count} miast z podobnym kodem (pierwsze 3 cyfry z {kodNorm})");
+                return (null, false);
+            }
+
+            diagnostic?.Log($"✗ Żadne z {miasta.Count} miast nie ma kodu {kodNorm} (ani podobnego)");
+            return (null, false);
         }
 
         private string GetCityNotFoundMessage(List<Miasto> miasta, AddressSearchRequest request)
