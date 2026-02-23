@@ -148,6 +148,7 @@ namespace AddressLibrary.Helpers
         /// <summary>
         /// Próbuje zastosować korekty nazwy - iteruje przez wszystkie korekty danego typu
         /// i wykonuje Replace dla każdej. Zwraca true jeśli nazwa się zmieniła.
+        /// ✅ POPRAWKA: Używa szybkiego word boundary checking bez regex
         /// </summary>
         public bool TryCorrect(string type, string? oldName, out string? newName)
         {
@@ -171,10 +172,7 @@ namespace AddressLibrary.Helpers
             // Iteruj przez wszystkie korekty danego typu
             foreach (var (oldPattern, newPattern) in _correctionsByType[normalizedType])
             {
-                if (result.Contains(oldPattern, StringComparison.OrdinalIgnoreCase))
-                {
-                    result = ReplaceIgnoreCase(result, oldPattern, newPattern);
-                }
+                result = ReplaceWordIgnoreCase(result, oldPattern, newPattern);
             }
 
             newName = result;
@@ -184,27 +182,63 @@ namespace AddressLibrary.Helpers
         }
 
         /// <summary>
-        /// Zamienia wszystkie wystąpienia starego tekstu na nowy (case-insensitive)
+        /// ✅ SZYBKA METODA: Zamienia wszystkie wystąpienia starego tekstu na nowy (case-insensitive)
+        /// TYLKO gdy stary tekst występuje jako całe słowo (z granicami słów)
+        /// Używa prostego porównywania znaków zamiast regex dla wydajności
         /// </summary>
-        private static string ReplaceIgnoreCase(string text, string oldValue, string newValue)
+        private static string ReplaceWordIgnoreCase(string text, string oldValue, string newValue)
         {
-            if (string.IsNullOrEmpty(oldValue))
+            if (string.IsNullOrEmpty(oldValue) || string.IsNullOrEmpty(text))
                 return text;
 
-            var sb = new System.Text.StringBuilder();
-            int previousIndex = 0;
-            int index = text.IndexOf(oldValue, StringComparison.OrdinalIgnoreCase);
+            var result = new System.Text.StringBuilder(text.Length);
+            int textIndex = 0;
 
-            while (index != -1)
+            while (textIndex < text.Length)
             {
-                sb.Append(text.AsSpan(previousIndex, index - previousIndex));
-                sb.Append(newValue);
-                previousIndex = index + oldValue.Length;
-                index = text.IndexOf(oldValue, previousIndex, StringComparison.OrdinalIgnoreCase);
+                // Znajdź następne wystąpienie wzorca (case-insensitive)
+                int matchIndex = text.IndexOf(oldValue, textIndex, StringComparison.OrdinalIgnoreCase);
+
+                if (matchIndex == -1)
+                {
+                    // Brak więcej dopasowań - skopiuj resztę tekstu
+                    result.Append(text.AsSpan(textIndex));
+                    break;
+                }
+
+                // Sprawdź granice słowa
+                bool isWordStart = matchIndex == 0 || !IsLetter(text[matchIndex - 1]);
+                bool isWordEnd = (matchIndex + oldValue.Length >= text.Length) || !IsLetter(text[matchIndex + oldValue.Length]);
+
+                // Skopiuj tekst przed dopasowaniem
+                result.Append(text.AsSpan(textIndex, matchIndex - textIndex));
+
+                if (isWordStart && isWordEnd)
+                {
+                    // To całe słowo - zamień
+                    result.Append(newValue);
+                    textIndex = matchIndex + oldValue.Length;
+                }
+                else
+                {
+                    // To nie całe słowo - skopiuj oryginał i przejdź dalej
+                    result.Append(text.AsSpan(matchIndex, oldValue.Length));
+                    textIndex = matchIndex + oldValue.Length;
+                }
             }
 
-            sb.Append(text.AsSpan(previousIndex));
-            return sb.ToString();
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Sprawdza czy znak jest literą (w tym polskie znaki)
+        /// </summary>
+        private static bool IsLetter(char c)
+        {
+            return (c >= 'a' && c <= 'z') ||
+                   (c >= 'A' && c <= 'Z') ||
+                   c == 'ą' || c == 'ć' || c == 'ę' || c == 'ł' || c == 'ń' || c == 'ó' || c == 'ś' || c == 'ź' || c == 'ż' ||
+                   c == 'Ą' || c == 'Ć' || c == 'Ę' || c == 'Ł' || c == 'Ń' || c == 'Ó' || c == 'Ś' || c == 'Ź' || c == 'Ż';
         }
 
         public int Count => _correctionsByType.Values.Sum(list => list.Count);
