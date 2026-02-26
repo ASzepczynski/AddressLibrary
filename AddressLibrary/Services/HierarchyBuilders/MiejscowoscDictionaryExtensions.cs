@@ -135,7 +135,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         /// <summary>
         /// Oblicza odleg³oœæ Levenshteina miêdzy dwoma tekstami
         /// </summary>
-        
+
         /// <summary>
         /// Zwraca d³ugoœæ wspólnego prefiksu dwóch tekstów
         /// </summary>

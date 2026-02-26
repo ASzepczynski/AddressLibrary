@@ -30,7 +30,7 @@ namespace AddressLibrary.Data
         public DbSet<Ulica> Ulice { get; set; }
         public DbSet<KodPocztowy> KodyPocztowe { get; set; }
 
-// Tabela adresów z Asims
+        // Tabela adresów z Asims
         public DbSet<Adres> Adresy { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -41,6 +41,6 @@ namespace AddressLibrary.Data
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }
 
-        
+
     }
 }

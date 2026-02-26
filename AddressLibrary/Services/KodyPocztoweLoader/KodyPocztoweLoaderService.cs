@@ -1,8 +1,8 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
-using AddressLibrary.Helpers;
 
 
 namespace AddressLibrary.Services.KodyPocztoweLoader
@@ -24,7 +24,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             _context = context;
             _logger = new PostalCodesLogger(appDataPath);
             _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty); // 🆕 DODANE
-            
+
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
         }
 
@@ -34,7 +34,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         {
             Console.WriteLine($"[KodyPocztoweLoaderService] ========== START LoadAsync ==========");
             Console.WriteLine($"[KodyPocztoweLoaderService] PNA count: {pnaData.Count}");
-            
+
             Console.WriteLine($"[KodyPocztoweLoaderService] Wywołuję _logger.InitializeAsync()...");
             await _logger.InitializeAsync();
             Console.WriteLine($"[KodyPocztoweLoaderService] ✓ _logger.InitializeAsync() zakończone");
@@ -72,7 +72,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             // Inicjalizuj matchery - PRZEKAŻ LOGGER
             var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger);
-            var ulicaMatcher = new UlicaMatcher(uliceDict,_logger);
+            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger);
 
             progressInfo.CurrentOperation = "Przetwarzanie kodów pocztowych...";
             progress?.Report(progressInfo);
@@ -82,7 +82,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
-            const int logFlushInterval = 100;
 
             // foreach (var pna_raw in pnaData.Where(x=>x.Kod== "30-233"))
             foreach (var pna_raw in pnaData)
@@ -91,22 +90,24 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 {
                     var pna_src = pna_raw;
                     // Usunięcie cudzysłowów charakterystycznych dla plików CSV
-   
-                    pna_src.Miasto =UliceUtils.RemoveQuote(pna_src.Miasto);
+
+                    pna_src.Miasto = UliceUtils.RemoveQuote(pna_src.Miasto);
                     pna_src.Ulica = UliceUtils.RemoveQuote(pna_src.Ulica);
                     pna_src.Numery = UliceUtils.RemoveQuote(pna_src.Numery);
                     sKorekcja = "";
-                    Pna pna=pna_src;
+                    Pna pna = pna_src;
                     // 🆕 KROK 1: Zastosuj korektę jeśli istnieje
-                    if (KorektaPna(pna, out var pnaCorrected)){
+                    if (KorektaPna(pna, out var pnaCorrected))
+                    {
                         stats.CorrectionsCount++;
                         sKorekcja = "Tak";
-                        
+
                         if (pnaCorrected.Kod != "???")
                         {
                             pna = pnaCorrected;
                         }
-                    };
+                    }
+                    ;
 
                     // 1a. Znajdź miasto
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
@@ -123,7 +124,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
                     if (miasto == null)
                     {
-                         if (gmina == null)
+                        if (gmina == null)
                         {
                             // Sytuacja 1: Nie znaleziono gminy w bazie
                             _logger.LogError($"Nie znaleziono gminy: {gminaNazwa} w powiecie {pna.Powiat}, woj. {pna.Wojewodztwo} dla kodu {pna.Kod}");
@@ -148,15 +149,15 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     }
 
                     // 2. Znajdź ulicę (jeśli jest)
-                    string? sUlica = pna.Ulica.Replace("-go","");
-                    
+                    string? sUlica = pna.Ulica.Replace("-go", "");
+
                     // Rozkładamy ulicę na prefix i część pozostałą
-                    (string sPrefix,sUlica) = UliceUtils.SplitStreetPrefix(sUlica);
+                    (string sPrefix, sUlica) = UliceUtils.SplitStreetPrefix(sUlica);
                     // Usuwamy duplikat prefiksu, przykład os. Osiedle Kolorowe
-                    sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix,sUlica);
-                    
-                    (var ulica,var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
-                    
+                    sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix, sUlica);
+
+                    (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
+
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
                     {
                         _logger.LogError(ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, sKorekcja) + $" dla kodu {pna.Kod}");
@@ -196,7 +197,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 }
 
                 stats.ProcessedCount++;
-                
+
                 // Raportuj postęp
                 if (stats.ProcessedCount % reportInterval == 0 || stats.ProcessedCount == pnaData.Count)
                 {
@@ -224,7 +225,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             progressInfo.CurrentOperation = "Zakończono ładowanie kodów pocztowych";
             progress?.Report(progressInfo);
 
-           
+
         }
 
         private async Task SaveBatchAsync(List<KodPocztowy> pendingRecords, LoadStatistics stats)
@@ -239,7 +240,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             {
                 _logger.LogError($"BŁĄD ZAPISU PARTII (batch {stats.ProcessedCount / 1000}):");
                 _logger.LogError($"Message: {dbEx.Message}");
-                
+
                 // ✅ DODAJ: Wyświetl pełny inner exception
                 var innerEx = dbEx.InnerException;
                 while (innerEx != null)
@@ -268,7 +269,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         private bool KorektaPna(Pna pna, out Pna corrected)
         {
             corrected = _pnaCorrections.TryCorrect(pna);
-            
+
             if (corrected != null)
             {
                 _logger.LogInfo($"✓ Korekta PNA: '{pna.Kod}' '{pna.Miasto}/{pna.Ulica}' -> '{corrected.Kod}' '{corrected.Miasto}/{corrected.Ulica}'");

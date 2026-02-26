@@ -1,10 +1,6 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Helpers;
-using AddressLibrary.Models;
-using AddressLibrary.Services.AddressSearch;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
-using System.Collections.Generic;
 
 namespace AddressLibrary.Services.AddressSearch
 {

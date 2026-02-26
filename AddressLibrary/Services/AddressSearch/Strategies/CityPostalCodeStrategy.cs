@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
+using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch.Filters;
-using AddressLibrary.Logging;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
 {
@@ -33,7 +33,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (!_cache.TryGetKodyPocztoweMiasta(miasto.Id, out var kodyPocztowe))
             {
                 diagnostic?.Log("✗ Brak kodów pocztowych dla miejscowości");
-                
+
                 var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.KodPocztowyNotFound,
@@ -54,7 +54,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (cityCode != null)
             {
                 diagnostic?.Log($"✓ Zwracam kod miejscowości: {cityCode.Kod} (ulica nie ma przypisanego kodu)");
-                
+
                 var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.Success,
@@ -73,20 +73,20 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             }
             else
             {
-                diagnostic?.Log("✗ Nie znaleziono kodu miejscowości (wszystkie kody mają przypisaną ulicę)");
-                
+                diagnostic?.Log($"✗ Brak kodu w PNA dla ulicy");
+
                 var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.KodPocztowyNotFound,
                     Miasto = miasto,
                     Ulica = ulica,
-                    Message = "Nie znaleziono kodu pocztowego dla podanych parametrów",
+                    Message = "Brak kodu pocztowego",
                     NormalizedBuildingNumber = normalizedBuildingNumber,
                     NormalizedApartmentNumber = request.NumerMieszkania
                 };
                 result.AddDiagnostic($"Miasto: {miasto.Nazwa}");
                 result.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
-                result.AddDiagnostic("Wszystkie kody mają przypisaną ulicę");
+                result.AddDiagnostic("Brak kodu ulicy w PNA");
                 return result;
             }
         }

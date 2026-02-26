@@ -1,8 +1,7 @@
-using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
-using AddressLibrary.Models;
+using System.Globalization;
 
 namespace AddressLibrary.Services
 {
@@ -49,7 +48,7 @@ namespace AddressLibrary.Services
         private ClassMap<T> CreateMapForType<T>() where T : class
         {
             var map = new DefaultClassMap<T>();
-            
+
             var properties = typeof(T).GetProperties()
                 .Where(p => p.Name != "Id" && p.CanWrite)
                 .ToList();

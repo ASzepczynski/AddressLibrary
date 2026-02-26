@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
+using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using Microsoft.IdentityModel.Tokens;
-using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -108,7 +108,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             var prefixes = UliceUtils.GetAllStreetPrefixes();
             var normalized = name.ToLowerInvariant().Trim();
             // Usuwa -go z nazwy ulicy
-            normalized=UliceUtils.NormalizeOrdinalNumber(normalized);
+            normalized = UliceUtils.NormalizeOrdinalNumber(normalized);
 
             foreach (var prefix in prefixes)
             {
@@ -167,7 +167,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         /// Oblicza odleg³oœæ Levenshteina miêdzy dwoma tekstami
         /// (minimalna liczba operacji edycji potrzebnych do przekszta³cenia jednego tekstu w drugi)
         /// </summary>
-       
+
         /// <summary>
         /// Zwraca d³ugoœæ wspólnego prefiksu dwóch tekstów
         /// </summary>

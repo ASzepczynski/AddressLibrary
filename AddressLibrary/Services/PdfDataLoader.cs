@@ -1,7 +1,4 @@
-﻿using System.Globalization;
-using Microsoft.EntityFrameworkCore;
-using AddressLibrary.Models;
-using AddressLibrary.Data;
+﻿using AddressLibrary.Data;
 
 namespace AddressLibrary.Services
 {
@@ -26,14 +23,14 @@ namespace AddressLibrary.Services
             // Utwórz folder na logi
             var baseDir = _appDataPath ?? AppDomain.CurrentDomain.BaseDirectory;
             var logsDir = Path.Combine(baseDir, "AppData", "Logs");
-            
+
             // DIAGNOSTYKA: Utwórz katalog i zapisz ścieżkę
             Directory.CreateDirectory(logsDir);
             var logPath = Path.Combine(logsDir, "PdfLoad.txt");
-            
+
             // DODAJ DIAGNOSTYKĘ - zapisz gdzie dokładnie jest log
             var diagnosticPath = Path.Combine(baseDir, "LOG_LOCATION.txt");
-            await File.WriteAllTextAsync(diagnosticPath, 
+            await File.WriteAllTextAsync(diagnosticPath,
                 $"=== DIAGNOSTYKA LOKALIZACJI LOGÓW ==={Environment.NewLine}" +
                 $"Data: {DateTime.Now}{Environment.NewLine}" +
                 $"BaseDir (_appDataPath): {baseDir}{Environment.NewLine}" +
@@ -51,7 +48,7 @@ namespace AddressLibrary.Services
 
                 // Przetwórz PDF - PRZEKAŻ appDataPath!
                 await File.AppendAllTextAsync(logPath, $"Rozpoczynam przetwarzanie PDF...{Environment.NewLine}");
-                
+
                 var records = PdfProcessor.Process(pdfFilePath, _appDataPath);
 
                 await File.AppendAllTextAsync(logPath, $"Przetworzone rekordy: {records?.Count ?? 0}{Environment.NewLine}");
@@ -59,10 +56,10 @@ namespace AddressLibrary.Services
                 if (records != null && records.Any())
                 {
                     await File.AppendAllTextAsync(logPath, $"Dodawanie {records.Count} rekordów do bazy...{Environment.NewLine}");
-                    
+
                     await _context.Pna.AddRangeAsync(records);
                     await _context.SaveChangesAsync();
-                    
+
                     await File.AppendAllTextAsync(logPath, $"✅ Zakończono pomyślnie - dodano {records.Count} rekordów{Environment.NewLine}");
                 }
                 else

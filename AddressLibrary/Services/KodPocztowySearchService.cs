@@ -1,10 +1,9 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
 using AddressLibrary.Data;
-using AddressLibrary.Models;
 using AddressLibrary.Helpers;
+using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
 using System.Text;
 
 namespace AddressLibrary.Services
@@ -90,7 +89,7 @@ namespace AddressLibrary.Services
             {
                 var miastoNorm = NormalizeText(parameters.Miasto);
                 results = results
-                    .Where(k => k.Miasto != null && 
+                    .Where(k => k.Miasto != null &&
                                NormalizeText(k.Miasto.Nazwa) == miastoNorm)
                     .ToList();
             }
@@ -106,7 +105,7 @@ namespace AddressLibrary.Services
             else
             {
                 // Jeœli nie podano ulicy, szukaj rekordów bez ulicy (UlicaId == -1 lub null)
-                results = results.Where(k => k.UlicaId == -1 || k.UlicaId == null).ToList();
+                results = results.Where(k => k.UlicaId == -1).ToList();
             }
 
             // Filtruj po numerze domu (jeœli podano)
@@ -161,7 +160,7 @@ namespace AddressLibrary.Services
         private bool IsStreetNameMatch(string streetNameInDb, string searchTerm)
         {
             var normalized = NormalizeText(streetNameInDb);
-            
+
             if (normalized == searchTerm)
                 return true;
 

@@ -50,7 +50,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             {
                 await _context.RodzajeMiast.AddRangeAsync(rodzajeMiasta);
                 await _context.SaveChangesAsync();
-                
+
                 // Wyczyœæ ChangeTracker po zapisie
                 _context.ChangeTracker.Clear();
             }

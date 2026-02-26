@@ -10,7 +10,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// <summary>
         /// Kod pocztowy (opcjonalny)
         /// </summary>
-        public string? KodPocztowy { get; init; }
+        public string KodPocztowy { get; init; } = string.Empty;
 
         /// <summary>
         /// Nazwa miejscowoœci (wymagana)
@@ -20,16 +20,16 @@ namespace AddressLibrary.Services.AddressSearch
         /// <summary>
         /// Nazwa ulicy (opcjonalna)
         /// </summary>
-        public string? Ulica { get; init; }
+        public string Ulica { get; init; } = string.Empty;
 
         /// <summary>
         /// Numer domu (opcjonalny)
         /// </summary>
-        public string? NumerDomu { get; init; }
+        public string NumerDomu { get; init; } = string.Empty;
 
         /// <summary>
         /// Numer mieszkania (opcjonalny)
         /// </summary>
-        public string? NumerMieszkania { get; init; }
+        public string NumerMieszkania { get; init; } = string.Empty;
     }
 }

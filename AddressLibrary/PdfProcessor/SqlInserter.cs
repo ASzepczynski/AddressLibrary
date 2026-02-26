@@ -1,12 +1,9 @@
-using System;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using CsvHelper;
-using Microsoft.Data.SqlClient;
-using CsvHelper.Configuration;
 using AddressLibrary.Models;
+using CsvHelper;
+using CsvHelper.Configuration;
+using Microsoft.Data.SqlClient;
+using System.Globalization;
+using System.Text;
 
 public static class SqlInserter
 {
@@ -101,14 +98,14 @@ VALUES (@Kod, @Miasto, @Dzielnica, @Ulica, @Gmina, @Powiat, @Wojewodztwo, @Numer
 
         foreach (var r in recordsCsv)
         {
-            insertCmd.Parameters["@Kod"].Value = (object)r.Kod ?? DBNull.Value;
-            insertCmd.Parameters["@Miasto"].Value = (object)r.Miasto ?? DBNull.Value;
-            insertCmd.Parameters["@Dzielnica"].Value = (object)r.Dzielnica ?? DBNull.Value;
-            insertCmd.Parameters["@Ulica"].Value = (object)r.Ulica ?? DBNull.Value;
-            insertCmd.Parameters["@Gmina"].Value = (object)r.Gmina ?? DBNull.Value;
-            insertCmd.Parameters["@Powiat"].Value = (object)r.Powiat ?? DBNull.Value;
-            insertCmd.Parameters["@Wojewodztwo"].Value = (object)r.Wojewodztwo ?? DBNull.Value;
-            insertCmd.Parameters["@Numery"].Value = (object)r.Numery ?? DBNull.Value;
+            insertCmd.Parameters["@Kod"].Value = string.IsNullOrEmpty(r.Kod) ? DBNull.Value : r.Kod;
+            insertCmd.Parameters["@Miasto"].Value = string.IsNullOrEmpty(r.Miasto) ? DBNull.Value : r.Miasto;
+            insertCmd.Parameters["@Dzielnica"].Value = string.IsNullOrEmpty(r.Dzielnica) ? DBNull.Value : r.Dzielnica;
+            insertCmd.Parameters["@Ulica"].Value = string.IsNullOrEmpty(r.Ulica) ? DBNull.Value : r.Ulica;
+            insertCmd.Parameters["@Gmina"].Value = string.IsNullOrEmpty(r.Gmina) ? DBNull.Value : r.Gmina;
+            insertCmd.Parameters["@Powiat"].Value = string.IsNullOrEmpty(r.Powiat) ? DBNull.Value : r.Powiat;
+            insertCmd.Parameters["@Wojewodztwo"].Value = string.IsNullOrEmpty(r.Wojewodztwo) ? DBNull.Value : r.Wojewodztwo;
+            insertCmd.Parameters["@Numery"].Value = string.IsNullOrEmpty(r.Numery) ? DBNull.Value : r.Numery;
 
             insertCmd.ExecuteNonQuery();
         }

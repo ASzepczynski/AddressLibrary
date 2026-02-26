@@ -1,8 +1,9 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Data;
-using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
+using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
@@ -140,7 +141,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (!string.IsNullOrWhiteSpace(normalizedNumerDomu))
             {
                 kodPocztowyRecords = kodPocztowyRecords
-                    .Where(k => IsNumberInRange(normalizedNumerDomu, k.Numery))
+                    .Where(k => BuildingNumberValidator.IsNumberInRange(normalizedNumerDomu, k.Numery))
                     .ToList();
 
                 diagnostic?.Log($"  Filtr po numerze domu '{normalizedNumerDomu}': {kodPocztowyRecords.Count} rekordów");
@@ -238,78 +239,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 "",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase
             ).Trim();
-        }
-
-        /// <summary>
-        /// ✅ Sprawdza czy numer domu pasuje do zakresu numerów
-        /// Obsługuje formaty: "1-5", "7-9(n)", "2-10(p)", "11-DK"
-        /// </summary>
-        private bool IsNumberInRange(string numerDomu, string? zakres)
-        {
-            if (string.IsNullOrWhiteSpace(zakres))
-            {
-                // Brak zakresu = wszystkie numery pasują
-                return true;
-            }
-
-            // Normalizuj numer (usuń litery, zostaw tylko cyfry)
-            if (!int.TryParse(System.Text.RegularExpressions.Regex.Replace(numerDomu, @"[^\d]", ""), out var numer))
-            {
-                return false;
-            }
-
-            // Rozdziel zakres przecinkami (może być kilka zakresów)
-            var zakresy = zakres.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var z in zakresy)
-            {
-                var zakresTrimed = z.Trim();
-
-                // Format: "11-DK" (do końca)
-                if (zakresTrimed.EndsWith("-DK", StringComparison.OrdinalIgnoreCase))
-                {
-                    var start = int.Parse(zakresTrimed.Substring(0, zakresTrimed.IndexOf('-')));
-                    if (numer >= start)
-                        return true;
-                }
-                // Format: "1-5", "7-9(n)", "2-10(p)"
-                else if (zakresTrimed.Contains('-'))
-                {
-                    var parts = zakresTrimed.Split('-');
-                    if (parts.Length == 2 &&
-                        int.TryParse(parts[0], out var start) &&
-                        int.TryParse(System.Text.RegularExpressions.Regex.Replace(parts[1], @"[^\d]", ""), out var end))
-                    {
-                        if (numer >= start && numer <= end)
-                        {
-                            // Sprawdź parzystość/nieparzystość
-                            if (zakresTrimed.Contains("(n)", StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (numer % 2 == 1) // nieparzyste
-                                    return true;
-                            }
-                            else if (zakresTrimed.Contains("(p)", StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (numer % 2 == 0) // parzyste
-                                    return true;
-                            }
-                            else
-                            {
-                                // Bez ograniczenia parzystości
-                                return true;
-                            }
-                        }
-                    }
-                }
-                // Format: "5" (pojedynczy numer)
-                else if (int.TryParse(zakresTrimed, out var pojedynczy))
-                {
-                    if (numer == pojedynczy)
-                        return true;
-                }
-            }
-
-            return false;
         }
     }
 }

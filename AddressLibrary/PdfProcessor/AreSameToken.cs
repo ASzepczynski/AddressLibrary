@@ -11,8 +11,8 @@ public static partial class PdfProcessor
         var isCapitalizedWord = CapitalizedWordRegex.IsMatch(current.Text);
 
 
-        if (isCapitalizedWord && prev.Text.EndsWith(")"))return false;
-        if (prev.Text.ToString().EndsWith(",") && Regex.IsMatch(current.Text.ToString(),@"^\d")) return true;
+        if (isCapitalizedWord && prev.Text.EndsWith(")")) return false;
+        if (prev.Text.ToString().EndsWith(",") && Regex.IsMatch(current.Text.ToString(), @"^\d")) return true;
         if (prev.Text.ToString().EndsWith("-")) return true;
 
         if (prev.Text.ToString().EndsWith("DK")) return false;

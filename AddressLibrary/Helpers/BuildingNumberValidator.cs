@@ -2,17 +2,17 @@
 
 using System.Text;
 
-namespace AddressLibrary.Services.AddressSearch
+namespace AddressLibrary.Helpers
 {
     /// <summary>
     /// Walidator numerów budynków z obsługą zakresów
     /// </summary>
-    public class BuildingNumberValidator
+    public static class BuildingNumberValidator
     {
         /// <summary>
         /// Sprawdza czy numer budynku pasuje do definicji zakresu
         /// </summary>
-        public bool IsNumberInRange(string numerBudynku, string definicjaZakresow)
+        public static bool IsNumberInRange(string numerBudynku, string definicjaZakresow)
         {
             if (string.IsNullOrWhiteSpace(definicjaZakresow))
             {
@@ -24,6 +24,8 @@ namespace AddressLibrary.Services.AddressSearch
                 return false;
             }
 
+            // Poprawienie błędu, zmiana spacji na przecinki
+            definicjaZakresow = definicjaZakresow.Replace(" ", ",");
             var zakresy = definicjaZakresow.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             foreach (var zakres in zakresy)
@@ -37,7 +39,7 @@ namespace AddressLibrary.Services.AddressSearch
             return false;
         }
 
-        private bool IsNumberInSingleRange(int numer, string zakres)
+        private static bool IsNumberInSingleRange(int numer, string zakres)
         {
             zakres = zakres.Trim();
 
@@ -68,14 +70,15 @@ namespace AddressLibrary.Services.AddressSearch
                     return false;
                 }
 
+
                 if (koniec.Equals("DK", StringComparison.OrdinalIgnoreCase))
                 {
                     // ✅ NOWA LOGIKA: Jeśli zakres bez (n)/(p), sprawdź parzystość
-                    if (!tylkoNieparzyste && !tylkoParzyste)
-                    {
-                        tylkoParzyste = numerPoczatek % 2 == 0;
-                        tylkoNieparzyste = !tylkoParzyste;
-                    }
+                    //if (!tylkoNieparzyste && !tylkoParzyste)
+                    //{
+                    //    tylkoParzyste = numerPoczatek % 2 == 0;
+                    //    tylkoNieparzyste = !tylkoParzyste;
+                    //}
 
                     // Sprawdź parzystość
                     if (tylkoNieparzyste && czyParzysty)
@@ -90,19 +93,20 @@ namespace AddressLibrary.Services.AddressSearch
                     return numer >= numerPoczatek;
                 }
 
+
                 // Wyciągnij liczbę z końca (obsługa 52a, 115b itp.)
                 if (!ExtractNumber(koniec, out int numerKoniec))
                 {
                     return false;
                 }
-
-                // ✅ NOWA LOGIKA: Jeśli zakres bez (n)/(p) ma jednakową parzystość na początku i końcu
-                if (!tylkoNieparzyste && !tylkoParzyste && numerPoczatek % 2 == numerKoniec % 2)
-                {
-                    tylkoParzyste = numerPoczatek % 2 == 0;
-                    tylkoNieparzyste = !tylkoParzyste;
-                }
-
+                /*
+                                // ✅ NOWA LOGIKA: Jeśli zakres bez (n)/(p) ma jednakową parzystość na początku i końcu
+                                if (!tylkoNieparzyste && !tylkoParzyste && numerPoczatek % 2 == numerKoniec % 2)
+                                {
+                                    tylkoParzyste = numerPoczatek % 2 == 0;
+                                    tylkoNieparzyste = !tylkoParzyste;
+                                }
+                */
                 // Sprawdź parzystość
                 if (tylkoNieparzyste && czyParzysty)
                 {
@@ -148,7 +152,7 @@ namespace AddressLibrary.Services.AddressSearch
             return false;
         }
 
-        private bool ExtractNumber(string numerBudynku, out int numer)
+        private static bool ExtractNumber(string numerBudynku, out int numer)
         {
             numer = 0;
 

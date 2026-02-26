@@ -2,7 +2,6 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
-using AddressLibrary.Services.AddressSearch;
 using AddressLibrary.Structures;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -234,8 +233,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 bool zmiana;
                 // Jeśli cecha jest inne a ulica jest Most to zmieniamy cechę
-                (zmiana, ulica.Cecha,ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "inne", "most", ulica.Nazwa1, miasto.Nazwa);
-                if(zmiana) prefixChanges++;
+                (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "inne", "most", ulica.Nazwa1, miasto.Nazwa);
+                if (zmiana) prefixChanges++;
                 // Jeśli cecha jest ul. a ulica jest Rynek to zmieniamy cechę
 
                 (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "ul.", "rynek", ulica.Nazwa1, miasto.Nazwa);
@@ -243,7 +242,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "pl.", "rynek", ulica.Nazwa1, miasto.Nazwa);
                 if (zmiana) prefixChanges++;
-               
+
                 (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "rynek", "rynek", ulica.Nazwa1, miasto.Nazwa);
                 if (zmiana) prefixChanges++;
 
@@ -251,7 +250,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 // Tutaj na wszelki wypadek przywracam Napis Rynek 
                 if (ulica.Cecha == "rynek" && ulica.Nazwa1 == "")
                 {
-                   
+
                     ulica.Nazwa1 = "Rynek";
                 }
 
@@ -290,7 +289,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         }
 
 
-        public (bool zmiana,string Cecha, string Nazwa) ZmienCeche(
+        public (bool zmiana, string Cecha, string Nazwa) ZmienCeche(
             string curCecha,
             string patCecha,
             string searchString,
@@ -302,19 +301,19 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
 
             if (!string.Equals(curCecha, patCecha, StringComparison.OrdinalIgnoreCase))
-                return (false,curCecha, Nazwa);
+                return (false, curCecha, Nazwa);
 
 
             if ((Nazwa != sInitcap) && !Nazwa.StartsWith(sInitcap + " ", StringComparison.OrdinalIgnoreCase))
-                return (false,curCecha, Nazwa);
-            
+                return (false, curCecha, Nazwa);
+
             var oldCecha = curCecha;
             var oldNazwa1 = Nazwa;
-            string Reszta = "";
             if (Nazwa == sInitcap)
             {
                 Nazwa = "";
-            } else
+            }
+            else
             {
                 Nazwa = Nazwa.Substring(searchString.Length).Trim();
             }
@@ -330,7 +329,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             );
 
             _logger.LogInfo($"[Most] Zmieniono: '{oldCecha ?? "(brak)"}' '{oldNazwa1}' → '{searchString}' '{Nazwa}' w {miastoNazwa}");
-            return (true,curCecha, Nazwa);
+            return (true, curCecha, Nazwa);
         }
 
 

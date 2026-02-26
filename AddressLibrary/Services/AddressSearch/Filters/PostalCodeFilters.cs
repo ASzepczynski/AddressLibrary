@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
+using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 
 namespace AddressLibrary.Services.AddressSearch.Filters
@@ -9,13 +10,6 @@ namespace AddressLibrary.Services.AddressSearch.Filters
     /// </summary>
     public class PostalCodeFilters
     {
-        private readonly BuildingNumberValidator _numberValidator;
-
-        public PostalCodeFilters(BuildingNumberValidator numberValidator)
-        {
-            _numberValidator = numberValidator;
-        }
-
         /// <summary>
         /// Filtruje kody pocztowe po ID ulicy
         /// </summary>
@@ -40,7 +34,7 @@ namespace AddressLibrary.Services.AddressSearch.Filters
             var result = new List<KodPocztowy>();
             for (int i = 0; i < kody.Count; i++)
             {
-                if (kody[i].UlicaId == -1 || kody[i].UlicaId == null)
+                if (kody[i].UlicaId == -1)
                 {
                     result.Add(kody[i]);
                 }
@@ -56,7 +50,7 @@ namespace AddressLibrary.Services.AddressSearch.Filters
             var result = new List<KodPocztowy>();
             for (int i = 0; i < kody.Count; i++)
             {
-                if (_numberValidator.IsNumberInRange(numerBudynku, kody[i].Numery))
+                if (BuildingNumberValidator.IsNumberInRange(numerBudynku, kody[i].Numery))
                 {
                     result.Add(kody[i]);
                 }
@@ -87,7 +81,7 @@ namespace AddressLibrary.Services.AddressSearch.Filters
         {
             for (int i = 0; i < kody.Count; i++)
             {
-                if (kody[i].UlicaId == -1 || kody[i].UlicaId == null)
+                if (kody[i].UlicaId == -1)
                 {
                     return kody[i];
                 }

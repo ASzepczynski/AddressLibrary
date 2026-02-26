@@ -8,18 +8,18 @@ namespace AddressLibrary.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        
+
         [Required]
         [MaxLength(10)]
         public string Symbol { get; set; } = string.Empty;
-        
+
         [MaxLength(10)]
         public string? Cecha { get; set; }
-        
+
         [Required]
         [MaxLength(200)]
         public string Nazwa1 { get; set; } = string.Empty;
-        
+
         [MaxLength(200)]
         public string? Nazwa2 { get; set; }
 

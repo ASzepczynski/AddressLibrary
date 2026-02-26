@@ -92,10 +92,12 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         // Próba dokładnego dopasowania (case-insensitive) dzielnicy, jeśli istnieje
                         if (miasta.TryGetValue(currentDzielnica.ToLowerInvariant(), out var miasto2))
                         {
-                            if (string.IsNullOrEmpty(pna.Ulica) || miasto2.Ulice.Any() ){
+                            if (string.IsNullOrEmpty(pna.Ulica) || miasto2.Ulice.Any())
+                            {
                                 // zwróć dzielnicę
                                 return (miasto2, gmina, currentDzielnica, currentGmina, gminyCount);
-                            } else
+                            }
+                            else
                             {
                                 // zwróć miasto
                                 return (miasto, foundGmina, currentMiasto, currentGmina, gminyCount);

@@ -1,8 +1,6 @@
-﻿using AddressLibrary.Helpers;
-using AddressLibrary.Logging;
+﻿using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch;
-using UglyToad.PdfPig.DocumentLayoutAnalysis;
 
 namespace AddressLibrary.Helpers
 {
@@ -15,7 +13,7 @@ namespace AddressLibrary.Helpers
             string? postalCode, // 🆕 DODANE
             SearchLogger? searchLogger,
             out string? method)
-            {
+        {
             var miastoNorm = _normalizer.Normalize(miastoName);
             searchLogger?.Log($"Znormalizowana miejscowość: '{miastoName}' -> '{miastoNorm}'");
 
@@ -26,7 +24,7 @@ namespace AddressLibrary.Helpers
                 // ✅ Jeśli jest więcej niż 1 miasto, spróbuj wybrać najbardziej pasujące
                 if (miasta.Count > 1)
                 {
-                    var bestCity = SelectBestCity(_cache,miasta, miastoName, postalCode, searchLogger); // 🆕 DODANE postalCode
+                    var bestCity = SelectBestCity(_cache, miasta, miastoName, postalCode, searchLogger); // 🆕 DODANE postalCode
                     if (bestCity != null)
                     {
                         searchLogger?.Log($"  ✓ Wybrano najlepiej pasującą miejscowość: '{bestCity.Nazwa}'");
@@ -77,7 +75,7 @@ namespace AddressLibrary.Helpers
             if (!string.IsNullOrWhiteSpace(postalCode))
             {
                 normalizedPostalCode = UliceUtils.NormalizujKodPocztowy(postalCode);
-                
+
                 // ✅ POPRAWKA: Jeśli normalizacja zwróciła pusty string, zignoruj kod pocztowy
                 if (string.IsNullOrEmpty(normalizedPostalCode))
                 {
@@ -108,22 +106,22 @@ namespace AddressLibrary.Helpers
                     {
                         continue; // Pomiń miasta bez kodów pocztowych
                     }
-                    
+
                     // ✅ POPRAWKA: Sprawdź długość przed użyciem Substring
                     if (normalizedPostalCode.Length < 5) // Kod pocztowy musi mieć format XX-XXX (5 znaków)
                     {
                         continue; // Pomiń jeśli kod pocztowy jest za krótki
                     }
-                    
+
                     // Dopuszczamy błędy na 3 ostatnich cyfrach kodu
                     // Porównujemy pierwsze 2 cyfry (po normalizacji: "12-345" -> porównaj "12")
                     string requiredPrefix = normalizedPostalCode.Substring(0, 2);
-                    
-                    bool hasMatchingCode = cityCodes.Any(k => 
-                        !string.IsNullOrEmpty(k.Kod) && 
-                        k.Kod.Length >= 5 && 
+
+                    bool hasMatchingCode = cityCodes.Any(k =>
+                        !string.IsNullOrEmpty(k.Kod) &&
+                        k.Kod.Length >= 5 &&
                         k.Kod.Substring(0, 2) == requiredPrefix);
-                    
+
                     if (!hasMatchingCode)
                     {
                         continue; // ✅ POMIŃ miasto jeśli kod się NIE ZGADZA!
@@ -205,7 +203,7 @@ namespace AddressLibrary.Helpers
             return null;
         }
 
-        
+
         /// <summary>
         /// 🆕 Wybiera najlepiej pasującą miejscowość z listy (gdy jest wiele o tej samej znormalizowanej nazwie)
         /// </summary>
@@ -281,11 +279,11 @@ namespace AddressLibrary.Helpers
             GeneralLogger? searchLogger)
         {
             var city = FindSimilarCity(_cache, normalizedCityName, postalCode, searchLogger);
-            
+
             // Jeśli znaleziono miasto i jego nazwa różni się od wyszukiwanej - to fuzzy
-            bool wasFuzzy = city != null && 
+            bool wasFuzzy = city != null &&
                 !city.Nazwa.Equals(normalizedCityName, StringComparison.OrdinalIgnoreCase);
-            
+
             return (city, wasFuzzy);
         }
     }

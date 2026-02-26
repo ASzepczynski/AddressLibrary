@@ -1,8 +1,4 @@
-﻿
-using System;
-using System.IO;
-
-namespace AddressLibrary.Logging
+﻿namespace AddressLibrary.Logging
 {
     /// <summary>
     /// Logger dla procesu ładowania kodów pocztowych, dziedziczący z GeneralLogger
@@ -10,7 +6,7 @@ namespace AddressLibrary.Logging
     public class SearchLogger : GeneralLogger
     {
         public SearchLogger(string? appDataPath)
-            : base(appDataPath, "VerifyStreet.txt", "Log weryfikacji ulic",LoggerMode.Buffered)
+            : base(appDataPath, "VerifyStreet.txt", "Log weryfikacji ulic", LoggerMode.Buffered)
         {
         }
     }

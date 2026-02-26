@@ -21,7 +21,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             // Wyci¹gnij unikalne powiaty (bez kodu "00" - to jest "Brak")
             var powiatyKody = tercData
-                .Where(t => !string.IsNullOrEmpty(t.Powiat) && 
+                .Where(t => !string.IsNullOrEmpty(t.Powiat) &&
                            t.Powiat != "00" &&
                            string.IsNullOrEmpty(t.Gmina))
                 .Select(t => new { t.Wojewodztwo, t.Powiat })
@@ -43,7 +43,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 if (tercPow != null && wojewodztwaDict.TryGetValue(powiatInfo.Wojewodztwo, out var wojewodztwo))
                 {
                     var klucz = $"{powiatInfo.Wojewodztwo}|{powiatInfo.Powiat}";
-                    
+
                     // KLUCZOWA ZMIANA: Pe³ny kod 4-cyfrowy (województwo + powiat)
                     var kodPowiatu = $"{powiatInfo.Wojewodztwo}{powiatInfo.Powiat}";
 

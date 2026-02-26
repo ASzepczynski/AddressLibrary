@@ -1,10 +1,7 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using System.Globalization;
-using System.Text;
-using System.Text.RegularExpressions;
 using AddressLibrary.Helpers;
-using Microsoft.IdentityModel.Tokens;
+using System.Text.RegularExpressions;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -46,7 +43,7 @@ namespace AddressLibrary.Services.AddressSearch
             };
 
 
-        
+
         // ✅ NOWE: Skróty nazw miast które NIE MOGĄ BYĆ USUWANE!
         private static readonly string[] CityAbbreviations = new[]
         {
@@ -59,7 +56,7 @@ namespace AddressLibrary.Services.AddressSearch
             "doln.", "doln"                // Dolny
         };
 
-       
+
 
         static TextNormalizer()
         {
@@ -82,9 +79,8 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (normalized.Contains("bat."))
             {
-                int y = 1;
             }
-    
+
             normalized = RemoveTitles(normalized);
             normalized = RemoveInitialsPrefix(normalized);
 
@@ -106,7 +102,7 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
 
-                      
+
         /// <summary>
         /// Usuwa tytuły wojskowe, religijne, naukowe z tekstu
         /// </summary>
@@ -117,9 +113,9 @@ namespace AddressLibrary.Services.AddressSearch
 
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var filtered = words.Where(w => !titles.Contains(w.Replace(".", ""))).ToList();
-            
+
             return string.Join(" ", filtered);
         }
-   
+
     }
 }

@@ -13,7 +13,7 @@ namespace AddressLibrary.Data.Configurations
             builder.HasIndex(e => new { e.PowiatId, e.Kod, e.RodzajGminyId })
                    .IsUnique()
                    .HasDatabaseName("IX_Gminy_PowiatId_Kod_RodzajGminyId");
-            
+
             builder.HasIndex(e => e.Nazwa);
 
             // DeleteBehavior

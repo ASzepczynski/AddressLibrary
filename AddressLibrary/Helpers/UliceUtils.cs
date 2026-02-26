@@ -1,13 +1,7 @@
 ﻿using AddressLibrary.Models;
 using AddressLibrary.Structures;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using static System.Net.WebRequestMethods;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AddressLibrary.Helpers
 {
@@ -216,7 +210,7 @@ namespace AddressLibrary.Helpers
             return $"{cyfry.Substring(0, 2)}-{cyfry.Substring(2, 3)}";
         }
 
-        
+
         public static string RemoveDiacritics(string text)
         {
             var normalizedString = text.Normalize(NormalizationForm.FormD);
@@ -324,9 +318,9 @@ namespace AddressLibrary.Helpers
                 if (streetName.StartsWith(prefixWithSpace, StringComparison.OrdinalIgnoreCase))
                 {
                     // Znajdź klucz słownika i zwróć PIERWSZY wariant (znormalizowany skrót)
-                    var entry = StreetPrefixes.FirstOrDefault(kv => 
+                    var entry = StreetPrefixes.FirstOrDefault(kv =>
                         kv.Value.Any(v => v.Equals(prefix, StringComparison.OrdinalIgnoreCase)));
-                    
+
                     if (!string.IsNullOrEmpty(entry.Key))
                     {
                         var normalizedPrefix = entry.Value[0]; // ✅ Pierwszy wariant (np. "al.", "ul.", "pl.")
@@ -494,7 +488,7 @@ namespace AddressLibrary.Helpers
             return result.ToString();
         }
 
-                /// <summary>
+        /// <summary>
         /// ⚡ SZYBKA funkcja sprawdzająca czy wzorzec pasuje do tekstu od lewej do prawej
         /// Usuwa wszystkie znaki oprócz liter i cyfr, następnie szuka każdej litery wzorca w tekście po kolei.
         /// Przykłady:

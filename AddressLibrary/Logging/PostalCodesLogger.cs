@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using System;
-using System.IO;
-
 namespace AddressLibrary.Logging
 {
     /// <summary>
@@ -10,8 +7,8 @@ namespace AddressLibrary.Logging
     /// </summary>
     public class PostalCodesLogger : GeneralLogger
     {
-        public PostalCodesLogger(string? appDataPath) 
-            : base(appDataPath, "PostalCodesLoader.txt","Log ładowania kodów pocztowych")
+        public PostalCodesLogger(string? appDataPath)
+            : base(appDataPath, "PostalCodesLoader.txt", "Log ładowania kodów pocztowych")
         {
         }
     }

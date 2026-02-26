@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Data;
-using AddressLibrary.Models;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Services.AddressSearch.Filters;
@@ -30,8 +29,7 @@ namespace AddressLibrary.Services.AddressSearch
             _cache = new AddressSearchCache(context, _normalizer);
 
             var streetMatcher = new StreetMatcher(_normalizer);
-            var numberValidator = new BuildingNumberValidator();
-            var filters = new PostalCodeFilters(numberValidator);
+            var filters = new PostalCodeFilters();
             var resultFactory = new SearchResultFactory(_cache);
             var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
             var ambiguityResolver = new AmbiguousStreetResolver(_normalizer);
@@ -83,10 +81,10 @@ namespace AddressLibrary.Services.AddressSearch
 
             var elementy = new List<string>();
 
-            if (!string.IsNullOrEmpty(sNumer1)){ elementy.Add(sNumer1); }
-            if (!string.IsNullOrEmpty(sNumer2)){ elementy.Add(sNumer2); }
-            if (!string.IsNullOrEmpty(request.NumerDomu)){ elementy.Add(request.NumerDomu); }
-            if (!string.IsNullOrEmpty(request.NumerMieszkania)){ elementy.Add(request.NumerMieszkania); }
+            if (!string.IsNullOrEmpty(sNumer1)) { elementy.Add(sNumer1); }
+            if (!string.IsNullOrEmpty(sNumer2)) { elementy.Add(sNumer2); }
+            if (!string.IsNullOrEmpty(request.NumerDomu)) { elementy.Add(request.NumerDomu); }
+            if (!string.IsNullOrEmpty(request.NumerMieszkania)) { elementy.Add(request.NumerMieszkania); }
 
             if (elementy.Count() >= 1)
             {
@@ -138,7 +136,7 @@ namespace AddressLibrary.Services.AddressSearch
                 }
             }
 
-            if (_corrections.TryCorrect("M", request.Miasto, out var correctedCity))
+            if (_corrections.TryCorrect("M", request.Miasto, out string correctedCity))
             {
                 Console.WriteLine($"Skorygowano miasto: '{request.Miasto}' -> '{correctedCity}'");
                 request = new AddressSearchRequest
@@ -165,7 +163,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // Znajdź miasta o podanej nazwie
-            var miasta = CityUtils.FindAllMiasta(_cache,_normalizer,request.Miasto, request.KodPocztowy, searchLogger, out string? method);
+            var miasta = CityUtils.FindAllMiasta(_cache, _normalizer, request.Miasto, request.KodPocztowy, searchLogger, out string? method);
             if (miasta == null || miasta.Count == 0)
             {
                 var result = new AddressSearchResult

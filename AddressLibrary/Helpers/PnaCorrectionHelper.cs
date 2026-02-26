@@ -1,9 +1,6 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+﻿using AddressLibrary.Models;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using AddressLibrary.Models;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace AddressLibrary.Helpers
 {

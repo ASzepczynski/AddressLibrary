@@ -77,7 +77,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var uliceAllList = await _context.Ulice
                 .Include(u => u.KodyPocztowe)
                 .ToListAsync();
-            
+
             var uliceDict = new Dictionary<int, Dictionary<string, List<Ulica>>>();
 
             foreach (var ulica in uliceAllList)

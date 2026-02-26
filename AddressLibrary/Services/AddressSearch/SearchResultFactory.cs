@@ -1,7 +1,9 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
+using AddressLibrary.Models;
+using AddressLibrary.Utils;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -31,7 +33,7 @@ namespace AddressLibrary.Services.AddressSearch
             if (kodyPocztowe.Count == 0)
             {
                 diagnostic?.Log("✗ Nie znaleziono żadnych pasujących kodów pocztowych");
-                
+
                 string errorMessage;
                 if (ulica == null && CityHasStreets(miasto.Id))
                 {
@@ -58,7 +60,7 @@ namespace AddressLibrary.Services.AddressSearch
                     result.AddDiagnostic($"Ulica: {ulica.Nazwa1} (ID={ulica.Id})");
                 result.AddDiagnostic($"Numer budynku: {normalizedBuildingNumber ?? "brak"}");
                 result.AddDiagnostic($"Liczba znalezionych kodów: 0");
-                
+
                 return result;
             }
 
@@ -66,7 +68,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 var kod = kodyPocztowe[0];
                 diagnostic?.Log($"✓ Jedno dopasowanie: {kod.Kod}");
-                
+
                 var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.Success,
@@ -82,13 +84,42 @@ namespace AddressLibrary.Services.AddressSearch
                 result.AddDiagnostic($"Miasto: {miasto.Nazwa}");
                 if (ulica != null)
                     result.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
-                
+
                 return result;
             }
 
+            var uniqueStreetIds = kodyPocztowe
+                .Select(k => k.UlicaId != -1)
+                .Distinct()
+                .ToList();
+
+            if (uniqueStreetIds.Count == 1)
+            {
+                // mamy ulicę !!!
+                var matchingCodes = kodyPocztowe
+                    .Where(k => BuildingNumberValidator.IsNumberInRange(normalizedBuildingNumber, k.Numery))
+                    .ToList();
+
+
+                var kod = ObjectCopier.ShallowCopy(matchingCodes[0]);
+                if(matchingCodes.Count > 1)kod.Kod = $"!{kod.Kod}";
+                    
+                diagnostic?.Log($"  ✓ SUKCES: Znaleziono dokładny kod po numerze domu: {kod.Kod}");
+
+                var result = new AddressSearchResult
+                {
+                    Status = AddressSearchStatus.Success,
+                    KodPocztowy = kod,
+                    Miasto = miasto,
+                    Ulica = ulica,
+                    NormalizedBuildingNumber = normalizedBuildingNumber,
+                    NormalizedApartmentNumber = normalizedApartmentNumber
+                };
+                return result;
+            }
             // 🆕 WIELE DOPASOWAŃ: Pokaż kody pocztowe + ORYGINALNE nazwy ulic
-            diagnostic?.Log($"⚠ Znaleziono wiele dopasowań: {kodyPocztowe.Count}");
-            
+            diagnostic?.Log($"⚠ Znaleziono wiele dopasowań [D]: {kodyPocztowe.Count}");
+
             // Pobierz ulice z cache
             if (!_cache.TryGetUlice(miasto.Id, out var cachedUlice))
             {
@@ -134,12 +165,12 @@ namespace AddressLibrary.Services.AddressSearch
             if (postalCodeInfoList.Count > 0)
             {
                 var codeList = string.Join(", ", postalCodeInfoList);
-                message = $"Znaleziono wiele dopasowań ({postalCodeInfoList.Count}): {codeList}";
+                message = $"Znaleziono wiele dopasowań [E] ({postalCodeInfoList.Count}): {codeList}";
                 diagnostic?.Log($"  ✓ Komunikat: {message}");
             }
             else
             {
-                message = $"Znaleziono wiele dopasowań ({kodyPocztowe.Count})";
+                message = $"Znaleziono wiele dopasowań [F] ({kodyPocztowe.Count})";
                 diagnostic?.Log($"  ⚠ Nie udało się utworzyć szczegółowego komunikatu");
             }
 
@@ -160,12 +191,12 @@ namespace AddressLibrary.Services.AddressSearch
             multiResult.AddDiagnostic($"Miasto: {miasto.Nazwa}");
             if (ulica != null)
                 multiResult.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
-            
+
             foreach (var codeInfo in postalCodeInfoList.Take(5)) // Max 5 przykładów
             {
                 multiResult.AddDiagnostic($"  • {codeInfo}");
             }
-            
+
             if (postalCodeInfoList.Count > 5)
                 multiResult.AddDiagnostic($"  ... i {postalCodeInfoList.Count - 5} więcej");
 

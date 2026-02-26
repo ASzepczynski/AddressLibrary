@@ -1,7 +1,6 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
-using System.IO;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -47,7 +46,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 {
                     // FILTROWANIE: Dla miast na prawach powiatu (kody 61-65) pomiń delegatury
                     var powiatCode = gminaInfo.Powiat;
-                    var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" || 
+                    var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" ||
                                                 powiatCode == "63" || powiatCode == "64" || powiatCode == "65";
 
                     // Dla miast na prawach powiatu - dodaj tylko gminę o rodzaju '1' lub '8' z kodem gminy '01'
@@ -61,7 +60,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                             // To jest delegatura, pomiń
                             continue;
                         }
-                        
+
                         // Jeśli to rodzaj '1' (gmina miejska), to jest główna gmina
                         if (gminaInfo.RodzajGminy != "1" && gminaInfo.Gmina != "01")
                         {
@@ -71,12 +70,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     }
 
                     var powiatKey = $"{gminaInfo.Wojewodztwo}|{gminaInfo.Powiat}";
-                    
+
                     if (powiatyDict.TryGetValue(powiatKey, out var powiat) &&
                         rodzajeGminDict.TryGetValue(gminaInfo.RodzajGminy, out var rodzajGminy))
                     {
                         var klucz = $"{gminaInfo.Wojewodztwo}|{gminaInfo.Powiat}|{gminaInfo.Gmina}|{gminaInfo.RodzajGminy}";
-                        
+
                         // KLUCZOWA ZMIANA: Pełny kod 7-cyfrowy (woj + powiat + gmina + rodzaj)
                         var kodGminy = $"{gminaInfo.Wojewodztwo}{gminaInfo.Powiat}{gminaInfo.Gmina}{gminaInfo.RodzajGminy}";
 
@@ -93,7 +92,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                             PowiatId = powiat.Id,
                             RodzajGminyId = rodzajGminy.Id
                         };
-                        
+
                         gminyDict[klucz] = gmina;
                         await _context.Gminy.AddAsync(gmina);
                     }

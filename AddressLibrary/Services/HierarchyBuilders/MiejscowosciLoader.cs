@@ -1,7 +1,6 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -47,9 +46,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 {
                     // Sprawdź czy to delegatura miasta na prawach powiatu (pomiń logowanie)
                     var powiatCode = gminaGroup.Key.Powiat;
-                    var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" || 
+                    var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" ||
                                                 powiatCode == "63" || powiatCode == "64" || powiatCode == "65";
-                    
+
                     if (isCityWithPowiatRights && gminaGroup.Key.RodzajGminy == "8")
                     {
                         // To jest delegatura - pominięta w GminyLoader, nie loguj błędu
@@ -72,7 +71,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 // Sprawdź czy to miasto na prawach powiatu (kod powiatu 61-65)
                 var powiatCodeForCity = gminaGroup.Key.Powiat;
-                var isCityWithPowiatRightsForCity = powiatCodeForCity == "61" || powiatCodeForCity == "62" || 
+                var isCityWithPowiatRightsForCity = powiatCodeForCity == "61" || powiatCodeForCity == "62" ||
                                             powiatCodeForCity == "63" || powiatCodeForCity == "64" || powiatCodeForCity == "65";
 
                 if (isCityWithPowiatRightsForCity)
@@ -163,7 +162,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             {
                 _logger.LogWarning($"Pominięto {notFoundGminaCount} grup (brak gminy w słowniku - wymaga uwagi)");
             }
-            
+
             await _context.SaveChangesAsync();
 
             return miastaDict;

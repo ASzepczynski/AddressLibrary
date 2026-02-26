@@ -1,13 +1,10 @@
-﻿using System.Globalization;
-using System.IO;
+﻿using AddressLibrary.Models;
+using CsvHelper;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Linq;
-using System.Collections.Generic;
-using CsvHelper;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
-using AddressLibrary.Models;
 
 public static partial class PdfProcessor
 {
@@ -17,42 +14,42 @@ public static partial class PdfProcessor
         var logsDir = Path.Combine(appDataPath ?? AppDomain.CurrentDomain.BaseDirectory, "AppData", "Logs");
         Directory.CreateDirectory(logsDir);
         var logPath = Path.Combine(logsDir, "PdfProcess.txt");
-        
+
         // Inicjalizuj log
         File.WriteAllText(logPath, $"=== Przetwarzanie PDF - {DateTime.Now} ==={Environment.NewLine}{Environment.NewLine}");
         File.AppendAllText(logPath, $"Plik wejściowy: {inputPdf}{Environment.NewLine}");
-        
+
         Regex PostalCodeRegex = new Regex("^^\\d{2}-\\d{3} \\p{Lu}", RegexOptions.Compiled);
-        
+
         try
         {
             File.AppendAllText(logPath, $"Otwieranie pliku PDF...{Environment.NewLine}");
             using var reader = PdfDocument.Open(inputPdf);
             File.AppendAllText(logPath, $"✅ PDF otwarty. Liczba stron: {reader.NumberOfPages}{Environment.NewLine}");
-            
+
             var cp1250 = Encoding.GetEncoding(1250);
             string outputCsv = Path.ChangeExtension(inputPdf, ".csv");
             File.AppendAllText(logPath, $"Plik wyjściowy CSV: {outputCsv}{Environment.NewLine}{Environment.NewLine}");
-            
+
             using var writer = new StreamWriter(outputCsv, false, cp1250);
             using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
-            
+
             string Delimiter = ";";
             var records = new List<Pna>();
 
             int pageNum = 0;
             int totalWords = 0;
             int totalTokens = 0;
-            
+
             foreach (Page page in reader.GetPages())
             {
                 pageNum++;
                 File.AppendAllText(logPath, $"--- Strona {pageNum}/{reader.NumberOfPages} ---{Environment.NewLine}");
-                
+
                 var words = page.GetWords().ToList();
                 totalWords += words.Count;
                 File.AppendAllText(logPath, $"  Słów na stronie: {words.Count}{Environment.NewLine}");
-                
+
                 if (words.Count == 0)
                 {
                     File.AppendAllText(logPath, $"  ⚠️ Brak słów - fallback do raw text{Environment.NewLine}");
@@ -128,7 +125,7 @@ public static partial class PdfProcessor
                     }
                     slowa.Add(token);
                 }
-                
+
                 // Jeśli coś zostało
                 if (slowa.Count > 0)
                 {
@@ -141,7 +138,7 @@ public static partial class PdfProcessor
                         break;
                     }
                 }
-                
+
                 File.AppendAllText(logPath, $"  Rekordów dodanych na stronie: {recordsOnPage}{Environment.NewLine}");
                 File.AppendAllText(logPath, $"  Łącznie rekordów do tej pory: {records.Count}{Environment.NewLine}{Environment.NewLine}");
             }
@@ -170,9 +167,9 @@ public static partial class PdfProcessor
                 var line = $"{r.Kod}{Delimiter}{r.Miasto}{Delimiter}{r.Dzielnica}{Delimiter}{r.Ulica}{Delimiter}{r.Gmina}{Delimiter}{r.Powiat}{Delimiter}{r.Wojewodztwo}{Delimiter}{r.Numery}";
                 writer.WriteLine(line);
             }
-            
+
             File.AppendAllText(logPath, $"✅ Zakończono pomyślnie - wygenerowano plik: {outputCsv}{Environment.NewLine}");
-            
+
             return records;
         }
         catch (Exception ex)

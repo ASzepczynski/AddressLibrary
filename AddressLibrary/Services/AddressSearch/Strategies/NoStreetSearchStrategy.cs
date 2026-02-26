@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using AddressLibrary.Models;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
+using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch.Filters;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
@@ -60,7 +60,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (!_cache.TryGetKodyPocztoweMiasta(selectedMiasto.Id, out var kodyPocztowe))
             {
                 diagnostic?.Log($"✗ Brak kodów pocztowych dla miasta ID: {selectedMiasto.Id}");
-                
+
                 var result = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.KodPocztowyNotFound,
@@ -71,14 +71,14 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 };
                 result.AddDiagnostic($"Miasto: {selectedMiasto.Nazwa}");
                 result.AddDiagnostic("Miasto nie ma kodów pocztowych");
-                
+
                 // ✅ NOWE: Oznacz jako fuzzy jeśli kod pocztowy był podobny
                 if (wasFuzzyPostalCode)
                 {
                     result.PostalCodeMatchingMethod = MatchingMethod.Fuzzy;
                     result.AddMatchingDetail($"Kod pocztowy: podobny (pierwsze 3 cyfry z '{request.KodPocztowy}')");
                 }
-                
+
                 return result;
             }
 
@@ -91,20 +91,20 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             // Filtruj po numerze domu
             if (!string.IsNullOrWhiteSpace(request.NumerDomu))
             {
-                var beforeFilter = filteredKody.Count;
-                filteredKody = _filters.FilterByBuildingNumber(filteredKody, request.NumerDomu);
-                diagnostic?.Log($"Po filtracji po numerze domu '{request.NumerDomu}': {filteredKody.Count} kodów (było: {beforeFilter})");
+                var newFilteredKody = _filters.FilterByBuildingNumber(filteredKody, request.NumerDomu);
+                diagnostic?.Log($"Po filtracji po numerze domu '{request.NumerDomu}': {newFilteredKody.Count} kodów (było: {filteredKody.Count()})");
+                filteredKody = newFilteredKody;
             }
 
             var finalResult = _resultFactory.CreateResult(filteredKody, selectedMiasto, null, request.NumerDomu, request.NumerMieszkania, diagnostic);
-            
+
             // ✅ NOWE: Oznacz jako fuzzy jeśli kod pocztowy był podobny
             if (wasFuzzyPostalCode)
             {
                 finalResult.PostalCodeMatchingMethod = MatchingMethod.Fuzzy;
                 finalResult.AddMatchingDetail($"Kod pocztowy: podobny (pierwsze 3 cyfry z '{request.KodPocztowy}')");
             }
-            
+
             return finalResult;
         }
 
@@ -117,7 +117,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (miasta.Count > 1)
             {
                 diagnostic?.Log($"Znaleziono {miasta.Count} miast o nazwie '{request.Miasto}'");
-                
+
                 // Próbuj zawęzić po kodzie pocztowym
                 if (!string.IsNullOrWhiteSpace(request.KodPocztowy))
                 {
@@ -133,7 +133,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 {
                     diagnostic?.Log($"✗ Nie można jednoznacznie określić miasta - brak kodu pocztowego");
                 }
-                
+
                 // NIE zwracamy pierwszego miasta - zwracamy null
                 return (null, false);
             }

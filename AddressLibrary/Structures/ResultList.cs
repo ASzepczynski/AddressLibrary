@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AddressLibrary.Models;
+﻿using AddressLibrary.Models;
 
 namespace AddressLibrary.Structures
 {
@@ -14,6 +9,6 @@ namespace AddressLibrary.Structures
         public string? PowiatNazwa { get; set; }
         public string? GminaNazwa { get; set; }
         public TerytSimc? Miasto { get; set; }
-       
+
     }
 }

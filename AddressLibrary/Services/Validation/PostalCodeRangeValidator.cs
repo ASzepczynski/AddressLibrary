@@ -33,7 +33,7 @@ namespace AddressLibrary.Services.Validation
                 .ThenInclude(m => m.Gmina)
                 .ThenInclude(g => g.Powiat)
                 .ThenInclude(p => p.Wojewodztwo)
-                .Where(k => k.UlicaId != null && !string.IsNullOrEmpty(k.Numery))
+                .Where(k => !string.IsNullOrEmpty(k.Numery))
                 .ToListAsync();
 
             var kodyMiasta = await _context.KodyPocztowe
@@ -41,14 +41,15 @@ namespace AddressLibrary.Services.Validation
                 .ThenInclude(m => m.Gmina)
                 .ThenInclude(g => g.Powiat)
                 .ThenInclude(p => p.Wojewodztwo)
-                .Where(k => k.UlicaId == null && !string.IsNullOrEmpty(k.Numery))
+                .Where(k => !string.IsNullOrEmpty(k.Numery))
                 .ToListAsync();
 
             // ✅ POPRAWKA: Grupuj według ULICY + MIASTA (nie ma MiejsceId w Ulica!)
             var grupy = kodyUlice
-                .GroupBy(k => new { 
-                    k.UlicaId, 
-                    k.MiastoId, 
+                .GroupBy(k => new
+                {
+                    k.UlicaId,
+                    k.MiastoId,
                     k.Ulica?.Dzielnica // ✅ Poprawne: k.Ulica.Miejsce.Id
                 })
                 .ToList();
@@ -135,7 +136,7 @@ namespace AddressLibrary.Services.Validation
                     Kod2 = kod2.Kod,
                     Ulica = isStreet ? kod1.Ulica?.Nazwa1 : null,
                     Dzielnica = isStreet ? kod1.Ulica?.Dzielnica : null,
-                    Miasto = kod1.Miasto?.Nazwa,
+                    Miasto = kod1.Miasto.Nazwa,
                     Numery1 = kod1.Numery,
                     Numery2 = kod2.Numery,
                     ConflictingRange1 = string.Join(", ", conflictingRanges1), // ✅ Bez duplikatów
@@ -212,7 +213,7 @@ namespace AddressLibrary.Services.Validation
                     if (!isEven && !isOdd && start != 1)
                     {
                         bool autoParzyste = start % 2 == 0;
-                        
+
                         _parityWarnings.Add(new ParityWarning
                         {
                             Kod = kod,
@@ -236,7 +237,7 @@ namespace AddressLibrary.Services.Validation
                 if (!isEven && !isOdd && !isDK && start % 2 == end % 2)
                 {
                     bool autoParzyste = start % 2 == 0;
-                    
+
                     _parityWarnings.Add(new ParityWarning
                     {
                         Kod = kod,
@@ -260,7 +261,7 @@ namespace AddressLibrary.Services.Validation
                 if (!isEven && !isOdd)
                 {
                     bool autoParzyste = number % 2 == 0;
-                    
+
                     _parityWarnings.Add(new ParityWarning
                     {
                         Kod = kod,
@@ -358,12 +359,12 @@ namespace AddressLibrary.Services.Validation
                     foreach (var group in streetConflicts)
                     {
                         await writer.WriteLineAsync($"Miejscowość: {group.Key.Miasto}");
-                        
+
                         if (!string.IsNullOrEmpty(group.Key.Dzielnica))
                         {
                             await writer.WriteLineAsync($"Dzielnica/Osiedle: {group.Key.Dzielnica}");
                         }
-                        
+
                         await writer.WriteLineAsync($"Ulica: {group.Key.Ulica}");
                         await writer.WriteLineAsync();
 
@@ -488,32 +489,32 @@ namespace AddressLibrary.Services.Validation
 
     public class RangeConflict
     {
-        public string Kod1 { get; set; }
-        public string Kod2 { get; set; }
-        public string? Ulica { get; set; }
-        public string? Dzielnica { get; set; }
-        public string Miasto { get; set; }
-        public string Numery1 { get; set; }
-        public string Numery2 { get; set; }
-        public string ConflictingRange1 { get; set; }
-        public string ConflictingRange2 { get; set; }
-        public bool IsStreetLevel { get; set; }
+        public string Kod1 { get; set; } = string.Empty;
+        public string Kod2 { get; set; } = string.Empty;
+        public string Ulica { get; set; } = string.Empty;
+        public string Dzielnica { get; set; } = string.Empty;
+        public string Miasto { get; set; } = string.Empty;
+        public string Numery1 { get; set; } = string.Empty;
+        public string Numery2 { get; set; } = string.Empty;
+        public string ConflictingRange1 { get; set; } = string.Empty;
+        public string ConflictingRange2 { get; set; } = string.Empty;
+        public bool IsStreetLevel { get; set; } = false;
     }
 
     public class ParityWarning
     {
-        public string Kod { get; set; }
-        public string? Miasto { get; set; }
-        public string? Ulica { get; set; }
-        public string OriginalRange { get; set; }
-        public string SuggestedRange { get; set; }
-        public string Reason { get; set; }
+        public string Kod { get; set; } = string.Empty;
+        public string? Miasto { get; set; } = string.Empty;
+        public string? Ulica { get; set; } = string.Empty;
+        public string OriginalRange { get; set; } = string.Empty;
+        public string SuggestedRange { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
     }
 
     public struct NumberRange
     {
         public int Start { get; set; }
-        public int End { get; set; }
+        public int End { get; set; } 
         public ParityType Type { get; set; }
     }
 

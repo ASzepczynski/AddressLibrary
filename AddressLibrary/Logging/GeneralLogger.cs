@@ -1,9 +1,6 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using System;
-using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace AddressLibrary.Logging
 {
@@ -90,7 +87,7 @@ namespace AddressLibrary.Logging
                 {
                     // ✅ Buffered mode - test zapisu do pliku
                     File.WriteAllText(_logFilePath, $"=== {logTitle} ==={Environment.NewLine}", Encoding.UTF8);
-                    
+
                     _buffer = new StringBuilder();
                     _bufferedLineCount = 0;
                 }

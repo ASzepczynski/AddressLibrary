@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Helpers;
-using AddressLibrary.Models;
 using AddressLibrary.Logging;
+using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch.Filters;
-using AddressLibrary.Services.KodyPocztoweLoader;
-using System.Collections.Generic;
+using AddressLibrary.Utils;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
 {
@@ -96,55 +95,64 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             };
 
             // Znajdź kody pocztowe
-            if (!_cache.TryGetKodyPocztoweMiasta(foundMiasto.Id, out var kodyPocztowe))
+            if (!_cache.TryGetKodyPocztoweUlicy(ulica.Id, out var kodyPocztowe))
             {
-                searchLogger?.Log($"✗ Brak kodów pocztowych dla miejscowości ID: {foundMiasto.Id}");
-                var result = _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
-                
-                // ✅ NOWE: Zapisz metodę dopasowania ulicy
-                result.StreetMatchingMethod = wasStreetFuzzy ? MatchingMethod.Fuzzy : MatchingMethod.Strict;
-                if (wasStreetFuzzy)
+                if (!_cache.TryGetKodyPocztoweMiasta(ulica.Miasto.Id, out var kodyPocztoweMiasta))
                 {
-                    result.AddMatchingDetail($"Ulica: fuzzy matching ('{request.Ulica}' → '{ulica.Nazwa1}')");
+                    searchLogger?.Log($"✗ Brak kodów pocztowych dla ulicy ID: {ulica.Id}");
+                    var result = new AddressSearchResult
+                    {
+                        Status = AddressSearchStatus.KodPocztowyNotFound,
+                        Message = $"Nie znaleziono kodów pocztowych dla {ulica.Id}",
+                        Miasto = ulica.Miasto
+                    };
+                    return result;
                 }
-                
-                return result;
+                // Czy miasto ma jeden kod?
+                if (kodyPocztoweMiasta.Count != 1)
+                {
+                    searchLogger?.Log($"✗ To nie jest miasto z jednym kodem ulicaID: {ulica.Id}");
+                    var result = new AddressSearchResult
+                    {
+                        Status = AddressSearchStatus.KodPocztowyNotFound,
+                        Message = $"Nie znaleziono kodów pocztowych dla {ulica.Id}",
+                        Miasto = ulica.Miasto
+                    };
+                    return result;
+                }
+                kodyPocztowe = kodyPocztoweMiasta;
             }
 
-            searchLogger?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla miejscowości");
+            searchLogger?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla ulicy");
 
-            // Filtruj po ulicy
-            var filteredKody = _filters.FilterByStreet(kodyPocztowe, ulica.Id);
-            searchLogger?.Log($"Po filtracji po ulicy (ID: {ulica.Id}): {filteredKody.Count} kodów");
-
-            if (filteredKody.Count == 0)
+            if (kodyPocztowe.Count == 0)
             {
                 searchLogger?.Log("Ulica nie ma przypisanych kodów pocztowych");
                 var result = _cityStrategy.Execute(request, foundMiasto, ulica, combinedBuildingNumber, searchLogger);
-                
+
                 // ✅ NOWE: Zapisz metodę dopasowania ulicy
                 result.StreetMatchingMethod = wasStreetFuzzy ? MatchingMethod.Fuzzy : MatchingMethod.Strict;
                 if (wasStreetFuzzy)
                 {
                     result.AddMatchingDetail($"Ulica: fuzzy matching ('{request.Ulica}' → '{ulica.Nazwa1}')");
                 }
-                
+
                 return result;
             }
 
             // Filtruj po numerze domu
-            filteredKody = FilterByBuildingNumber(filteredKody, combinedBuildingNumber, ulica.Id, searchLogger);
+            kodyPocztowe = FilterByBuildingNumber(kodyPocztowe, combinedBuildingNumber, ulica.Id, searchLogger);
 
             var finalResult = _resultFactory.CreateResult(
-                filteredKody, foundMiasto, ulica, combinedBuildingNumber, request.NumerMieszkania, searchLogger);
-            
+                kodyPocztowe, foundMiasto, ulica, combinedBuildingNumber, request.NumerMieszkania, searchLogger);
+
             // ✅ NOWE: Zapisz metodę dopasowania ulicy
             finalResult.StreetMatchingMethod = wasStreetFuzzy ? MatchingMethod.Fuzzy : MatchingMethod.Strict;
             if (wasStreetFuzzy)
             {
                 finalResult.AddMatchingDetail($"Ulica: fuzzy matching ('{request.Ulica}' → '{ulica.Nazwa1}')");
             }
-            
+
             return finalResult;
         }
 
@@ -227,7 +235,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             }
 
             var firstMiasto = matchingStreets[0].miasto;
-            
+
             // ✅ POPRAWKA: Załaduj kody pocztowe z cache dla miasta
             if (!_cache.TryGetKodyPocztoweMiasta(firstMiasto.Id, out var kodyPocztowe))
             {
@@ -315,72 +323,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 result.AddDiagnostic($"  • {_cache.GetOriginalStreetName(street)} w {miasto.Nazwa}");
             }
             return result;
-        }
-
-
-
-        /// <summary>
-        /// 🆕 Znajduje WSZYSTKIE ulice pasujące do wyszukiwanego nazwy we WSZYSTKICH miastach
-        /// </summary>
-        private List<(UlicaCached street, Miasto miasto)> FindAllMatchingStreets(
-            AddressSearchRequest request,
-            List<Miasto> miasta,
-            string Prefix,
-            string normalizedStreet,
-            GeneralLogger? diagnostic)
-        {
-            diagnostic?.Log($"Szukam WSZYSTKICH ulic pasujących do: '{request.Ulica}' -> znormalizowana: '{Prefix}/{normalizedStreet}'");
-
-            var matchingStreets = new List<(UlicaCached street, Miasto miasto)>();
-
-            foreach (var miasto in miasta)
-            {
-                if (_cache.TryGetUlice(miasto.Id, out var ulice))
-                {
-                    diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
-
-                    foreach (var ulica in ulice)
-                    {
-
-                        // ✅ Sprawdź dokładne dopasowanie
-                        if (_streetMatcher.IsMatch(ulica, normalizedStreet))
-                        {
-                            diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
-                            matchingStreets.Add((ulica, miasto));
-                        }
-                    }
-                }
-            }
-
-            if (matchingStreets.Count > 0)
-            {
-                diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic");
-                return matchingStreets;
-            }
-
-            /// 🆕 Znajduje ulicę metodą HIERARCHICZNĄ:
-            /// 1. Dokładne dopasowanie (equality)
-            /// 2. Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
-            /// 3. Dopasowanie częściowe (contains) jako ostateczny fallback
-
-            diagnostic?.Log($"Poszukiwanie mniej dokładne miasto:{request.Miasto} ulica:{request.Ulica}");
-
-            foreach (var miasto in miasta)
-            {
-                if (_cache.TryGetUlice(miasto.Id, out var ulice))
-                {
-                    diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
-
-                    var ulica = _streetMatcher.FindStreet(ulice, normalizedStreet);
-                    if (ulica != null)
-                    {
-                        diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
-                        matchingStreets.Add((ulica, miasto));
-                    }
-                }
-            }
-            diagnostic?.Log($"Łącznie znaleziono mniej dokładnie {matchingStreets.Count} pasujących ulic");
-            return matchingStreets;
         }
 
         private AddressSearchResult HandleStreetNotFound(
@@ -488,11 +430,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             // Walidacja prefiksu
             var streetPrefixes = new[] { "os.", "os ", "al.", "al ", "pl.", "pl ", "ul.", "ul " };
-            var ulicaLower = request.Ulica.ToLowerInvariant().TrimStart();
+            var ulicaLower = request?.Ulica?.ToLowerInvariant().TrimStart();
 
-            if (streetPrefixes.Any(p => ulicaLower.StartsWith(p)))
+            if (streetPrefixes.Any(p => ulicaLower!=null && ulicaLower.StartsWith(p)))
             {
-                diagnostic?.Log($"  ✗ '{request.Ulica}' ma prefix osiedla/alei/placu - NIE zamieniaj na miejscowość");
+                diagnostic?.Log($"  ✗ '{request?.Ulica}' ma prefix osiedla/alei/placu - NIE zamieniaj na miejscowość");
                 return null;
             }
 
@@ -501,7 +443,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (citiesMatchingStreet.Count == 0)
             {
                 var (similarCity, wasFuzzy) = CityUtils.FindSimilarCityWithMethod(_cache, normalizedStreet, request.KodPocztowy, diagnostic);
-                
+
                 if (similarCity != null)
                 {
                     diagnostic?.Log($"  ✓ Znaleziono podobną miejscowość: '{similarCity.Nazwa}' (fuzzy: {wasFuzzy})");
@@ -518,7 +460,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             // Walidacja kodu pocztowego
             var Pasujace = new List<Miasto>();
-            if (!string.IsNullOrWhiteSpace(request.KodPocztowy))
+            if (!string.IsNullOrWhiteSpace(request?.KodPocztowy))
             {
                 foreach (var city in citiesMatchingStreet)
                 {
@@ -599,10 +541,10 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (string.IsNullOrWhiteSpace(combinedBuildingNumber))
                 return filteredKody;
 
-            var beforeFilter = filteredKody.Count;
-            filteredKody = _filters.FilterByBuildingNumber(filteredKody, combinedBuildingNumber);
-            diagnostic?.Log($"Po filtracji po numerze domu '{combinedBuildingNumber}': {filteredKody.Count} kodów (było: {beforeFilter})");
-
+            var originalKody = filteredKody;
+            var newFilteredKody = _filters.FilterByBuildingNumber(filteredKody, combinedBuildingNumber);
+            diagnostic?.Log($"Po filtracji po numerze domu '{combinedBuildingNumber}': {newFilteredKody.Count} kodów (było: {filteredKody.Count()})");
+            filteredKody = newFilteredKody;
             // Retry bez literki (np. 30A → 30)
             if (filteredKody.Count == 0 && System.Text.RegularExpressions.Regex.IsMatch(combinedBuildingNumber, @"\d+[A-Za-z]"))
             {
@@ -615,27 +557,21 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     if (_cache.TryGetKodyPocztoweMiasta(ulicaId, out var allKody))
                     {
                         var byStreet = _filters.FilterByStreet(allKody, ulicaId);
-                        filteredKody = _filters.FilterByBuildingNumber(byStreet, numberOnly);
-                        diagnostic?.Log($"Po filtracji po numerze '{numberOnly}': {filteredKody.Count} kodów");
+                        newFilteredKody = _filters.FilterByBuildingNumber(byStreet, numberOnly);
+                        diagnostic?.Log($"Po filtracji po numerze '{numberOnly}': {newFilteredKody.Count} kodów");
+                        filteredKody = newFilteredKody;
                     }
                 }
             }
-
-            return filteredKody;
-        }
-
-        private string CombineNumbers(string? extractedNumber, string? providedNumber)
-        {
-            if (string.IsNullOrWhiteSpace(extractedNumber) && string.IsNullOrWhiteSpace(providedNumber))
-                return string.Empty;
-
-            if (string.IsNullOrWhiteSpace(extractedNumber))
-                return providedNumber?.Trim() ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(providedNumber))
-                return extractedNumber.Trim();
-
-            return $"{extractedNumber.Trim()}/{providedNumber.Trim()}";
+            if (filteredKody.Count > 0 || originalKody.Count == 0)
+                return filteredKody;
+            // Zwróć pierwszy z brzegu kod z wykrzyknikiem
+            diagnostic?.Log($"Biorę pierwszy z brzegu kod, bo nie da się ustalić kodu pocztowego");
+            var jednostkowa = new List<KodPocztowy>();
+            var kod=ObjectCopier.ShallowCopy(originalKody[0]);
+            if (originalKody.Count > 1) kod.Kod = $"!{kod.Kod}";
+            jednostkowa.Add(kod);
+            return jednostkowa;
         }
     }
 }

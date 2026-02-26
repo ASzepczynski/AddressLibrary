@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace AddressLibrary.Services.Tools
 {
     /// <summary>
@@ -29,7 +24,7 @@ namespace AddressLibrary.Services.Tools
               .Where(x => !string.IsNullOrEmpty(x))
               .ToList();
 
-            
+
             File.WriteAllLines(outputPath, filteredLines);
         }
     }

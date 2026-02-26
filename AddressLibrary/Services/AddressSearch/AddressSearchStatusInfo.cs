@@ -1,7 +1,5 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using System.Collections.Generic;
-
 namespace AddressLibrary.Services.AddressSearch
 {
     /// <summary>
@@ -53,7 +51,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public static bool IsError(AddressSearchStatus status)
         {
-            return status != AddressSearchStatus.Success 
+            return status != AddressSearchStatus.Success
                 && status != AddressSearchStatus.MultipleMatches;
         }
 

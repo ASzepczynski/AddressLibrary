@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
 using AddressLibrary.Data;
-using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.HierarchyBuilders

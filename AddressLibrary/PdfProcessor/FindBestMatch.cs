@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using AddressLibrary.Data;
+using AddressLibrary.Models;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Globalization;
-using AddressLibrary.Models;
-using AddressLibrary.Data;
 
 public static partial class PdfProcessor
 {
@@ -22,25 +19,25 @@ public static partial class PdfProcessor
         string numerMieszkania)
     {
         // prepare normalized forms for comparison
-        string normPostal = Normalize(kod);
-        string normCity = Normalize(miasto);
-        string normStreet = Normalize(ulica);
-        string normBuilding = Normalize(numerDomu);
+        string normPostal = NormalizeText(kod);
+        string normCity = NormalizeText(miasto);
+        string normStreet = NormalizeText(ulica);
+        string normBuilding = NormalizeText(numerDomu);
 
         // scoring
         Pna? best = null;
         int bestScore = -1;
 
-        var records = context.Pna.Where(x => x.Miasto==normCity).ToList();
+        var records = context.Pna.Where(x => x.Miasto == normCity).ToList();
 
         foreach (var r in records)
         {
             int score = 0;
-            
+
             // compare postal (r.Kod may contain code and city; try to extract code)
             var rPostalMatch = Regex.Match(r.Kod ?? string.Empty, "\\b(\\d{2}-\\d{3})\\b");
             var rPostal = rPostalMatch.Success ? rPostalMatch.Groups[1].Value : string.Empty;
-            if (!string.IsNullOrEmpty(normPostal) && Normalize(rPostal) == normPostal) 
+            if (!string.IsNullOrEmpty(normPostal) && NormalizeText(rPostal) == normPostal)
                 score += 50;
 
             // compare city
@@ -48,7 +45,7 @@ public static partial class PdfProcessor
             //    score += 30;
 
             // compare street
-            var rStreetNorm = Normalize(r.Ulica ?? string.Empty);
+            var rStreetNorm = NormalizeText(r.Ulica ?? string.Empty);
             if (!string.IsNullOrEmpty(normStreet))
             {
                 // prefer exact street name equality strongly
@@ -65,7 +62,7 @@ public static partial class PdfProcessor
             // if building present try match against r.Numery
             if (!string.IsNullOrEmpty(normBuilding) && !string.IsNullOrEmpty(r.Numery))
             {
-                var normalizedNumery = Normalize(r.Numery);
+                var normalizedNumery = NormalizeText(r.Numery);
                 if (normalizedNumery.Contains(normBuilding))
                     score += 10;
             }
@@ -80,7 +77,7 @@ public static partial class PdfProcessor
         return (best, bestScore);
     }
 
-    private static string Normalize(string s)
+    private static string NormalizeText(string s)
     {
         if (string.IsNullOrWhiteSpace(s)) return string.Empty;
         s = s.Trim().ToLowerInvariant();

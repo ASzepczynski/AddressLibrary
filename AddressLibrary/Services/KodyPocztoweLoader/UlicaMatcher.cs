@@ -1,10 +1,8 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using AddressLibrary.Models;
-using AddressLibrary.Structures;
-using System.Collections.Immutable;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
+using AddressLibrary.Models;
 using AddressLibrary.Services.HierarchyBuilders;
 
 namespace AddressLibrary.Services.KodyPocztoweLoader
@@ -55,7 +53,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             (currentUlica, currentDzielnica) = UliceUtils.ZielonaGora(miasto, currentUlica, currentDzielnica);
 
             Ulica? ulica = null;
-            bool ulicaFound = false;
 
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (_uliceDict.TryGetValue(miasto.Id, out var ulice))
@@ -68,8 +65,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 {
                     // ✅ Dokładnie jedna ulica - OK
                     ulica = exactMatches[0];
-                    ulicaFound = true;
-//                    _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Znaleziono dokładnie jedną ulicę: '{UliceUtils.GetPelnaNazwa(ulica)}'");
+                    //                    _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Znaleziono dokładnie jedną ulicę: '{UliceUtils.GetPelnaNazwa(ulica)}'");
                 }
                 else if (exactMatches.Count > 1)
                 {
@@ -81,11 +77,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     if (sPrefiks == "") sPrefiks = "ul.";
                     // Nie podajemy kodu pocztowego, bo właśnie go ładujemy - to jest ładowanie kodów pocztowych
                     ulica = ResolveAmbiguity.ResolveStreetAmbiguity(
-                        exactMatches, 
-                        sPrefiks, 
-                        currentUlica, 
-                        currentDzielnica , 
-                        "", 
+                        exactMatches,
+                        sPrefiks,
+                        currentUlica,
+                        currentDzielnica,
+                        "",
                         miasto.Nazwa,
                         null,
                         _PostalCodesLogger);
@@ -93,7 +89,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     if (ulica != null)
                     {
                         _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Rozstrzygnięto: wybrano '{sPrefiks} {UliceUtils.GetPelnaNazwa(ulica)}'");
-                        ulicaFound = true;
                     }
                     else
                     {
@@ -107,7 +102,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     // KROK 1b: Brak dokładnego dopasowania - spróbuj fuzzy matching
                     if (ulice.TryGetValueAgain(currentUlica, out ulica))
                     {
-                        ulicaFound = true;
                         _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Fuzzy matching dla [{currentUlica}] znalazł: '{UliceUtils.GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
                     }
                 }
@@ -128,7 +122,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             foreach (var kvp in ulice)
             {
                 // Klucz słownika jest już znormalizowany (lowercase)
-                if (kvp.Key == normalizedSearch) 
+                if (kvp.Key == normalizedSearch)
                 {
                     foreach (var uliczka in kvp.Value)
                         if (uliczka.Dzielnica == sDzielnica)
@@ -141,7 +135,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             return matches;
         }
 
-        
+
         /// <summary>
         /// Generuje diagnostyczny komunikat o braku ulicy
         /// </summary>
@@ -153,16 +147,16 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 : "brak ulic w słowniku";
 
             var message = "";
- 
-            
+
+
             message = $" Próbowano korekty: '{sKorekcja}'";
-            
+
             message += $" Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
 
 
             return message;
         }
 
-        
+
     }
 }

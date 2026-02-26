@@ -1,8 +1,5 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
-using System;
-using System.IO;
-
 namespace AddressLibrary.Logging
 {
     /// <summary>
@@ -10,8 +7,8 @@ namespace AddressLibrary.Logging
     /// </summary>
     public class HierarchyLogger : GeneralLogger
     {
-        public HierarchyLogger(string? appDataPath) 
-            : base(appDataPath, "HierarchyBuilder.txt","Log kontrolny budowania hierarchii TERYT")
+        public HierarchyLogger(string? appDataPath)
+            : base(appDataPath, "HierarchyBuilder.txt", "Log kontrolny budowania hierarchii TERYT")
         {
         }
     }

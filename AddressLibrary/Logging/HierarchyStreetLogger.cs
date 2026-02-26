@@ -1,8 +1,5 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
-using System;
-using System.IO;
-
 namespace AddressLibrary.Logging
 {
     /// <summary>
@@ -10,8 +7,8 @@ namespace AddressLibrary.Logging
     /// </summary>
     public class HierarchyStreetLogger : GeneralLogger
     {
-        public HierarchyStreetLogger(string? appDataPath) 
-            : base(appDataPath, "HierarchyStreetBuilder.txt","Log kontrolny budowania ulic z TERYT")
+        public HierarchyStreetLogger(string? appDataPath)
+            : base(appDataPath, "HierarchyStreetBuilder.txt", "Log kontrolny budowania ulic z TERYT")
         {
         }
     }

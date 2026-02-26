@@ -1,8 +1,5 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace AddressLibrary.Helpers
 {
@@ -22,7 +19,7 @@ namespace AddressLibrary.Helpers
                 { "M", new List<(string, string)>() },
                 { "U", new List<(string, string)>() }
             };
-            
+
             LoadFromExcel(appDataPath);
         }
 
@@ -150,7 +147,7 @@ namespace AddressLibrary.Helpers
         /// i wykonuje Replace dla każdej. Zwraca true jeśli nazwa się zmieniła.
         /// ✅ POPRAWKA: Używa szybkiego word boundary checking bez regex
         /// </summary>
-        public bool TryCorrect(string type, string? oldName, out string? newName)
+        public bool TryCorrect(string type, string? oldName, out string newName)
         {
             if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(oldName))
             {
@@ -246,8 +243,8 @@ namespace AddressLibrary.Helpers
         public int GetCountByType(string type)
         {
             var normalizedType = type.Trim().ToUpperInvariant();
-            return _correctionsByType.ContainsKey(normalizedType) 
-                ? _correctionsByType[normalizedType].Count 
+            return _correctionsByType.ContainsKey(normalizedType)
+                ? _correctionsByType[normalizedType].Count
                 : 0;
         }
     }

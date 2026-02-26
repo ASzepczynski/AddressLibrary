@@ -1,6 +1,5 @@
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
 using AddressLibrary.Models;
+using System.Text.RegularExpressions;
 
 public static partial class PdfProcessor
 {
@@ -86,7 +85,6 @@ public static partial class PdfProcessor
         var daneArr = daneList.ToArray();
         if (daneList.Contains("Architektów"))
         {
-            int y = 1;
         }
 
         int nDelta = 0;
@@ -96,7 +94,6 @@ public static partial class PdfProcessor
 
         if (daneArr.Count() < 4)
         {
-            int vv = 1;
         }
 
         if (daneArr[3] == "kêdzierzyñsko-")
@@ -116,9 +113,9 @@ public static partial class PdfProcessor
             nDelta = 0;
         }
 
-    
 
-        if (daneArr[0].EndsWith("Czerwionka-") && daneArr.Count()==6)
+
+        if (daneArr[0].EndsWith("Czerwionka-") && daneArr.Count() == 6)
         {
             daneArr[0] += daneArr[5];
             daneArr = daneArr.Take(daneArr.Length - 1).ToArray();
@@ -129,23 +126,23 @@ public static partial class PdfProcessor
 
         if (daneArr.Count() >= 5)
         {
-           for (int i = 5; i < daneArr.Count(); i++)
+            for (int i = 5; i < daneArr.Count(); i++)
             {
-               if (daneArr[i].Contains(")"))
-                  {
+                if (daneArr[i].Contains(")"))
+                {
                     sResztaMiasto += daneArr[i].Trim();
-                    }
-                    else
+                }
+                else
+                {
+                    if (!woj.Contains(daneArr[i].ToString()))
                     {
-                        if (!woj.Contains(daneArr[i].ToString()))
-                        {
-                            sResztaUlica += " " + daneArr[i].Trim();
-                        }
+                        sResztaUlica += " " + daneArr[i].Trim();
                     }
                 }
-                sUlica = daneArr[1] + sResztaUlica;
-                nDelta = 1;
             }
+            sUlica = daneArr[1] + sResztaUlica;
+            nDelta = 1;
+        }
     dalej:
         var numery = string.Join(",", numeryList);
 

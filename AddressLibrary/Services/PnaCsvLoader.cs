@@ -33,7 +33,7 @@ namespace AddressLibrary.Services
             var encoding = Encoding.GetEncoding(1250);
 
             var lines = await System.IO.File.ReadAllLinesAsync(csvFilePath, encoding);
-            
+
             var totalLines = lines.Length;
             var processedLines = 0;
             var emptyLines = 0;
@@ -73,7 +73,7 @@ namespace AddressLibrary.Services
 
                 // Parsuj liniê CSV (separator: œrednik)
                 var parts = line.Split(';');
-                
+
                 // Loguj drug¹ liniê (pierwsz¹ z danymi) do diagnostyki
                 if (i == 1)
                 {
@@ -105,7 +105,7 @@ namespace AddressLibrary.Services
                 // Format CSV: KOD;MIEJSCOWOŒÆ;ULICA;NUMERY;GMINA;POWIAT;WOJEWÓDZTWO
                 var miastoRaw = parts[1].Trim();
                 var (miasto, dzielnica) = ParseMiastoZDzielnica(miastoRaw);
-                
+
                 if (!string.IsNullOrEmpty(dzielnica))
                 {
                     dzielnicaCount++;
@@ -132,7 +132,7 @@ namespace AddressLibrary.Services
                 {
                     await _context.Pna.AddRangeAsync(pnaBatch);
                     await _context.SaveChangesAsync();
-                    
+
                     processedLines += pnaBatch.Count;
                     progress?.Report(new LoadProgressInfo
                     {
@@ -150,7 +150,7 @@ namespace AddressLibrary.Services
             {
                 await _context.Pna.AddRangeAsync(pnaBatch);
                 await _context.SaveChangesAsync();
-                
+
                 processedLines += pnaBatch.Count;
             }
 

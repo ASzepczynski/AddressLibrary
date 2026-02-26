@@ -10,7 +10,7 @@ namespace AddressLibrary.Data.Configurations
         {
             // Indeks unikalny na Symbol + MiastoId (symbol ulicy jest unikalny w kontekœcie miejscowoœci)
             builder.HasIndex(e => new { e.Symbol, e.MiastoId, e.Dzielnica }).IsUnique();
-            
+
             // Indeks na Nazwa1 dla wyszukiwania
             builder.HasIndex(e => e.Nazwa1);
 

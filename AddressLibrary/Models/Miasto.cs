@@ -8,11 +8,11 @@ namespace AddressLibrary.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        
+
         [Required]
         [MaxLength(7)]
         public string Symbol { get; set; } = string.Empty;
-        
+
         [Required]
         [MaxLength(200)]
         public string Nazwa { get; set; } = string.Empty;
@@ -31,7 +31,7 @@ namespace AddressLibrary.Models
 
         // Relacja 1:N - jedna miejscowoœæ ma wiele ulic
         public ICollection<Ulica> Ulice { get; set; } = new List<Ulica>();
-        
+
         // Relacja 1:N - jedna miejscowoœæ ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
     }
