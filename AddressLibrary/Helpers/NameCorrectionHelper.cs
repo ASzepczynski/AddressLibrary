@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+﻿using AddressLibrary.Models;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace AddressLibrary.Helpers
@@ -165,17 +166,28 @@ namespace AddressLibrary.Helpers
             }
 
             var result = oldName;
+            bool hasChanged;
 
-            // Iteruj przez wszystkie korekty danego typu
-            foreach (var (oldPattern, newPattern) in _correctionsByType[normalizedType])
+            // ✅ POPRAWKA: Iteruj dopóki następna iteracja wprowadza zmiany
+            do
             {
-                result = ReplaceWordIgnoreCase(result, oldPattern, newPattern);
-            }
+                var przed = result;
+                
+                // Iteruj przez wszystkie korekty danego typu
+                foreach (var (oldPattern, newPattern) in _correctionsByType[normalizedType])
+                {
+                    result = ReplaceWordIgnoreCase(result, oldPattern, newPattern);
+                }
+
+                // ✅ POPRAWKA: hasChanged == true gdy stringi są RÓŻNE (była zmiana)
+                hasChanged = !string.Equals(przed, result, StringComparison.Ordinal);
+                
+            } while (hasChanged); // ✅ Kontynuuj gdy była zmiana (może być kolejna)
 
             newName = result;
 
             // Zwróć true tylko jeśli nazwa faktycznie się zmieniła
-            return !string.Equals(oldName, result, StringComparison.Ordinal);
+            return !string.Equals(oldName, newName, StringComparison.Ordinal);
         }
 
         /// <summary>

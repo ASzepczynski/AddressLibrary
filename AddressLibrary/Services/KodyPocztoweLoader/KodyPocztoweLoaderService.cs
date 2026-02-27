@@ -16,6 +16,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         private readonly PostalCodesLogger _logger;
         private readonly PnaCorrectionHelper _pnaCorrections; // 🆕 DODANE
         string sKorekcja = "";
+        private NameCorrectionHelper _corrections;
 
         public string LogFilePath => _logger.LogFilePath;
 
@@ -24,7 +25,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             _context = context;
             _logger = new PostalCodesLogger(appDataPath);
             _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty); // 🆕 DODANE
-
+            _corrections = new NameCorrectionHelper(appDataPath);
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
         }
 
@@ -108,6 +109,14 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         }
                     }
                     ;
+
+                    if (_corrections.TryCorrect("U", pna.Ulica, out var correctedStreet))
+                    {
+                        Console.WriteLine($"Skorygowano ulicę: '{pna.Ulica}' -> '{correctedStreet}'");
+                        pna.Ulica = correctedStreet;
+                    }
+
+
 
                     // 1a. Znajdź miasto
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);

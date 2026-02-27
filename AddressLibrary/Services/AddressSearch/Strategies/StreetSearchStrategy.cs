@@ -99,11 +99,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 if (!_cache.TryGetKodyPocztoweMiasta(ulica.Miasto.Id, out var kodyPocztoweMiasta))
                 {
-                    searchLogger?.Log($"✗ Brak kodów pocztowych dla ulicy ID: {ulica.Id}");
+                    searchLogger?.Log($"✗ Brak kodów pocztowych dla {request.Miasto}/{request.Ulica}");
                     var result = new AddressSearchResult
                     {
                         Status = AddressSearchStatus.KodPocztowyNotFound,
-                        Message = $"Nie znaleziono kodów pocztowych dla {ulica.Id}",
+                        Message = $"Nie znaleziono kodów pocztowych dla {request.Miasto}/{request.Ulica}",
                         Miasto = ulica.Miasto
                     };
                     return result;
@@ -111,11 +111,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 // Czy miasto ma jeden kod?
                 if (kodyPocztoweMiasta.Count != 1)
                 {
-                    searchLogger?.Log($"✗ To nie jest miasto z jednym kodem ulicaID: {ulica.Id}");
+                    searchLogger?.Log($"✗ To nie jest miasto z jednym kodem {request.Miasto}/{request.Ulica}");
                     var result = new AddressSearchResult
                     {
                         Status = AddressSearchStatus.KodPocztowyNotFound,
-                        Message = $"Nie znaleziono kodów pocztowych dla {ulica.Id}",
+                        Message = $"Nie znaleziono kodów pocztowych dla {request.Miasto}/{request.Ulica}",
                         Miasto = ulica.Miasto
                     };
                     return result;
