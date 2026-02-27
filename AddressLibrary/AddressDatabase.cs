@@ -162,7 +162,8 @@ namespace AddressLibrary
 
             // KROK 9: Utwórz ulice
             var uliceLoader = new UliceLoader(_context, _appDataPath);
-            await uliceLoader.LoadAsync(ulicData, miastaDict);
+            
+            await uliceLoader.LoadAsync(ulicData, miastaDict, _appDataPath);
             uliceLoader.Dispose();
         }
 

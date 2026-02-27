@@ -75,8 +75,8 @@ namespace AddressLibrary.Helpers
                             continue;
 
                         var type = GetCellValue(workbookPart, cells[0]).Trim().ToUpperInvariant();
-                        var oldName = GetCellValue(workbookPart, cells[1]).Trim();
-                        var newName = GetCellValue(workbookPart, cells[2]).Trim();
+                        var oldName = GetCellValue(workbookPart, cells[1]).Trim().Replace("*"," ");
+                        var newName = GetCellValue(workbookPart, cells[2]).Trim().Replace("*"," "); 
 
                         // Walidacja typu
                         if (type != "M" && type != "U")

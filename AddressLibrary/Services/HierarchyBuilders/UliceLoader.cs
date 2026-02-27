@@ -2,7 +2,9 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
+using AddressLibrary.Services.AddressSearch;
 using AddressLibrary.Structures;
+using Azure.Core;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -33,12 +35,17 @@ namespace AddressLibrary.Services.HierarchyBuilders
             }
         }
 
+        private NameCorrectionHelper _corrections;
         public async Task LoadAsync(
             List<TerytUlic> ulicData,
-            Dictionary<string, Miasto> miastoDict)
+            Dictionary<string, Miasto> miastoDict,
+            string? appDataPath)
         {
             _logger.LogInfo($"Liczba ulic do przetworzenia: {ulicData.Count}");
             _logger.LogInfo($"Liczba miejscowości w słowniku: {miastoDict.Count}");
+
+            _corrections = new NameCorrectionHelper(appDataPath);
+            Console.WriteLine($"Załadowano {_corrections.Count} korekt ({_corrections.GetCountByType("M")} miast, {_corrections.GetCountByType("U")} ulic)");
 
             int przetworzono = 0;
             int brakujacych = 0;
@@ -116,6 +123,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 GminaNazwa = gmiDict.GetValueOrDefault((u.Wojewodztwo, u.Powiat, u.Gmina, u.RodzajGminy))?.Nazwa,
                 Miasto = miaDict.GetValueOrDefault(u.Symbol)
             }).ToList();
+
 
             foreach (var ulic in resultList)
             {
@@ -252,6 +260,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 {
 
                     ulica.Nazwa1 = "Rynek";
+                }
+
+                if (_corrections.TryCorrect("U", ulica.Nazwa1 , out var correctedStreet))
+                {
+                    Console.WriteLine($"Skorygowano ulicę: '{ulica.Nazwa1}' -> '{correctedStreet}'");
+                    ulica.Nazwa1 = correctedStreet;
                 }
 
                 allUlice.Add(ulica);
