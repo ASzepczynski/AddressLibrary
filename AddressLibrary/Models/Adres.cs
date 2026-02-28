@@ -6,6 +6,11 @@ namespace AddressLibrary.Models
     public class Adres
     {
         /// <summary>
+        /// Komentarz, zwykle komunikat o b³êdzie
+        /// </summary>
+        public string Komentarz { get; set; } = string.Empty;
+
+        /// <summary>
         /// Identyfikator adresu
         /// </summary>
         public string Id { get; set; } = string.Empty;
