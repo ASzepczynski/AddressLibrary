@@ -39,7 +39,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     Status = AddressSearchStatus.KodPocztowyNotFound,
                     Miasto = miasto,
                     Ulica = ulica,
-                    Message = "Nie znaleziono kodu pocztowego dla podanych parametrów",
+                    Message = $"Miasto {miasto.Nazwa} nie ma kodów pocztowych PNA",
                     NormalizedBuildingNumber = normalizedBuildingNumber,
                     NormalizedApartmentNumber = request.NumerMieszkania
                 };

@@ -10,10 +10,30 @@ namespace AddressLibrary.Services.AddressSearch
     public class StreetMatcher
     {
         private readonly TextNormalizer _normalizer;
+        private readonly HashSet<string> _personalStreets;
 
-        public StreetMatcher(TextNormalizer normalizer)
+        public StreetMatcher(TextNormalizer normalizer, HashSet<string> personalStreets)
         {
             _normalizer = normalizer;
+            _personalStreets = personalStreets;
+        }
+
+        /// <summary>
+        /// Sprawdza czy szukana ulica jest osobowa (zawiera dokładnie 2 słowa i występuje w UliceOsobowe.xlsx)
+        /// </summary>
+        private bool IsPersonal(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return false;
+
+            // Sprawdź czy zawiera dokładnie 2 słowa
+            var words = searchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length != 2)
+                return false;
+
+            // Normalizuj i sprawdź w zbiorze
+            var normalized = _normalizer.Normalize(searchTerm);
+            return _personalStreets.Contains(normalized);
         }
 
         /// <summary>
@@ -30,31 +50,71 @@ namespace AddressLibrary.Services.AddressSearch
             // ✅ Sprawdź dokładne dopasowanie kombinacji
             if (ulica.NormalizedCombined != null && ulica.NormalizedCombined == normalizedSearchTerm)
                 return true;
-            /*
-                        // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedNazwa1)
-                        // Obsługuje przypadki: "Axentowicza" → "teodora axentowicza"
-                        if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedSearchTerm))
-                            return true;
 
-                        // ✅ NOWE: Sprawdź dopasowanie po nazwisku (końcówka NormalizedCombined)
-                        if (ulica.NormalizedCombined != null && 
-                            ulica.NormalizedCombined.EndsWith(" " + normalizedSearchTerm))
-                            return true;
-            */
             return false;
         }
 
         /// <summary>
-        /// 🆕 Znajduje ulicę metodą HIERARCHICZNĄ:
-        /// 1. Dokładne dopasowanie (equality)
-        /// 2. Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
-        /// 3. Dopasowanie częściowe (contains) jako ostateczny fallback
+        /// 🆕 ULEPSZONA: Znajduje ulicę metodą HIERARCHICZNĄ z obsługą ulic osobowych
+        /// 1. Jeśli ulica osobowa (2 słowa + w UliceOsobowe.xlsx) - szukaj tylko po pełnej nazwie
+        /// 2. Dokładne dopasowanie (equality)
+        /// 3. Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
+        /// 4. Dopasowanie częściowe (contains) jako ostateczny fallback
         /// </summary>
         public UlicaCached? FindStreet(List<UlicaCached> ulice, string originalStreetName)
         {
-            // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
             var normalized = _normalizer.Normalize(originalStreetName);
 
+            // ✅ NOWE: Jeśli to ulica osobowa (2 słowa + w excelu), szukaj TYLKO po pełnej nazwie
+            if (IsPersonal(originalStreetName))
+            {
+                // Wyciągnij nazwisko (ostatnie słowo)
+                var words = originalStreetName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                var lastName = words[^1]; // Ostatnie słowo (nazwisko)
+                var normalizedLastName = _normalizer.Normalize(lastName);
+
+                // Znajdź wszystkie ulice z tym nazwiskiem
+                var candidatesWithLastName = new List<UlicaCached>();
+
+                foreach (var ulica in ulice)
+                {
+                    // Sprawdź czy Nazwa1 lub NormalizedCombined kończy się na nazwisko
+                    if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedLastName) || 
+                        ulica.NormalizedNazwa1 == normalizedLastName ||
+                        (ulica.NormalizedCombined != null && 
+                         (ulica.NormalizedCombined.EndsWith(" " + normalizedLastName) || 
+                          ulica.NormalizedCombined == normalizedLastName)))
+                    {
+                        candidatesWithLastName.Add(ulica);
+                    }
+                }
+
+                // Jeśli znaleziono dokładnie jedną - zwróć ją
+                if (candidatesWithLastName.Count == 1)
+                {
+                    return candidatesWithLastName[0];
+                }
+
+                // Jeśli znaleziono więcej - szukaj dokładnego dopasowania pełnej nazwy
+                if (candidatesWithLastName.Count > 1)
+                {
+                    foreach (var candidate in candidatesWithLastName)
+                    {
+                        if (IsMatch(candidate, normalized))
+                        {
+                            return candidate;
+                        }
+                    }
+
+                    // Jeśli brak dokładnego, zwróć pierwszą
+                    return candidatesWithLastName[0];
+                }
+
+                // Brak kandydatów - zwróć null (nie szukaj fuzzy dla ulic osobowych)
+                return null;
+            }
+
+            // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
             foreach (var ulica in ulice)
             {
                 if (IsMatch(ulica, normalized))
@@ -149,7 +209,6 @@ namespace AddressLibrary.Services.AddressSearch
                 // ✅ Sprawdź TYLKO:
                 // 1. Nazwa1
                 // 2. Nazwa2 + Nazwa1 (NormalizedCombined)
-                // 3. Nazwa1 + Nazwa2 (NormalizedCombinedReverse)
 
                 if (ulica.NormalizedNazwa1 == normalizedSearch ||
                     ulica.NormalizedCombined == normalizedSearch)
@@ -198,14 +257,8 @@ namespace AddressLibrary.Services.AddressSearch
 
             var listaPodobnych = new List<UlicaCached>();
 
-
             foreach (var ulica in ulice)
             {
-
-                //if (ulica.NormalizedNazwa1.Contains("hlo") && searchTerm.Contains("hlo"))
-                //{
-                //    int y = 1;
-                //}
                 bool isLike = UliceUtils.IsLeftToRightMatch(ulica.NormalizedNazwa1, searchTerm);
                 if (isLike)
                 {
@@ -235,7 +288,6 @@ namespace AddressLibrary.Services.AddressSearch
 
                 // 🔧 POPRAWKA: Wyższy próg dla krótkich słów
                 double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5;
-
 
                 if (bestDistance < maxDistance)
                 {

@@ -4,6 +4,7 @@ using AddressLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    partial class AddressDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303102940_UrzadSkarbowyBezRelacji2")]
+    partial class UrzadSkarbowyBezRelacji2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -552,9 +555,6 @@ namespace AddressLibrary.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int?>("UlicaId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Www")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -566,8 +566,6 @@ namespace AddressLibrary.Migrations
                     b.HasIndex("Miasto");
 
                     b.HasIndex("Nazwa");
-
-                    b.HasIndex("UlicaId");
 
                     b.HasIndex("Miasto", "Ulica");
 
@@ -679,16 +677,6 @@ namespace AddressLibrary.Migrations
                         .IsRequired();
 
                     b.Navigation("Miasto");
-                });
-
-            modelBuilder.Entity("AddressLibrary.Models.UrzadSkarbowy", b =>
-                {
-                    b.HasOne("AddressLibrary.Models.Ulica", "UlicaNavigation")
-                        .WithMany()
-                        .HasForeignKey("UlicaId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("UlicaNavigation");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Gmina", b =>

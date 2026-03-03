@@ -33,6 +33,9 @@ namespace AddressLibrary.Data
         // Tabela adresów z Asims
         public DbSet<Adres> Adresy { get; set; }
 
+        // Urzêdy Skarbowe 
+        public DbSet<UrzadSkarbowy> UrzedySkarbowe { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

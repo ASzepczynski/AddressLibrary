@@ -15,8 +15,8 @@ namespace AddressLibrary.Services.AddressSearch
     {
         private readonly AddressSearchCache _cache;
         private readonly TextNormalizer _normalizer;
-        private readonly StreetSearchStrategy _streetSearch;
-        private readonly NoStreetSearchStrategy _noStreetSearch;
+        private StreetSearchStrategy? _streetSearch;  // ✅ ZMIENIONO: usunięto readonly
+        private NoStreetSearchStrategy? _noStreetSearch;  // ✅ ZMIENIONO: usunięto readonly
         private string _appDataPath;
         private SearchLogger searchLogger;
         private bool _disposed = false;
@@ -26,17 +26,9 @@ namespace AddressLibrary.Services.AddressSearch
         {
             _appDataPath = appDataPath;
             _normalizer = new TextNormalizer();
-            _cache = new AddressSearchCache(context, _normalizer);
+            _cache = new AddressSearchCache(context, _normalizer, _appDataPath);
 
-            var streetMatcher = new StreetMatcher(_normalizer);
-            var filters = new PostalCodeFilters();
-            var resultFactory = new SearchResultFactory(_cache);
-            var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
-            var ambiguityResolver = new AmbiguousStreetResolver(_normalizer);
             searchLogger = new SearchLogger(_appDataPath);
-
-            _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver);
-            _noStreetSearch = new NoStreetSearchStrategy(_cache, _normalizer, filters, resultFactory);
             _corrections = new NameCorrectionHelper(appDataPath);
             Console.WriteLine($"Załadowano {_corrections.Count} korekt ({_corrections.GetCountByType("M")} miast, {_corrections.GetCountByType("U")} ulic)");
         }
@@ -44,13 +36,23 @@ namespace AddressLibrary.Services.AddressSearch
         public async Task InitializeAsync()
         {
             await _cache.InitializeAsync();
+
+            // ✅ POPRAWKA: Inicjalizuj strategie PO załadowaniu cache (aby mieć PersonalStreets)
+            var streetMatcher = new StreetMatcher(_normalizer, _cache.PersonalStreets);
+            var filters = new PostalCodeFilters();
+            var resultFactory = new SearchResultFactory(_cache);
+            var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
+            var ambiguityResolver = new AmbiguousStreetResolver(_normalizer);
+
+            _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver);
+            _noStreetSearch = new NoStreetSearchStrategy(_cache, _normalizer, filters, resultFactory);
         }
 
         public async Task<AddressSearchResult> SearchAsync(
             AddressSearchRequest request
             )
         {
-            if (!_cache.IsInitialized)
+            if (!_cache.IsInitialized || _streetSearch == null || _noStreetSearch == null)  // ✅ DODANO: sprawdzenie czy strategie są zainicjalizowane
             {
                 await InitializeAsync();
             }
@@ -179,17 +181,17 @@ namespace AddressLibrary.Services.AddressSearch
             // Wybierz strategię wyszukiwania
             if (!string.IsNullOrWhiteSpace(request.Ulica))
             {
-                return _streetSearch.Execute(request, miasta, searchLogger);
+                return _streetSearch!.Execute(request, miasta, searchLogger);  // ✅ DODANO: null-forgiving operator
             }
             else
             {
-                return _noStreetSearch.Execute(request, miasta, searchLogger);
+                return _noStreetSearch!.Execute(request, miasta, searchLogger);  // ✅ DODANO: null-forgiving operator
             }
         }
 
         public async Task<List<AddressSearchResult>> SearchBatchAsync(IEnumerable<AddressSearchRequest> requests)
         {
-            if (!_cache.IsInitialized)
+            if (!_cache.IsInitialized || _streetSearch == null || _noStreetSearch == null)  // ✅ DODANO: sprawdzenie czy strategie są zainicjalizowane
             {
                 await InitializeAsync();
             }

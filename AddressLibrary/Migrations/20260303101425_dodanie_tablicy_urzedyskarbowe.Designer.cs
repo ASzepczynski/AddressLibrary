@@ -4,6 +4,7 @@ using AddressLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    partial class AddressDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303101425_dodanie_tablicy_urzedyskarbowe")]
+    partial class dodanie_tablicy_urzedyskarbowe
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -528,15 +531,7 @@ namespace AddressLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Email")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Kod")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Miasto")
-                        .HasMaxLength(100)
+                        .IsRequired()
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Nazwa")
@@ -545,31 +540,23 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("NrDomu")
-                        .HasMaxLength(20)
+                        .IsRequired()
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Ulica")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int?>("UlicaId")
+                    b.Property<int>("UlicaId")
                         .HasColumnType("int");
 
                     b.Property<string>("Www")
-                        .HasMaxLength(200)
+                        .IsRequired()
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Kod");
-
-                    b.HasIndex("Miasto");
+                    b.HasIndex("Email");
 
                     b.HasIndex("Nazwa");
 
                     b.HasIndex("UlicaId");
-
-                    b.HasIndex("Miasto", "Ulica");
 
                     b.ToTable("UrzedySkarbowe", (string)null);
                 });
@@ -683,12 +670,11 @@ namespace AddressLibrary.Migrations
 
             modelBuilder.Entity("AddressLibrary.Models.UrzadSkarbowy", b =>
                 {
-                    b.HasOne("AddressLibrary.Models.Ulica", "UlicaNavigation")
+                    b.HasOne("AddressLibrary.Models.Ulica", null)
                         .WithMany()
                         .HasForeignKey("UlicaId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("UlicaNavigation");
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Gmina", b =>

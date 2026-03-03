@@ -2,6 +2,8 @@
 
 using AddressLibrary.Data;
 using AddressLibrary.Models;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.AddressSearch
@@ -13,21 +15,29 @@ namespace AddressLibrary.Services.AddressSearch
     {
         private readonly AddressDbContext _context;
         private readonly TextNormalizer _normalizer;
+        private readonly string _appDataPath;
 
         private Dictionary<string, List<Miasto>>? _miastaDict;
         private Dictionary<int, List<UlicaCached>>? _uliceDict;
         private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweMiastDict;
         private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweUlicDict;
+        private HashSet<string>? _personalStreets;
         private bool _isInitialized;
 
-        public AddressSearchCache(AddressDbContext context, TextNormalizer normalizer)
+        public AddressSearchCache(AddressDbContext context, TextNormalizer normalizer, string appDataPath)
         {
             _context = context;
             _normalizer = normalizer;
+            _appDataPath = appDataPath;
             _isInitialized = false;
         }
 
         public bool IsInitialized => _isInitialized;
+
+        /// <summary>
+        /// Zwraca zbiór znormalizowanych nazw ulic osobowych
+        /// </summary>
+        public HashSet<string> PersonalStreets => _personalStreets ?? new HashSet<string>();
 
         /// <summary>
         /// Inicjalizuje wszystkie słowniki z bazy danych
@@ -103,7 +113,80 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(k => k.UlicaId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
+            // ✅ NOWE: Załaduj ulice osobowe z Excela
+            _personalStreets = LoadPersonalStreets();
+
             _isInitialized = true;
+        }
+
+        /// <summary>
+        /// Ładuje listę ulic osobowych z pliku Excel
+        /// </summary>
+        private HashSet<string> LoadPersonalStreets()
+        {
+            var personalStreets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var excelPath = Path.Combine(_appDataPath, "Updates", "UliceOsobowe.xlsx");
+
+            if (!File.Exists(excelPath))
+            {
+                // Jeśli plik nie istnieje, zwróć pusty zbiór
+                return personalStreets;
+            }
+
+            try
+            {
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(excelPath, false))
+                {
+                    WorkbookPart? workbookPart = spreadsheet.WorkbookPart;
+                    if (workbookPart == null)
+                        return personalStreets;
+
+                    WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
+                    SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
+
+                    foreach (var row in sheetData.Elements<Row>().Skip(1)) // Pomiń nagłówek
+                    {
+                        var cells = row.Elements<Cell>().ToList();
+                        if (cells.Count > 0)
+                        {
+                            string? streetName = GetCellValue(workbookPart, cells[0]);
+                            if (!string.IsNullOrWhiteSpace(streetName))
+                            {
+                                // Normalizuj i dodaj do zbioru
+                                personalStreets.Add(_normalizer.Normalize(streetName));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // W przypadku błędu zwróć pusty zbiór
+            }
+
+            return personalStreets;
+        }
+
+        /// <summary>
+        /// Pobiera wartość z komórki Excel
+        /// </summary>
+        private static string GetCellValue(WorkbookPart workbookPart, Cell cell)
+        {
+            if (cell.CellValue == null)
+                return string.Empty;
+
+            string value = cell.CellValue.InnerText;
+
+            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
+            {
+                SharedStringTablePart? stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+                if (stringTable != null)
+                {
+                    return stringTable.SharedStringTable.ElementAt(int.Parse(value)).InnerText;
+                }
+            }
+
+            return value;
         }
 
         /// <summary>
@@ -220,8 +303,6 @@ namespace AddressLibrary.Services.AddressSearch
                                 }
                             }
                         }
-
-                        // ❌ USUŃ sprawdzanie NormalizedCombinedReverse
                     }
 
                     if (isMatch)
@@ -279,7 +360,6 @@ namespace AddressLibrary.Services.AddressSearch
 
             return allCities;
         }
-
     }
 
     /// <summary>
@@ -300,8 +380,6 @@ namespace AddressLibrary.Services.AddressSearch
 
         // ✅ TYLKO kombinacja Nazwa2 + " " + Nazwa1
         public string? NormalizedCombined { get; set; }
-
-        // ❌ USUŃ: NormalizedCombinedReverse
     }
 
     /// <summary>
