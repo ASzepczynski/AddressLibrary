@@ -192,6 +192,40 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 return (matchingStreets, wasFuzzy: false);
             }
 
+            // 🆕 KROK 1.5: Jeśli nie znaleziono i ulica jest personalna (dwusłowowa), spróbuj tylko z nazwiskiem
+            if (IsPersonalStreet(normalizedStreet, diagnostic))
+            {
+                var lastNameOnly = GetLastName(normalizedStreet);
+                if (!string.IsNullOrWhiteSpace(lastNameOnly) && lastNameOnly != normalizedStreet)
+                {
+                    diagnostic?.Log($"🔍 Ulica personalna - próba wyszukania tylko po nazwisku: '{lastNameOnly}'");
+                    
+                    stopwatch.Restart();
+                    foreach (var miasto in miasta)
+                    {
+                        if (_cache.TryGetUlice(miasto.Id, out var ulice))
+                        {
+                            foreach (var ulica in ulice)
+                            {
+                                if (_streetMatcher.IsMatch(ulica, lastNameOnly))
+                                {
+                                    diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę po nazwisku: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
+                                    matchingStreets.Add((ulica, miasto));
+                                }
+                            }
+                        }
+                    }
+                    stopwatch.Stop();
+                    diagnostic?.Log($"⏱ Czas wykonania pętli foreach (personal street - last name only): {stopwatch.ElapsedMilliseconds} ms");
+
+                    if (matchingStreets.Count > 0)
+                    {
+                        diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic (personal street - last name)");
+                        return (matchingStreets, wasFuzzy: false);
+                    }
+                }
+            }
+
             // KROK 2: Fuzzy matching
             diagnostic?.Log($"Poszukiwanie mniej dokładne (fuzzy) miasto:{request.Miasto} ulica:{request.Ulica}");
 
@@ -216,6 +250,38 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             diagnostic?.Log($"Łącznie znaleziono {matchingStreets.Count} pasujących ulic (fuzzy matching)");
             return (matchingStreets, wasFuzzy);
+        }
+
+        /// <summary>
+        /// 🆕 Sprawdza czy ulica jest personalna (dwusłowowa i występuje w słowniku UliceOsobowe)
+        /// </summary>
+        private bool IsPersonalStreet(string normalizedStreet, GeneralLogger? diagnostic)
+        {
+            // Sprawdź czy ulica składa się z dwóch słów
+            var words = normalizedStreet.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length != 2)
+            {
+                return false;
+            }
+
+            // Sprawdź czy występuje w słowniku ulic osobowych
+            var isPersonal = _cache.PersonalStreets.Contains(normalizedStreet);
+            
+            if (isPersonal)
+            {
+                diagnostic?.Log($"  ℹ️ Rozpoznano ulicę personalną: '{normalizedStreet}'");
+            }
+            
+            return isPersonal;
+        }
+
+        /// <summary>
+        /// 🆕 Wyodrębnia nazwisko (ostatnie słowo) z nazwy ulicy personalnej
+        /// </summary>
+        private string GetLastName(string normalizedStreet)
+        {
+            var words = normalizedStreet.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            return words.Length > 0 ? words[^1] : normalizedStreet;
         }
 
         /// <summary>

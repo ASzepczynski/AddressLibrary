@@ -125,7 +125,9 @@ namespace AddressLibrary.Services.AddressSearch
         private HashSet<string> LoadPersonalStreets()
         {
             var personalStreets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var excelPath = Path.Combine(_appDataPath, "Updates", "UliceOsobowe.xlsx");
+            
+            // ✅ POPRAWKA: Dodaj folder "AppData" do ścieżki (tak jak w StreetNamePersonalConverter)
+            var excelPath = Path.Combine(_appDataPath, "AppData", "Updates", "UliceOsobowe.xlsx");
 
             if (!File.Exists(excelPath))
             {
@@ -147,20 +149,26 @@ namespace AddressLibrary.Services.AddressSearch
                     foreach (var row in sheetData.Elements<Row>().Skip(1)) // Pomiń nagłówek
                     {
                         var cells = row.Elements<Cell>().ToList();
-                        if (cells.Count > 0)
+                        
+                        // ✅ Czytaj z kolumny "original" (cells[4]), nie cells[0]
+                        // Struktura: cells[0]=stara_cecha, cells[1]=nowa_cecha, cells[2]=nazwa1, cells[3]=nazwa2, cells[4]=original
+                        if (cells.Count >= 5)
                         {
-                            string? streetName = GetCellValue(workbookPart, cells[0]);
+                            string? streetName = GetCellValue(workbookPart, cells[4]);
                             if (!string.IsNullOrWhiteSpace(streetName))
                             {
                                 // Normalizuj i dodaj do zbioru
-                                personalStreets.Add(_normalizer.Normalize(streetName));
+                                var normalized = _normalizer.Normalize(streetName);
+                                personalStreets.Add(normalized);
                             }
                         }
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // ✅ POPRAWKA: Loguj wyjątek zamiast go "połykać"
+                Console.WriteLine($"⚠️ Błąd ładowania ulic osobowych z {excelPath}: {ex.Message}");
                 // W przypadku błędu zwróć pusty zbiór
             }
 
