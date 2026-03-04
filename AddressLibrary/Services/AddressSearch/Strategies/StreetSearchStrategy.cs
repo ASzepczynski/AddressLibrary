@@ -50,6 +50,15 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             // Wyodrębnij prefiks z ulicy
             (var Prefix, var normalizedStreet) = UliceUtils.SplitStreetPrefix(request.Ulica);
+
+            (var Prefix2, var normalizedStreet2) = UliceUtils.SplitStreetPrefix(normalizedStreet);
+            if (Prefix2 != "")
+            {
+                // Tu chcemy zlikwidować konflikt prefiksów typu ul. Szosa
+                Prefix = Prefix2;
+                normalizedStreet = normalizedStreet2;
+            }
+
             normalizedStreet = _normalizer.Normalize(normalizedStreet);
             searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{Prefix}/{normalizedStreet}'");
 
