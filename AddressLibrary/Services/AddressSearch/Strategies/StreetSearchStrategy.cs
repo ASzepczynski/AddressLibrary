@@ -5,6 +5,7 @@ using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch.Filters;
 using AddressLibrary.Utils;
+using Azure.Core;
 
 namespace AddressLibrary.Services.AddressSearch.Strategies
 {
@@ -108,13 +109,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             if (!_cache.TryGetKodyPocztoweMiasta(ulica.Miasto.Id, out var wszystkieKodyMiasta))
             {
                 searchLogger?.Log($"✗ Brak kodów pocztowych dla miasta {request.Miasto}");
-                var result = new AddressSearchResult
-                {
-                    Status = AddressSearchStatus.KodPocztowyNotFound,
-                    Message = $"Nie znaleziono kodów pocztowych dla {request.Miasto}/{request.Ulica}",
-                    Miasto = ulica.Miasto
-                };
-                return result;
+                return ZwrocBrakKoduPocztowego(request, ulica);
             }
 
             // Filtruj po ulicy
@@ -128,13 +123,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (wszystkieKodyMiasta.Count != 1)
                 {
                     searchLogger?.Log($"✗ Ulica nie ma kodów, a miasto ma {wszystkieKodyMiasta.Count} kodów");
-                    var result = new AddressSearchResult
-                    {
-                        Status = AddressSearchStatus.KodPocztowyNotFound,
-                        Message = $"Nie znaleziono kodów pocztowych dla {request.Miasto}/{request.Ulica}",
-                        Miasto = ulica.Miasto
-                    };
-                    return result;
+                    return ZwrocBrakKoduPocztowego(request, ulica);
                 }
                 
                 searchLogger?.Log("Ulica nie ma przypisanych kodów pocztowych - używam kodu miasta");
@@ -157,6 +146,27 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             }
 
             return finalResult;
+        }
+
+        public AddressSearchResult ZwrocBrakKoduPocztowego(AddressSearchRequest request, Ulica ulica)
+        {
+            var result = new AddressSearchResult
+            {
+                Status = AddressSearchStatus.KodPocztowyNotFound,
+                Message = $"Nie znaleziono kodów pocztowych dla {request.Miasto}/{request.Ulica}",
+                Miasto = ulica.Miasto
+            };
+            if (request.KodPocztowy?.Length != 6)return result;
+            // Uwaga, tu ustawiamy protezę kodu pocztowego
+            var kod = new KodPocztowy()
+            {
+                Kod = $"!{request.KodPocztowy}",
+                Miasto = ulica.Miasto,
+                Ulica = ulica
+            };
+            result.Status = AddressSearchStatus.Success;
+            result.KodPocztowy = kod;
+            return result;
         }
 
         /// <summary>
