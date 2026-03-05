@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
 using AddressLibrary.Data;
+using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -14,7 +15,6 @@ namespace AddressLibrary.Services.AddressSearch
     public class AddressSearchCache
     {
         private readonly AddressDbContext _context;
-        private readonly TextNormalizer _normalizer;
         private readonly string _appDataPath;
 
         private Dictionary<string, List<Miasto>>? _miastaDict;
@@ -24,10 +24,9 @@ namespace AddressLibrary.Services.AddressSearch
         private HashSet<string>? _personalStreets;
         private bool _isInitialized;
 
-        public AddressSearchCache(AddressDbContext context, TextNormalizer normalizer, string appDataPath)
+        public AddressSearchCache(AddressDbContext context, string appDataPath)
         {
             _context = context;
-            _normalizer = normalizer;
             _appDataPath = appDataPath;
             _isInitialized = false;
         }
@@ -60,7 +59,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             // Słownik: znormalizowana nazwa miasta -> lista miast
             _miastaDict = miasta
-                .GroupBy(m => _normalizer.Normalize(m.Nazwa))
+                .GroupBy(m => TextNormalizer.Normalize(m.Nazwa))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
             // Załaduj wszystkie ulice i stwórz cached wersje
@@ -81,12 +80,12 @@ namespace AddressLibrary.Services.AddressSearch
                 Dzielnica = u.Dzielnica,
 
                 // ✅ POPRAWKA 1: Normalizuj tylko Nazwa1 (nazwisko)
-                NormalizedNazwa1 = _normalizer.Normalize(u.Nazwa1),
+                NormalizedNazwa1 = TextNormalizer.Normalize(u.Nazwa1),
 
                 // ✅ POPRAWKA 2: Jeśli jest Nazwa2, normalizuj jako "Nazwa2 Nazwa1" (bez NormalizeOrdinalNumber!)
                 NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2)
                     ? null
-                    : _normalizer.Normalize($"{u.Nazwa2} {u.Nazwa1}")
+                    : TextNormalizer.Normalize($"{u.Nazwa2} {u.Nazwa1}")
 
             }).ToList();
 
@@ -158,7 +157,7 @@ namespace AddressLibrary.Services.AddressSearch
                             if (!string.IsNullOrWhiteSpace(streetName))
                             {
                                 // Normalizuj i dodaj do zbioru
-                                var normalized = _normalizer.Normalize(streetName);
+                                var normalized = TextNormalizer.Normalize(streetName);
                                 personalStreets.Add(normalized);
                             }
                         }

@@ -47,11 +47,13 @@ namespace AddressLibrary.Services.HierarchyBuilders
             int bestScore = 0;
             Ulica? bestMatch = null;
 
-            foreach (var kvp in uliceDict)
+          foreach (var kvp in uliceDict)
             {
                 foreach (var oUlica in kvp.Value)
                 {
-
+                    if (oUlica.Nazwa1.Contains("entenich")){
+                        int y = 1;
+                    }
                     // SprawdŸ Nazwa1
                     int score = PoliczNajlepszy(searchName, oUlica.Nazwa1);
                     if (score > bestScore)

@@ -15,16 +15,14 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
     {
         private readonly AddressSearchCache _cache;
         private readonly AddressDbContext _context;
-        private readonly TextNormalizer _normalizer;
 
         public PostalCodeSearchStrategy(
             AddressSearchCache cache,
-            AddressDbContext context,
-            TextNormalizer normalizer)
+            AddressDbContext context
+            )
         {
             _cache = cache;
             _context = context;
-            _normalizer = normalizer;
         }
 
         public async Task<AddressSearchResult> ExecuteAsync(
@@ -81,9 +79,9 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             // ✅ KROK 3: Filtruj po mieście (jeśli podano)
             if (!string.IsNullOrWhiteSpace(request.Miasto))
             {
-                var normalizedMiasto = _normalizer.Normalize(request.Miasto);
+                var normalizedMiasto = TextNormalizer.Normalize(request.Miasto);
                 kodPocztowyRecords = kodPocztowyRecords
-                    .Where(k => _normalizer.Normalize(k.Miasto.Nazwa) == normalizedMiasto)
+                    .Where(k => TextNormalizer.Normalize(k.Miasto.Nazwa) == normalizedMiasto)
                     .ToList();
 
                 diagnostic?.Log($"  Filtr po mieście '{request.Miasto}': {kodPocztowyRecords.Count} rekordów");
@@ -109,11 +107,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             // ✅ KROK 4: Filtruj po ulicy (jeśli podano)
             if (!string.IsNullOrWhiteSpace(request.Ulica))
             {
-                var normalizedUlica = _normalizer.Normalize(request.Ulica);
+                var normalizedUlica = TextNormalizer.Normalize(request.Ulica);
 
                 kodPocztowyRecords = kodPocztowyRecords
                     .Where(k => k.Ulica != null &&
-                               _normalizer.Normalize(BuildFullStreetName(k.Ulica)) == normalizedUlica)
+                               TextNormalizer.Normalize(BuildFullStreetName(k.Ulica)) == normalizedUlica)
                     .ToList();
 
                 diagnostic?.Log($"  Filtr po ulicy '{request.Ulica}': {kodPocztowyRecords.Count} rekordów");

@@ -1,14 +1,13 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-using AddressLibrary.Helpers;
 using System.Text.RegularExpressions;
 
-namespace AddressLibrary.Services.AddressSearch
+namespace AddressLibrary.Helpers
 {
     /// <summary>
     /// Serwis do normalizacji tekstu (usuwanie akcentów, przedrostków, etc.)
     /// </summary>
-    public class TextNormalizer
+    public static class TextNormalizer
     {
         private static readonly string[] titles = new[] { 
                 // wojskowe
@@ -42,27 +41,14 @@ namespace AddressLibrary.Services.AddressSearch
                 "kr", "krolowej","krola"
             };
 
-
-
-        // ✅ NOWE: Skróty nazw miast które NIE MOGĄ BYĆ USUWANE!
-        private static readonly string[] CityAbbreviations = new[]
-        {
-            "św.", "św", "sw.", "sw",     // Święty/Świętokrzyski
-            "wlk.", "wlk",                 // Wielki/Wielka
-            "maz.", "maz",                 // Mazowiecki
-            "śl.", "śl", "sl.", "sl",     // Śląski
-            "podh.", "podh",               // Podhalański
-            "górn.", "górn", "gorn.", "gorn", // Górny
-            "doln.", "doln"                // Dolny
-        };
-
-
+        // ✅ NOWE: HashSet z case-insensitive comparer dla szybszego wyszukiwania
+        private static readonly HashSet<string> titlesSet = new HashSet<string>(titles, StringComparer.OrdinalIgnoreCase);
 
         static TextNormalizer()
         {
         }
 
-        public string Normalize(string text)
+        public static string Normalize(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return string.Empty;
@@ -84,12 +70,12 @@ namespace AddressLibrary.Services.AddressSearch
             normalized = RemoveTitles(normalized);
             normalized = RemoveInitialsPrefix(normalized);
 
-            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
+            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
 
             return normalized;
         }
 
-        public string RemoveInitialsPrefix(string text)
+        public static string RemoveInitialsPrefix(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return text;
@@ -104,18 +90,23 @@ namespace AddressLibrary.Services.AddressSearch
 
 
         /// <summary>
-        /// Usuwa tytuły wojskowe, religijne, naukowe z tekstu
+        /// Usuwa tytuły wojskowe, religijne, naukowe z tekstu (case-insensitive, bez polskich znaków)
         /// </summary>
-        private string RemoveTitles(string text)
+        public static string RemoveTitles(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return text;
 
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var filtered = words.Where(w => !titles.Contains(w.Replace(".", ""))).ToList();
+            
+            // ✅ POPRAWKA: Normalizuj każde słowo przed porównaniem (usuń polskie znaki + lowercase)
+            var filtered = words.Where(w =>
+            {
+                var normalized = UliceUtils.RemoveDiacritics(w.Replace(".", "").ToLowerInvariant());
+                return !titlesSet.Contains(normalized);
+            }).ToList();
 
             return string.Join(" ", filtered);
         }
-
     }
 }

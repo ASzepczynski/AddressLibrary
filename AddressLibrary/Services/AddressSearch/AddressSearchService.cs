@@ -14,7 +14,6 @@ namespace AddressLibrary.Services.AddressSearch
     public class AddressSearchService : IDisposable
     {
         private readonly AddressSearchCache _cache;
-        private readonly TextNormalizer _normalizer;
         private StreetSearchStrategy? _streetSearch;  // ✅ ZMIENIONO: usunięto readonly
         private NoStreetSearchStrategy? _noStreetSearch;  // ✅ ZMIENIONO: usunięto readonly
         private string _appDataPath;
@@ -25,8 +24,7 @@ namespace AddressLibrary.Services.AddressSearch
         public AddressSearchService(AddressDbContext context, string appDataPath)
         {
             _appDataPath = appDataPath;
-            _normalizer = new TextNormalizer();
-            _cache = new AddressSearchCache(context, _normalizer, _appDataPath);
+            _cache = new AddressSearchCache(context, _appDataPath);
 
             searchLogger = new SearchLogger(_appDataPath);
             _corrections = new NameCorrectionHelper(appDataPath);
@@ -38,14 +36,14 @@ namespace AddressLibrary.Services.AddressSearch
             await _cache.InitializeAsync();
 
             // ✅ POPRAWKA: Inicjalizuj strategie PO załadowaniu cache (aby mieć PersonalStreets)
-            var streetMatcher = new StreetMatcher(_normalizer, _cache.PersonalStreets);
+            var streetMatcher = new StreetMatcher(_cache.PersonalStreets);
             var filters = new PostalCodeFilters();
             var resultFactory = new SearchResultFactory(_cache);
             var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
-            var ambiguityResolver = new AmbiguousStreetResolver(_normalizer);
+            var ambiguityResolver = new AmbiguousStreetResolver();
 
-            _streetSearch = new StreetSearchStrategy(_cache, _normalizer, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver);
-            _noStreetSearch = new NoStreetSearchStrategy(_cache, _normalizer, filters, resultFactory);
+            _streetSearch = new StreetSearchStrategy(_cache, streetMatcher, filters, cityStrategy, resultFactory, ambiguityResolver);
+            _noStreetSearch = new NoStreetSearchStrategy(_cache, filters, resultFactory);
         }
 
         public async Task<AddressSearchResult> SearchAsync(
@@ -119,8 +117,8 @@ namespace AddressLibrary.Services.AddressSearch
             // ✅ NORMALIZACJA: Jeśli miasto i ulica są identyczne, wyczyść ulicę
             if (!string.IsNullOrWhiteSpace(request.Ulica))
             {
-                var miastoNorm = _normalizer.Normalize(request.Miasto);
-                var ulicaNorm = _normalizer.Normalize(request.Ulica);
+                var miastoNorm = TextNormalizer.Normalize(request.Miasto);
+                var ulicaNorm = TextNormalizer.Normalize(request.Ulica);
 
                 if (miastoNorm == ulicaNorm)
                 {
@@ -165,7 +163,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
 
             // Znajdź miasta o podanej nazwie
-            var miasta = CityUtils.FindAllMiasta(_cache, _normalizer, request.Miasto, request.KodPocztowy, searchLogger, out string? method);
+            var miasta = CityUtils.FindAllMiasta(_cache, request.Miasto, request.KodPocztowy, searchLogger, out string? method);
             if (miasta == null || miasta.Count == 0)
             {
                 var result = new AddressSearchResult
@@ -174,7 +172,7 @@ namespace AddressLibrary.Services.AddressSearch
                     Message = $"Nie znaleziono miejscowości: {request.Miasto}",
                 };
                 result.AddDiagnostic($"Szukana miejscowość: {request.Miasto}");
-                result.AddDiagnostic($"Znormalizowana nazwa: {_normalizer.Normalize(request.Miasto)}");
+                result.AddDiagnostic($"Znormalizowana nazwa: {TextNormalizer.Normalize(request.Miasto)}");
                 return result;
             }
 

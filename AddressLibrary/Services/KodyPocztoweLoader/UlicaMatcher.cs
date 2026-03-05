@@ -14,14 +14,19 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
     {
         private readonly Dictionary<int, Dictionary<string, List<Ulica>>> _uliceDict;
         public readonly PostalCodesLogger _PostalCodesLogger;
+        private readonly PostalCodesLogger _fuzzyLogger; // ✅ NOWE
 
         public int CorrectedCount { get; private set; }
-        public int AmbiguousCount { get; private set; } // 🆕 Licznik niejednoznaczności
+        public int AmbiguousCount { get; private set; }
 
-        public UlicaMatcher(Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict, PostalCodesLogger PostalCodesLogger)
+        public UlicaMatcher(
+            Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict, 
+            PostalCodesLogger PostalCodesLogger,
+            PostalCodesLogger fuzzyLogger) // ✅ NOWE: Dodano fuzzy logger
         {
             _uliceDict = uliceDict;
             _PostalCodesLogger = PostalCodesLogger;
+            _fuzzyLogger = fuzzyLogger; // ✅ NOWE
         }
 
         /// <summary>
@@ -53,6 +58,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             (currentUlica, currentDzielnica) = UliceUtils.ZielonaGora(miasto, currentUlica, currentDzielnica);
 
             Ulica? ulica = null;
+
+            currentUlica = TextNormalizer.RemoveTitles(currentUlica);
 
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (_uliceDict.TryGetValue(miasto.Id, out var ulice))
@@ -102,7 +109,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     // KROK 1b: Brak dokładnego dopasowania - spróbuj fuzzy matching
                     if (ulice.TryGetValueAgain(currentUlica, out ulica))
                     {
-                        _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Fuzzy matching dla [{currentUlica}] znalazł: '{UliceUtils.GetPelnaNazwa(ulica)}' w '{ulica.Miasto.Nazwa}'");
+                        // ✅ ZMIENIONO: Loguj zarówno do głównego jak i fuzzy loggera
+                        var fuzzyMessage = $"[UlicaMatcher] ✓ FUZZY: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{UliceUtils.GetPelnaNazwaZPrefiksem(ulica)}'";
+                        
+                        _PostalCodesLogger.LogInfo(fuzzyMessage);
+                        _fuzzyLogger.LogInfo(fuzzyMessage); // ✅ NOWE: Dodatkowy log do fuzzy
                     }
                 }
             }

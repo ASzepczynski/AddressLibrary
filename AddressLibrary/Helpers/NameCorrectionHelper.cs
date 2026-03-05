@@ -169,6 +169,7 @@ namespace AddressLibrary.Helpers
             bool hasChanged;
 
             // ✅ POPRAWKA: Iteruj dopóki następna iteracja wprowadza zmiany
+            int LiczbaPoprawek = 0;
             do
             {
                 var przed = result;
@@ -181,8 +182,14 @@ namespace AddressLibrary.Helpers
 
                 // ✅ POPRAWKA: hasChanged == true gdy stringi są RÓŻNE (była zmiana)
                 hasChanged = !string.Equals(przed, result, StringComparison.Ordinal);
+                LiczbaPoprawek++;
                 
-            } while (hasChanged); // ✅ Kontynuuj gdy była zmiana (może być kolejna)
+            } while (hasChanged && LiczbaPoprawek<5); // ✅ Kontynuuj gdy była zmiana (może być kolejna)
+
+            if (LiczbaPoprawek >= 5)
+            {
+                throw new Exception($"Liczba poprawek przekroczyła 5 - przupuszczalnie nieskończona pętla '{oldName}/{result}'");
+            }
 
             newName = result;
 

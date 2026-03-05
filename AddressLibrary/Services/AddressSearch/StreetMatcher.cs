@@ -9,12 +9,10 @@ namespace AddressLibrary.Services.AddressSearch
     /// </summary>
     public class StreetMatcher
     {
-        private readonly TextNormalizer _normalizer;
         private readonly HashSet<string> _personalStreets;
 
-        public StreetMatcher(TextNormalizer normalizer, HashSet<string> personalStreets)
+        public StreetMatcher(HashSet<string> personalStreets)
         {
-            _normalizer = normalizer;
             _personalStreets = personalStreets;
         }
 
@@ -32,7 +30,7 @@ namespace AddressLibrary.Services.AddressSearch
                 return false;
 
             // Normalizuj i sprawdź w zbiorze
-            var normalized = _normalizer.Normalize(searchTerm);
+            var normalized = TextNormalizer.Normalize(searchTerm);
             return _personalStreets.Contains(normalized);
         }
 
@@ -63,7 +61,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public UlicaCached? FindStreet(List<UlicaCached> ulice, string originalStreetName)
         {
-            var normalized = _normalizer.Normalize(originalStreetName);
+            var normalized = TextNormalizer.Normalize(originalStreetName);
 
             // ✅ NOWE: Jeśli to ulica osobowa (2 słowa + w excelu), szukaj TYLKO po pełnej nazwie
             if (IsPersonal(originalStreetName))
@@ -71,7 +69,7 @@ namespace AddressLibrary.Services.AddressSearch
                 // Wyciągnij nazwisko (ostatnie słowo)
                 var words = originalStreetName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 var lastName = words[^1]; // Ostatnie słowo (nazwisko)
-                var normalizedLastName = _normalizer.Normalize(lastName);
+                var normalizedLastName = TextNormalizer.Normalize(lastName);
 
                 // Znajdź wszystkie ulice z tym nazwiskiem
                 var candidatesWithLastName = new List<UlicaCached>();
@@ -126,7 +124,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (withoutInitial != originalStreetName)
             {
-                var normalizedWithoutInitial = _normalizer.Normalize(withoutInitial);
+                var normalizedWithoutInitial = TextNormalizer.Normalize(withoutInitial);
 
                 foreach (var ulica in ulice)
                 {
@@ -146,7 +144,7 @@ namespace AddressLibrary.Services.AddressSearch
         public List<UlicaCached> FindAllStreets(List<UlicaCached> ulice, string originalStreetName)
         {
             var results = new List<UlicaCached>();
-            var normalized = _normalizer.Normalize(originalStreetName);
+            var normalized = TextNormalizer.Normalize(originalStreetName);
 
             // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
             foreach (var ulica in ulice)
@@ -164,7 +162,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (withoutInitial != originalStreetName)
             {
-                var normalizedWithoutInitial = _normalizer.Normalize(withoutInitial);
+                var normalizedWithoutInitial = TextNormalizer.Normalize(withoutInitial);
 
                 foreach (var ulica in ulice)
                 {
@@ -202,7 +200,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public UlicaCached? FindStreetExact(List<UlicaCached> ulice, string searchName)
         {
-            var normalizedSearch = _normalizer.Normalize(searchName);
+            var normalizedSearch = TextNormalizer.Normalize(searchName);
 
             foreach (var ulica in ulice)
             {
@@ -250,7 +248,7 @@ namespace AddressLibrary.Services.AddressSearch
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return null;
 
-            var normalizedSearch = _normalizer.Normalize(searchTerm);
+            var normalizedSearch = TextNormalizer.Normalize(searchTerm);
 
             UlicaCached? bestMatch = null;
             int bestDistance = int.MaxValue;

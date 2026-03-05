@@ -10,7 +10,7 @@ namespace AddressLibrary.Services.AddressSearch
     /// </summary>
     public class AmbiguousStreetResolver
     {
-        public AmbiguousStreetResolver(TextNormalizer normalizer)
+        public AmbiguousStreetResolver()
         {
         }
                 

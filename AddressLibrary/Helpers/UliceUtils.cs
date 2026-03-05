@@ -77,6 +77,9 @@ namespace AddressLibrary.Helpers
                 return ($"{Nazwa2} {Nazwa1}".Trim(), "");
             }
 
+
+
+
             return (Nazwa1.Trim(), Nazwa2.Trim());
 
         }
@@ -126,17 +129,19 @@ namespace AddressLibrary.Helpers
             { "aleja",    new List<string> { "al.", "al", "aleje", "aleja" } },
             { "bulwar",   new List<string> { "bulw.", "bulwar"} },
             { "droga",    new List<string> { "droga" } },
+            { "most",    new List<string> { "most" } },
             { "ogród",    new List<string> { "ogród"}},
             { "osiedle",    new List<string> { "os.", "os", "oś.", "oś","osiedle" } },
             { "park",     new List<string> { "park" } },
             { "pasaż",    new List<string> { "pasaż"}},
-            { "plac",     new List<string> { "pl.", "plac","pl" } },
+            { "plac",     new List<string> { "pl.", "pl", "plac" } },
             { "rondo",    new List<string> { "rondo" } },
             { "rynek",    new List<string> { "rynek"}},
-            { "skwer",    new List<string> { "skw.", "skwer"} },
+            { "skwer",    new List<string> { "skw.", "skw", "skwer"} },
             { "szosa",    new List<string> { "szosa" } },
             { "ścieżka",  new List<string> { "ścieżka"} },
-            { "ulica",    new List<string> { "ul.", "ul", "ulica" } }
+            { "ulica",    new List<string> { "ul.", "ul", "ulica" } },
+            { "wybrzeże",    new List<string> { "wyb.", "wyb", "wybrzeże" } }
         };
         /// <summary>
         /// Zwraca preferowany skrót dla typu ulicy (np. "aleja" → "al.", "plac" → "pl.")
@@ -287,6 +292,14 @@ namespace AddressLibrary.Helpers
                 return ulica.Nazwa1;
             }
             return $"{ulica.Nazwa2} {ulica.Nazwa1}";
+        }
+        /// <summary>
+        /// Buduje pełną nazwę ulicy z Nazwa2 (prefiks) + Nazwa1 (główna nazwa)
+        /// </summary>
+        public static string GetPelnaNazwaZPrefiksem(Ulica ulica)
+        {
+            var x = GetPelnaNazwa(ulica);
+            return $"{ulica.Cecha} {x}".Trim();
         }
         public static List<string> GetAllStreetPrefixes()
         {

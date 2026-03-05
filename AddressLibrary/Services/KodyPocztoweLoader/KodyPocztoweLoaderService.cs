@@ -14,17 +14,20 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
     {
         private readonly AddressDbContext _context;
         private readonly PostalCodesLogger _logger;
-        private readonly PnaCorrectionHelper _pnaCorrections; // 🆕 DODANE
+        private readonly PostalCodesLogger _fuzzyLogger; // ✅ NOWE: Osobny logger dla fuzzy matching
+        private readonly PnaCorrectionHelper _pnaCorrections;
         string sKorekcja = "";
         private NameCorrectionHelper _corrections;
 
         public string LogFilePath => _logger.LogFilePath;
+        public string FuzzyLogFilePath => _fuzzyLogger.LogFilePath; // ✅ NOWE
 
         public KodyPocztoweLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
             _logger = new PostalCodesLogger(appDataPath);
-            _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty); // 🆕 DODANE
+            _fuzzyLogger = new PostalCodesLogger(appDataPath, "PostalCodesLoader_Fuzzy.txt"); // ✅ POPRAWKA: Inna nazwa pliku!
+            _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty);
             _corrections = new NameCorrectionHelper(appDataPath);
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
         }
@@ -38,6 +41,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             Console.WriteLine($"[KodyPocztoweLoaderService] Wywołuję _logger.InitializeAsync()...");
             await _logger.InitializeAsync();
+            await _fuzzyLogger.InitializeAsync(); // ✅ NOWE
             Console.WriteLine($"[KodyPocztoweLoaderService] ✓ _logger.InitializeAsync() zakończone");
 
             // DODANO: Wyczyść tabelę KodyPocztowe przed rozpoczęciem ładowania
@@ -71,9 +75,9 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var miastaDict = await dictionaryBuilder.BuildMiastaDictionaryAsync();
             var uliceDict = await dictionaryBuilder.BuildUliceDictionaryAsync();
 
-            // Inicjalizuj matchery - PRZEKAŻ LOGGER
-            var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger);
-            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger);
+            // ✅ ZMIENIONO: Przekaż OBA loggery do matcherów
+            var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger, _fuzzyLogger);
+            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger, _fuzzyLogger);
 
             progressInfo.CurrentOperation = "Przetwarzanie kodów pocztowych...";
             progress?.Report(progressInfo);
@@ -288,10 +292,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             return false; // Bez zmian
         }
 
-        // ✅ Dispose loggera
+        // ✅ Dispose obu loggerów
         public void Dispose()
         {
             _logger?.Dispose();
+            _fuzzyLogger?.Dispose(); // ✅ NOWE
         }
     }
 }

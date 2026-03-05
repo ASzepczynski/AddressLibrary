@@ -13,15 +13,18 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         private readonly Dictionary<string, List<Gmina>> _gminyDict;
         private readonly Dictionary<int, Dictionary<string, Miasto>> _miastaDict;
         private readonly PostalCodesLogger? _logger;
+        private readonly PostalCodesLogger? _fuzzyLogger; // ✅ NOWE
 
         public MiastoMatcher(
             Dictionary<string, List<Gmina>> gminyDict,
             Dictionary<int, Dictionary<string, Miasto>> miastaDict,
-            PostalCodesLogger? logger)
+            PostalCodesLogger? logger,
+            PostalCodesLogger? fuzzyLogger) // ✅ NOWE: Dodano fuzzy logger
         {
             _gminyDict = gminyDict;
             _miastaDict = miastaDict;
             _logger = logger;
+            _fuzzyLogger = fuzzyLogger; // ✅ NOWE
         }
 
         /// <summary>
@@ -50,7 +53,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             if (gminyList.Count > 1)
             {
-                isMultipleGmin = true;
+                // ✅ MOŻESZ TUTAJ DODAĆ LOGOWANIE FUZZY DLA MIEJSCOWOŚCI
+                // jeśli matcher używa fuzzy matching dla miast
             }
 
             bool found = false;

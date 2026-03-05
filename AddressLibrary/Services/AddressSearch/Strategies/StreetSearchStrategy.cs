@@ -15,7 +15,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
     public class StreetSearchStrategy
     {
         private readonly AddressSearchCache _cache;
-        private readonly TextNormalizer _normalizer;
         private readonly StreetMatcher _streetMatcher;
         private readonly PostalCodeFilters _filters;
         private readonly CityPostalCodeStrategy _cityStrategy;
@@ -24,7 +23,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
         public StreetSearchStrategy(
             AddressSearchCache cache,
-            TextNormalizer normalizer,
             StreetMatcher streetMatcher,
             PostalCodeFilters filters,
             CityPostalCodeStrategy cityStrategy,
@@ -32,7 +30,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             AmbiguousStreetResolver ambiguityResolver)
         {
             _cache = cache;
-            _normalizer = normalizer;
             _streetMatcher = streetMatcher;
             _filters = filters;
             _cityStrategy = cityStrategy;
@@ -60,7 +57,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 normalizedStreet = normalizedStreet2;
             }
 
-            normalizedStreet = _normalizer.Normalize(normalizedStreet);
+            normalizedStreet = TextNormalizer.Normalize(normalizedStreet);
             searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{Prefix}/{normalizedStreet}'");
 
             var combinedBuildingNumber = request.NumerDomu;
@@ -617,7 +614,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             diagnostic?.Log($"{Environment.NewLine}--- RETRY: Wyszukiwanie bez ulicy (bo '{request.Ulica}' to miejscowość) ---");
 
-            var noStreetStrategy = new NoStreetSearchStrategy(_cache, _normalizer, _filters, _resultFactory);
+            var noStreetStrategy = new NoStreetSearchStrategy(_cache, _filters, _resultFactory);
             var result = noStreetStrategy.Execute(swappedRequest, new List<Miasto> { Pasujace[0] }, diagnostic);
 
             // ✅ NOWE: Oznacz że była zamiana

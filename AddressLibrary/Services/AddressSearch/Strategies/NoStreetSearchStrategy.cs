@@ -13,18 +13,15 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
     public class NoStreetSearchStrategy
     {
         private readonly AddressSearchCache _cache;
-        private readonly TextNormalizer _normalizer;
         private readonly PostalCodeFilters _filters;
         private readonly SearchResultFactory _resultFactory;
 
         public NoStreetSearchStrategy(
             AddressSearchCache cache,
-            TextNormalizer normalizer,
             PostalCodeFilters filters,
             SearchResultFactory resultFactory)
         {
             _cache = cache;
-            _normalizer = normalizer;
             _filters = filters;
             _resultFactory = resultFactory;
         }

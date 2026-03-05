@@ -8,13 +8,12 @@ namespace AddressLibrary.Helpers
     {
         public static List<Miasto>? FindAllMiasta(
             AddressSearchCache _cache,
-            TextNormalizer _normalizer,
             string miastoName,
             string? postalCode, // 🆕 DODANE
             SearchLogger? searchLogger,
             out string? method)
         {
-            var miastoNorm = _normalizer.Normalize(miastoName);
+            var miastoNorm = TextNormalizer.Normalize(miastoName);
             searchLogger?.Log($"Znormalizowana miejscowość: '{miastoName}' -> '{miastoNorm}'");
 
             if (_cache.TryGetMiasta(miastoNorm, out var miasta))
