@@ -2,6 +2,7 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
+using AddressLibrary.Utils;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -14,22 +15,106 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
     {
         private readonly AddressDbContext _context;
         private readonly PostalCodesLogger _logger;
-        private readonly PostalCodesLogger _fuzzyLogger; // ✅ NOWE: Osobny logger dla fuzzy matching
+        private readonly PostalCodesLogger _fuzzyLogger;
+        private readonly PostalCodesLogger _errorLogger;
         private readonly PnaCorrectionHelper _pnaCorrections;
-        string sKorekcja = "";
-        private NameCorrectionHelper _corrections;
+        private readonly NameCorrectionHelper _corrections;
+        private readonly HashSet<string> _personalStreets; // ✅ NOWE
+        private string sKorekcja = "";
 
         public string LogFilePath => _logger.LogFilePath;
-        public string FuzzyLogFilePath => _fuzzyLogger.LogFilePath; // ✅ NOWE
+        public string FuzzyLogFilePath => _fuzzyLogger.LogFilePath;
+        public string ErrorLogFilePath => _errorLogger.LogFilePath;
 
         public KodyPocztoweLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
             _logger = new PostalCodesLogger(appDataPath);
-            _fuzzyLogger = new PostalCodesLogger(appDataPath, "PostalCodesLoader_Fuzzy.txt"); // ✅ POPRAWKA: Inna nazwa pliku!
+            _fuzzyLogger = new PostalCodesLogger(appDataPath, "PostalCodesLoader_Fuzzy.txt");
+            _errorLogger = new PostalCodesLogger(appDataPath, "PostalCodesLoader_Error.txt");
             _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty);
             _corrections = new NameCorrectionHelper(appDataPath);
+            
+            // ✅ NOWE: Załaduj ulice osobowe
+            _personalStreets = LoadPersonalStreets(appDataPath);
+            
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
+            Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_personalStreets.Count} ulic osobowych");
+        }
+
+        /// <summary>
+        /// ✅ NOWE: Ładuje listę ulic osobowych z pliku Excel (skopiowane z AddressSearchCache)
+        /// </summary>
+        private HashSet<string> LoadPersonalStreets(string? appDataPath)
+        {
+            var personalStreets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            
+            if (string.IsNullOrEmpty(appDataPath))
+                return personalStreets;
+
+            var excelPath = Path.Combine(appDataPath, "AppData", "Updates", "UliceOsobowe.xlsx");
+
+            if (!File.Exists(excelPath))
+            {
+                Console.WriteLine($"⚠️ Plik {excelPath} nie istnieje");
+                return personalStreets;
+            }
+
+            try
+            {
+                using (var spreadsheet = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(excelPath, false))
+                {
+                    var workbookPart = spreadsheet.WorkbookPart;
+                    if (workbookPart == null)
+                        return personalStreets;
+
+                    var worksheetPart = workbookPart.WorksheetParts.First();
+                    var sheetData = worksheetPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().First();
+
+                    foreach (var row in sheetData.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>().Skip(1)) // Pomiń nagłówek
+                    {
+                        var cells = row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().ToList();
+                        
+                        if (cells.Count >= 5)
+                        {
+                            string? streetName = GetCellValue(workbookPart, cells[4]);
+                            if (!string.IsNullOrWhiteSpace(streetName))
+                            {
+                                var normalized = TextNormalizer.Normalize(streetName);
+                                personalStreets.Add(normalized);
+                            }
+                        }
+                    }
+                }
+                
+                Console.WriteLine($"✓ Załadowano {personalStreets.Count} ulic osobowych z {excelPath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Błąd ładowania ulic osobowych: {ex.Message}");
+            }
+
+            return personalStreets;
+        }
+
+        private static string GetCellValue(DocumentFormat.OpenXml.Packaging.WorkbookPart workbookPart, 
+                                      DocumentFormat.OpenXml.Spreadsheet.Cell cell)
+        {
+            if (cell.CellValue == null)
+                return string.Empty;
+
+            string value = cell.CellValue.InnerText;
+
+            if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
+            {
+                var stringTable = workbookPart.GetPartsOfType<DocumentFormat.OpenXml.Packaging.SharedStringTablePart>().FirstOrDefault();
+                if (stringTable != null)
+                {
+                    return stringTable.SharedStringTable.ElementAt(int.Parse(value)).InnerText;
+                }
+            }
+
+            return value;
         }
 
         public async Task LoadAsync(
@@ -41,7 +126,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             Console.WriteLine($"[KodyPocztoweLoaderService] Wywołuję _logger.InitializeAsync()...");
             await _logger.InitializeAsync();
-            await _fuzzyLogger.InitializeAsync(); // ✅ NOWE
+            await _fuzzyLogger.InitializeAsync();
+            await _errorLogger.InitializeAsync(); // ✅ NOWE
             Console.WriteLine($"[KodyPocztoweLoaderService] ✓ _logger.InitializeAsync() zakończone");
 
             // DODANO: Wyczyść tabelę KodyPocztowe przed rozpoczęciem ładowania
@@ -52,17 +138,19 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             };
             progress?.Report(progressInfo);
 
-            _logger.LogError("=== Rozpoczęcie czyszczenia tabeli KodyPocztowe ===");
+            // ✅ ZMIENIONO: Loguj do error loggera zamiast głównego
+            _logger.LogInfo("=== Rozpoczęcie czyszczenia tabeli KodyPocztowe ===");
 
             try
             {
                 // Usuń wszystkie rekordy z tabeli KodyPocztowe
                 await _context.Database.ExecuteSqlRawAsync("DELETE FROM KodyPocztowe");
-                _logger.LogError("✓ Tabela KodyPocztowe została wyczyszczona");
+                _logger.LogInfo("✓ Tabela KodyPocztowe została wyczyszczona");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"✗ Błąd podczas czyszczenia tabeli: {ex.Message}");
+                // ✅ ZMIENIONO: Loguj błędy do error loggera
+                _errorLogger.LogError($"✗ Błąd podczas czyszczenia tabeli: {ex.Message}");
                 throw;
             }
 
@@ -75,9 +163,9 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var miastaDict = await dictionaryBuilder.BuildMiastaDictionaryAsync();
             var uliceDict = await dictionaryBuilder.BuildUliceDictionaryAsync();
 
-            // ✅ ZMIENIONO: Przekaż OBA loggery do matcherów
-            var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger, _fuzzyLogger);
-            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger, _fuzzyLogger);
+            // Przekaż error logger do matcherów
+            var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger, _fuzzyLogger, _errorLogger);
+            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger, _fuzzyLogger, _errorLogger, _personalStreets); // ✅ Dodano _personalStreets
 
             progressInfo.CurrentOperation = "Przetwarzanie kodów pocztowych...";
             progress?.Report(progressInfo);
@@ -88,20 +176,18 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-            // foreach (var pna_raw in pnaData.Where(x=>x.Kod== "30-233"))
             foreach (var pna_raw in pnaData)
             {
                 try
                 {
                     var pna_src = pna_raw;
-                    // Usunięcie cudzysłowów charakterystycznych dla plików CSV
 
                     pna_src.Miasto = UliceUtils.RemoveQuote(pna_src.Miasto);
                     pna_src.Ulica = UliceUtils.RemoveQuote(pna_src.Ulica);
                     pna_src.Numery = UliceUtils.RemoveQuote(pna_src.Numery);
                     sKorekcja = "";
                     Pna pna = pna_src;
-                    // 🆕 KROK 1: Zastosuj korektę jeśli istnieje
+
                     if (KorektaPna(pna, out var pnaCorrected))
                     {
                         stats.CorrectionsCount++;
@@ -110,9 +196,12 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         if (pnaCorrected.Kod != "???")
                         {
                             pna = pnaCorrected;
+                        } else
+                        {
+                            _logger.LogInfo($"{FormatPnaRecord(pna)}|Błąd w PNA, pozycja zignorowana");
+                            continue;
                         }
                     }
-                    ;
 
                     if (_corrections.TryCorrect("U", pna.Ulica, out var correctedStreet))
                     {
@@ -120,9 +209,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         pna.Ulica = correctedStreet;
                     }
 
-
-
                     // 1a. Znajdź miasto
+                    if (pna.Miasto == "Aleksandrów Kujawski")
+                    {
+                        int y = 1;
+                    }
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
                     var miasto = matchResult.miasto;
 
@@ -139,20 +230,20 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     {
                         if (gmina == null)
                         {
-                            // Sytuacja 1: Nie znaleziono gminy w bazie
-                            _logger.LogError($"Nie znaleziono gminy: {gminaNazwa} w powiecie {pna.Powiat}, woj. {pna.Wojewodztwo} dla kodu {pna.Kod}");
+                            // ✅ ZMIENIONO: Loguj do error loggera
+                            _errorLogger.LogError($"Nie znaleziono gminy: {gminaNazwa} w powiecie {pna.Powiat}, woj. {pna.Wojewodztwo} dla kodu {pna.Kod}");
                         }
                         else if (isMultipleGmin)
                         {
-                            // Sytuacja 2: Znaleziono wiele gmin o tej nazwie, ale miasto nie jest w żadnej
                             var gminyLista = string.Join(", ", gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()]
                                 .Select(g => g.RodzajGminy.Nazwa));
-                            _logger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w żadnej z {gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()].Count} gmin o nazwie '{gminaNazwa}' ({gminyLista}) dla kodu {pna.Kod}");
+                            // ✅ ZMIENIONO: Loguj do error loggera
+                            _errorLogger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w żadnej z {gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()].Count} gmin o nazwie '{gminaNazwa}' ({gminyLista}) dla kodu {pna.Kod}");
                         }
                         else
                         {
-                            // Sytuacja 3: Znaleziono gminę, ale miasto nie jest w tej gminie
-                            _logger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w gminie '{gminaNazwa}' ({gmina.RodzajGminy.Nazwa}) dla kodu {pna.Kod}");
+                            // ✅ ZMIENIONO: Loguj do error loggera
+                            _errorLogger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w gminie '{gminaNazwa}' ({gmina.RodzajGminy.Nazwa}) dla kodu {pna.Kod}");
                         }
 
                         stats.ErrorCount++;
@@ -164,16 +255,17 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     // 2. Znajdź ulicę (jeśli jest)
                     string? sUlica = pna.Ulica.Replace("-go", "");
 
-                    // Rozkładamy ulicę na prefix i część pozostałą
                     (string sPrefix, sUlica) = UliceUtils.SplitStreetPrefix(sUlica);
-                    // Usuwamy duplikat prefiksu, przykład os. Osiedle Kolorowe
                     sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix, sUlica);
+                    (bool zmiana,sPrefix,sUlica) = PrefixModification.ModifyPrefix(sPrefix, sUlica, miasto.Nazwa);
 
                     (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
 
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
                     {
-                        _logger.LogError(ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, sKorekcja) + $" dla kodu {pna.Kod}");
+                        // ✅ ZMIENIONO: Loguj do error loggera
+
+                        _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, sKorekcja)}");
                         stats.ErrorCount++;
                         stats.SkippedCount++;
                         stats.ProcessedCount++;
@@ -185,8 +277,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     {
                         dzielnica = pna.Dzielnica;
                     }
-
-                    // 4. Utwórz rekord
 
                     var kodPocztowy = new KodPocztowy
                     {
@@ -205,13 +295,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Błąd: {pna_raw.Kod}: {ex.Message}");
+                    // ✅ ZMIENIONO: Loguj do error loggera
+                    _errorLogger.LogError($"Błąd: {pna_raw.Kod}: {ex.Message}");
                     stats.ErrorCount++;
                 }
 
                 stats.ProcessedCount++;
 
-                // Raportuj postęp
                 if (stats.ProcessedCount % reportInterval == 0 || stats.ProcessedCount == pnaData.Count)
                 {
                     progressInfo.ProcessedCount = stats.ProcessedCount;
@@ -222,7 +312,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 }
             }
 
-            // Zapisz pozostałe
             if (pendingRecords.Count > 0)
             {
                 var uniqueRecords = pendingRecords
@@ -237,8 +326,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             progressInfo.ErrorCount = stats.ErrorCount;
             progressInfo.CurrentOperation = "Zakończono ładowanie kodów pocztowych";
             progress?.Report(progressInfo);
-
-
         }
 
         private async Task SaveBatchAsync(List<KodPocztowy> pendingRecords, LoadStatistics stats)
@@ -251,34 +338,28 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             }
             catch (DbUpdateException dbEx)
             {
-                _logger.LogError($"BŁĄD ZAPISU PARTII (batch {stats.ProcessedCount / 1000}):");
-                _logger.LogError($"Message: {dbEx.Message}");
+                // ✅ ZMIENIONO: Loguj do error loggera
+                _errorLogger.LogError($"BŁĄD ZAPISU PARTII (batch {stats.ProcessedCount / 1000}):");
+                _errorLogger.LogError($"Message: {dbEx.Message}");
 
-                // ✅ DODAJ: Wyświetl pełny inner exception
                 var innerEx = dbEx.InnerException;
                 while (innerEx != null)
                 {
-                    _logger.LogError($"Inner Exception: {innerEx.Message}");
-                    _logger.LogError($"Inner Type: {innerEx.GetType().Name}");
+                    _errorLogger.LogError($"Inner Exception: {innerEx.Message}");
+                    _errorLogger.LogError($"Inner Type: {innerEx.GetType().Name}");
                     innerEx = innerEx.InnerException;
                 }
 
-                // ✅ Pokaż pierwsze 10 rekordów z tej partii
                 for (int i = 0; i < Math.Min(10, pendingRecords.Count); i++)
                 {
                     var rec = pendingRecords[i];
-                    _logger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}, Numery={rec.Numery}");
+                    _errorLogger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}, Numery={rec.Numery}");
                 }
 
                 throw;
             }
         }
 
-        /// <summary>
-        /// 🆕 Stosuje korektę do rekordu PNA jeśli istnieje w słowniku korekt
-        /// </summary>
-        /// <param name="pna">Oryginalny rekord PNA</param>
-        /// <returns>Skorygowany rekord PNA lub oryginalny jeśli brak korekty</returns>
         private bool KorektaPna(Pna pna, out Pna corrected)
         {
             corrected = _pnaCorrections.TryCorrect(pna);
@@ -289,14 +370,22 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 return true;
             }
 
-            return false; // Bez zmian
+            return false;
         }
 
-        // ✅ Dispose obu loggerów
+        /// <summary>
+        /// ✅ NOWA METODA: Formatuje rekord PNA do logu (wszystkie pola oddzielone pipe |)
+        /// </summary>
+        private string FormatPnaRecord(Pna pna)
+        {
+            return $"{pna.Kod}|{pna.Miasto}|{pna.Dzielnica}|{pna.Ulica}|{pna.Numery}|{pna.Wojewodztwo}|{pna.Powiat}|{pna.Gmina}";
+        }
+
         public void Dispose()
         {
             _logger?.Dispose();
-            _fuzzyLogger?.Dispose(); // ✅ NOWE
+            _fuzzyLogger?.Dispose();
+            _errorLogger?.Dispose();
         }
     }
 }

@@ -1,5 +1,8 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
+
+// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
+
 using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.AddressSearch
@@ -79,9 +82,9 @@ namespace AddressLibrary.Services.AddressSearch
                     // Sprawdź czy Nazwa1 lub NormalizedCombined kończy się na nazwisko
                     if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedLastName) || 
                         ulica.NormalizedNazwa1 == normalizedLastName ||
-                        (ulica.NormalizedCombined != null && 
+                        ulica.NormalizedCombined != null && 
                          (ulica.NormalizedCombined.EndsWith(" " + normalizedLastName) || 
-                          ulica.NormalizedCombined == normalizedLastName)))
+                          ulica.NormalizedCombined == normalizedLastName))
                     {
                         candidatesWithLastName.Add(ulica);
                     }
@@ -262,12 +265,12 @@ namespace AddressLibrary.Services.AddressSearch
                 {
                     listaPodobnych.Add(ulica);
                 }
-                int distance1 = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
+                int distance1 = Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
 
                 int distanceCombined = int.MaxValue;
                 if (!string.IsNullOrEmpty(ulica.NormalizedCombined))
                 {
-                    distanceCombined = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedCombined);
+                    distanceCombined = Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedCombined);
                 }
 
                 int minDistance = Math.Min(distance1, distanceCombined);
@@ -282,7 +285,7 @@ namespace AddressLibrary.Services.AddressSearch
             if (bestMatch != null)
             {
                 var referenceLength = Math.Max(normalizedSearch.Length, bestMatch.NormalizedNazwa1.Length);
-                var similarity = 1.0 - ((double)bestDistance / referenceLength);
+                var similarity = 1.0 - (double)bestDistance / referenceLength;
 
                 // 🔧 POPRAWKA: Wyższy próg dla krótkich słów
                 double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5;

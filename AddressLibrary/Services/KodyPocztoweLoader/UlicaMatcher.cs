@@ -4,6 +4,7 @@ using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.HierarchyBuilders;
+using AddressLibrary.Services.AddressSearch;
 
 namespace AddressLibrary.Services.KodyPocztoweLoader
 {
@@ -13,8 +14,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
     internal class UlicaMatcher
     {
         private readonly Dictionary<int, Dictionary<string, List<Ulica>>> _uliceDict;
+        private readonly Dictionary<int, List<UlicaCached>> _uliceCachedDict;
+        private readonly StreetMatcher _streetMatcher; // ✅ Używaj StreetMatcher
         public readonly PostalCodesLogger _PostalCodesLogger;
-        private readonly PostalCodesLogger _fuzzyLogger; // ✅ NOWE
+        private readonly PostalCodesLogger _fuzzyLogger;
+        private readonly PostalCodesLogger _errorLogger;
 
         public int CorrectedCount { get; private set; }
         public int AmbiguousCount { get; private set; }
@@ -22,15 +26,67 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         public UlicaMatcher(
             Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict, 
             PostalCodesLogger PostalCodesLogger,
-            PostalCodesLogger fuzzyLogger) // ✅ NOWE: Dodano fuzzy logger
+            PostalCodesLogger fuzzyLogger,
+            PostalCodesLogger errorLogger,
+            HashSet<string> personalStreets) // ✅ NOWY parametr
         {
             _uliceDict = uliceDict;
             _PostalCodesLogger = PostalCodesLogger;
-            _fuzzyLogger = fuzzyLogger; // ✅ NOWE
+            _fuzzyLogger = fuzzyLogger;
+            _errorLogger = errorLogger;
+            
+            // Konwertuj na UlicaCached
+            _uliceCachedDict = ConvertToUlicaCachedDict(uliceDict);
+            
+            // ✅ Inicjalizuj StreetMatcher
+            _streetMatcher = new StreetMatcher(personalStreets);
         }
 
         /// <summary>
-        /// Próbuje znaleźć ulicę w danej miejscowości
+        /// ✅ NOWE: Konwertuje słownik Ulica na słownik UlicaCached
+        /// </summary>
+        private Dictionary<int, List<UlicaCached>> ConvertToUlicaCachedDict(
+            Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict)
+        {
+            var result = new Dictionary<int, List<UlicaCached>>();
+
+            foreach (var kvp in uliceDict)
+            {
+                var miastoId = kvp.Key;
+                var uliceByName = kvp.Value;
+
+                var cachedList = new List<UlicaCached>();
+
+                foreach (var uliceList in uliceByName.Values)
+                {
+                    foreach (var ulica in uliceList)
+                    {
+                        var cached = new UlicaCached
+                        {
+                            Id = ulica.Id,
+                            MiastoId = ulica.MiastoId,
+                            Cecha = ulica.Cecha,
+                            Nazwa1 = ulica.Nazwa1,
+                            Nazwa2 = ulica.Nazwa2,
+                            Miasto = ulica.Miasto,
+                            Dzielnica = ulica.Dzielnica,
+                            NormalizedNazwa1 = TextNormalizer.Normalize(ulica.Nazwa1),
+                            NormalizedCombined = string.IsNullOrEmpty(ulica.Nazwa2)
+                                ? null
+                                : TextNormalizer.Normalize($"{ulica.Nazwa2} {ulica.Nazwa1}")
+                        };
+                        cachedList.Add(cached);
+                    }
+                }
+
+                result[miastoId] = cachedList;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// ✅ PRZEPISANE: Używa StreetMatcher.FindStreet zamiast własnej logiki
         /// </summary>
         public (Ulica? ulica, string ulicaNazwa) Match(
             string kodPocztowy,
@@ -57,95 +113,60 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             }
             (currentUlica, currentDzielnica) = UliceUtils.ZielonaGora(miasto, currentUlica, currentDzielnica);
 
-            Ulica? ulica = null;
-
             currentUlica = TextNormalizer.RemoveTitles(currentUlica);
 
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
-            if (_uliceDict.TryGetValue(miasto.Id, out var ulice))
+            if (!_uliceCachedDict.TryGetValue(miasto.Id, out var uliceCachedList))
             {
-
-                // 🆕 KROK 1a: Znajdź WSZYSTKIE dokładnie pasujące ulice
-                var exactMatches = FindAllExactMatches(miasto, ulice, currentUlica, currentDzielnica);
-
-                if (exactMatches.Count == 1)
-                {
-                    // ✅ Dokładnie jedna ulica - OK
-                    ulica = exactMatches[0];
-                    //                    _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Znaleziono dokładnie jedną ulicę: '{UliceUtils.GetPelnaNazwa(ulica)}'");
-                }
-                else if (exactMatches.Count > 1)
-                {
-                    // ⚠️ Wiele ulic - NIEJEDNOZNACZNOŚĆ
-                    AmbiguousCount++;
-                    _PostalCodesLogger.LogWarning($"[UlicaMatcher] ⚠️ NIEJEDNOZNACZNOŚĆ: Znaleziono {exactMatches.Count} ulic w mieście [{miasto.Nazwa}] pasujących do '{currentUlica}':");
-
-                    // 🆕 Próba rozstrzygnięcia niejednoznaczności
-                    if (sPrefiks == "") sPrefiks = "ul.";
-                    // Nie podajemy kodu pocztowego, bo właśnie go ładujemy - to jest ładowanie kodów pocztowych
-                    ulica = ResolveAmbiguity.ResolveStreetAmbiguity(
-                        exactMatches,
-                        sPrefiks,
-                        currentUlica,
-                        currentDzielnica,
-                        "",
-                        miasto.Nazwa,
-                        null,
-                        _PostalCodesLogger);
-
-                    if (ulica != null)
-                    {
-                        _PostalCodesLogger.LogInfo($"[UlicaMatcher] ✓ Rozstrzygnięto: wybrano '{sPrefiks} {UliceUtils.GetPelnaNazwa(ulica)}'");
-                    }
-                    else
-                    {
-                        _PostalCodesLogger.LogError($"[UlicaMatcher] ✗ Nie udało się rozstrzygnąć niejednoznaczności");
-                        // Zwróć null - błąd zostanie zalogowany
-                        return (null, currentUlica);
-                    }
-                }
-                else
-                {
-                    // KROK 1b: Brak dokładnego dopasowania - spróbuj fuzzy matching
-                    if (ulice.TryGetValueAgain(currentUlica, out ulica))
-                    {
-                        // ✅ ZMIENIONO: Loguj zarówno do głównego jak i fuzzy loggera
-                        var fuzzyMessage = $"[UlicaMatcher] ✓ FUZZY: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{UliceUtils.GetPelnaNazwaZPrefiksem(ulica)}'";
-                        
-                        _PostalCodesLogger.LogInfo(fuzzyMessage);
-                        _fuzzyLogger.LogInfo(fuzzyMessage); // ✅ NOWE: Dodatkowy log do fuzzy
-                    }
-                }
+                return (null, currentUlica);
             }
+
+            // ✅ NOWE: Filtruj po dzielnicy (jeśli podana)
+            var filteredUlice = string.IsNullOrEmpty(currentDzielnica)
+                ? uliceCachedList
+                : uliceCachedList.Where(u => u.Dzielnica == currentDzielnica).ToList();
+
+            if (filteredUlice.Count == 0)
+            {
+                return (null, currentUlica);
+            }
+
+            // ✅ NOWE: Deleguj wyszukiwanie do StreetMatcher.FindStreet
+            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, currentUlica);
+
+            if (ulicaCached == null)
+            {
+                return (null, currentUlica);
+            }
+
+            // ✅ Konwertuj UlicaCached z powrotem na Ulica
+            var ulica = new Ulica
+            {
+                Id = ulicaCached.Id,
+                MiastoId = ulicaCached.MiastoId,
+                Cecha = ulicaCached.Cecha,
+                Nazwa1 = ulicaCached.Nazwa1,
+                Nazwa2 = ulicaCached.Nazwa2,
+                Miasto = ulicaCached.Miasto,
+                Dzielnica = ulicaCached.Dzielnica
+            };
+
+            // ✅ Sprawdź czy to było fuzzy matching
+            var normalizedSearch = TextNormalizer.Normalize(currentUlica);
+            var wasExactMatch = ulicaCached.NormalizedNazwa1 == normalizedSearch ||
+                               (ulicaCached.NormalizedCombined != null && ulicaCached.NormalizedCombined == normalizedSearch);
+
+            if (!wasExactMatch)
+            {
+                // To było fuzzy matching - zaloguj
+                var fuzzyMessage = $"[UlicaMatcher] ✓ FUZZY: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{UliceUtils.GetPelnaNazwaZPrefiksem(ulica)}'";
+                
+                _PostalCodesLogger.LogInfo(fuzzyMessage);
+                _fuzzyLogger.LogInfo(fuzzyMessage);
+            }
+
             return (ulica, currentUlica);
         }
-
-        /// <summary>
-        /// 🆕 Znajduje wszystkie ulice dokładnie pasujące do szukanej nazwy (case-insensitive)
-        /// </summary>
-        private List<Ulica> FindAllExactMatches(Miasto miasto, Dictionary<string, List<Ulica>> ulice, string sUlica, string sDzielnica)
-        {
-
-            var matches = new List<Ulica>();
-
-            var normalizedSearch = sUlica.ToLowerInvariant();
-
-            foreach (var kvp in ulice)
-            {
-                // Klucz słownika jest już znormalizowany (lowercase)
-                if (kvp.Key == normalizedSearch)
-                {
-                    foreach (var uliczka in kvp.Value)
-                        if (uliczka.Dzielnica == sDzielnica)
-                        {
-                            matches.Add(uliczka);
-                        }
-                }
-            }
-
-            return matches;
-        }
-
 
         /// <summary>
         /// Generuje diagnostyczny komunikat o braku ulicy
@@ -159,15 +180,10 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             var message = "";
 
-
             message = $" Próbowano korekty: '{sKorekcja}'";
-
             message += $" Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
-
 
             return message;
         }
-
-
     }
 }

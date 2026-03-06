@@ -1,5 +1,6 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Helpers;
+using AddressLibrary.Utils;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Services.AddressSearch;
@@ -192,9 +193,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 Nazwa1 = UliceUtils.RemoveStreetTypeDuplication(Cecha, Nazwa1);
 
                 // 🆕 KROK 1.5: Sprawdź czy Nazwa1 zaczyna się od prefiksu i przenieś go do Cecha
-                var (changedPrefix, extractedPrefix, cleanedName) = ExtractPrefixFromName(Nazwa1);
+                var (extractedPrefix, cleanedName) = UliceUtils.SplitStreetPrefix(Nazwa1);
 
-                if (changedPrefix)
+                if (extractedPrefix!=Cecha)
                 {
                     var oldCecha = Cecha;
                     var oldNazwa1 = Nazwa1;
@@ -204,14 +205,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                     prefixChanges++;
 
-                    // Loguj zmianę
-                    _prefixLogger.LogPrefixChange(
-                        oldCecha ?? "(brak)",
-                        oldNazwa1,
-                        Cecha,
-                        Nazwa1,
-                        miasto?.Nazwa ?? "?"
-                    );
                 }
 
                 // 🆕 KROK 2: sprawdź konwersję z Excel
@@ -239,29 +232,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     Dzielnica = dzielnica
                 };
 
-                bool zmiana;
-                // Jeśli cecha jest inne a ulica jest Most to zmieniamy cechę
-                (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "inne", "most", ulica.Nazwa1, miasto.Nazwa);
-                if (zmiana) prefixChanges++;
-                // Jeśli cecha jest ul. a ulica jest Rynek to zmieniamy cechę
 
-                (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "ul.", "rynek", ulica.Nazwa1, miasto.Nazwa);
+                (bool zmiana, ulica.Cecha, ulica.Nazwa1) = PrefixModification.ModifyPrefix(ulica.Cecha, ulica.Nazwa1, miasto.Nazwa);
                 if (zmiana) prefixChanges++;
 
-                (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "pl.", "rynek", ulica.Nazwa1, miasto.Nazwa);
-                if (zmiana) prefixChanges++;
-
-                (zmiana, ulica.Cecha, ulica.Nazwa1) = ZmienCeche(ulica.Cecha, "rynek", "rynek", ulica.Nazwa1, miasto.Nazwa);
-                if (zmiana) prefixChanges++;
-
-
-                // Tutaj na wszelki wypadek przywracam Napis Rynek 
-                if (ulica.Cecha == "rynek" && ulica.Nazwa1 == "")
-                {
-
-                    ulica.Nazwa1 = "Rynek";
-                }
-
+         
                 if (_corrections.TryCorrect("U", ulica.Nazwa1 , out var correctedStreet))
                 {
                     Console.WriteLine($"Skorygowano ulicę: '{ulica.Nazwa1}' -> '{correctedStreet}'");
@@ -300,75 +275,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _logger.LogInfo($"  - Zmieniono prefiksy: {prefixChanges}"); // 🆕 DODANE
             _logger.LogInfo($"Pominięto (brak miejscowości): {brakujacych}");
             _logger.LogInfo($"Pominięto (duplikaty): {duplikaty}");
-        }
-
-
-        public (bool zmiana, string Cecha, string Nazwa) ZmienCeche(
-            string curCecha,
-            string patCecha,
-            string searchString,
-            string Nazwa,
-            string miastoNazwa)
-        {
-            TextInfo textInfo = new CultureInfo("pl-PL", false).TextInfo;
-            string sInitcap = textInfo.ToTitleCase(searchString.ToLower());
-
-
-            if (!string.Equals(curCecha, patCecha, StringComparison.OrdinalIgnoreCase))
-                return (false, curCecha, Nazwa);
-
-
-            if ((Nazwa != sInitcap) && !Nazwa.StartsWith(sInitcap + " ", StringComparison.OrdinalIgnoreCase))
-                return (false, curCecha, Nazwa);
-
-            var oldCecha = curCecha;
-            var oldNazwa1 = Nazwa;
-            if (Nazwa == sInitcap)
-            {
-                Nazwa = "";
-            }
-            else
-            {
-                Nazwa = Nazwa.Substring(searchString.Length).Trim();
-            }
-            curCecha = searchString;
-
-            // Loguj zmianę
-            _prefixLogger.LogPrefixChange(
-                oldCecha ?? "(brak)",
-                oldNazwa1,
-                curCecha,
-                Nazwa,
-                miastoNazwa
-            );
-
-            _logger.LogInfo($"[Most] Zmieniono: '{oldCecha ?? "(brak)"}' '{oldNazwa1}' → '{searchString}' '{Nazwa}' w {miastoNazwa}");
-            return (true, curCecha, Nazwa);
-        }
-
-
-
-
-
-        /// <summary>
-        /// 🆕 Sprawdza czy Nazwa1 zaczyna się od prefiksu i wyodrębnia go
-        /// </summary>
-        /// <returns>Tuple (czy zmieniono, nowy prefix, oczyszczona nazwa)</returns>
-        private (bool changed, string? prefix, string cleanedName) ExtractPrefixFromName(string nazwa1)
-        {
-            if (string.IsNullOrWhiteSpace(nazwa1))
-                return (false, null, nazwa1);
-
-            // Użyj istniejącej metody SplitStreetPrefix z UliceUtils
-            var (extractedPrefix, remainingName) = UliceUtils.SplitStreetPrefix(nazwa1);
-
-            // Jeśli znaleziono prefix (nie jest pusty)
-            if (!string.IsNullOrEmpty(extractedPrefix) && !string.IsNullOrEmpty(remainingName))
-            {
-                return (true, extractedPrefix, remainingName);
-            }
-
-            return (false, null, nazwa1);
         }
 
         public void Dispose()

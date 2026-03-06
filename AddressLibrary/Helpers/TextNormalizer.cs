@@ -63,10 +63,7 @@ namespace AddressLibrary.Helpers
             normalized = normalized.Replace("-go", "").Trim();
 
 
-            if (normalized.Contains("bat."))
-            {
-            }
-
+        
             normalized = RemoveTitles(normalized);
             normalized = RemoveInitialsPrefix(normalized);
 
