@@ -4,6 +4,7 @@ using AddressLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    partial class AddressDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309081409_DodanieTypyUlic")]
+    partial class DodanieTypyUlic
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -501,11 +504,6 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasComment("Drugie nazwisko patrona ulicy");
 
-                    b.Property<string>("Original")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasComment("Oryginalna pełna nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
-
                     b.Property<string>("Postfiks")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
@@ -514,20 +512,17 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Prefiks")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
-                        .HasComment("Prefiks nazwy ulicy (np. płk., gen., ks., im., imienia)");
+                        .HasComment("Prefiks nazwy ulicy");
 
                     b.Property<string>("Tytul")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
-                        .HasComment("Tytuł osoby (np. dr., prof., płk.)");
+                        .HasComment("Tytuł osoby (np. doktora, profesora)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Nazwisko")
                         .HasDatabaseName("IX_TypyUlic_Nazwisko");
-
-                    b.HasIndex("Original")
-                        .HasDatabaseName("IX_TypyUlic_Original");
 
                     b.ToTable("TypyUlic", (string)null);
                 });

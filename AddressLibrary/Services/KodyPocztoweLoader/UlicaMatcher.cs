@@ -113,7 +113,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             }
             (currentUlica, currentDzielnica) = UliceUtils.ZielonaGora(miasto, currentUlica, currentDzielnica);
 
-            currentUlica = TextNormalizer.RemoveTitles(currentUlica);
+            currentUlica = TitleManager.RemoveTitles(currentUlica);
 
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (!_uliceCachedDict.TryGetValue(miasto.Id, out var uliceCachedList))

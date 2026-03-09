@@ -1,4 +1,4 @@
-using AddressLibrary.Models;
+ï»¿using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -11,14 +11,14 @@ namespace AddressLibrary.Data
 
         }
 
-        // Istniej¹ce tabele TERYT (p³askie)
+        // IstniejÄ…ce tabele TERYT (pÅ‚askie)
         public DbSet<TerytSimc> TerytSimc { get; set; }
         public DbSet<TerytTerc> TerytTerc { get; set; }
         public DbSet<TerytUlic> TerytUlic { get; set; }
         public DbSet<TerytWmRodz> TerytWmRodz { get; set; }
         public DbSet<Pna> Pna { get; set; }
 
-        // S³owniki
+        // SÅ‚owniki
         public DbSet<RodzajGminy> RodzajeGmin { get; set; }
         public DbSet<RodzajMiasta> RodzajeMiast { get; set; }
 
@@ -30,11 +30,12 @@ namespace AddressLibrary.Data
         public DbSet<Ulica> Ulice { get; set; }
         public DbSet<KodPocztowy> KodyPocztowe { get; set; }
 
-        // Tabela adresów z Asims
+        // Tabela adresÃ³w z Asims
         public DbSet<Adres> Adresy { get; set; }
 
-        // Urzêdy Skarbowe 
+        // UrzÄ™dy Skarbowe 
         public DbSet<UrzadSkarbowy> UrzedySkarbowe { get; set; }
+        public DbSet<TypUlicy> TypyUlic { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

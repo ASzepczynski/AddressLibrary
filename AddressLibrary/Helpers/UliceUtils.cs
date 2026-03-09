@@ -8,6 +8,22 @@ namespace AddressLibrary.Helpers
     static public class UliceUtils
     {
 
+        static public List<string> dzielnice_zg = new List<string> {
+                        "Drzonków",
+                        "Kiełpin",
+                        "Kisielin",
+                        "Krępa",
+                        "Łężyca",
+                        "Ługowo",
+                        "Nowy Kisielin",
+                        "Ochla",
+                        "Przylep",
+                        "Racula",
+                        "Stary Kisielin",
+                        "Zatonie",
+                        "Zawada"
+                    };
+
         static public string Wesola(ResultList ulic)
         {
             // Wyjątek dla Wesołej, dzielnicy Warszawy. Nazwy ulic się powtarzają więc trzeba ustawić dzielnicę
@@ -23,21 +39,7 @@ namespace AddressLibrary.Helpers
         }
         static public (string ulicaNazwa, string dzielnicaNazwa) ZielonaGora(Miasto miasto, string sUlica, string sDzielnica)
         {
-            var dzielnice = new List<string> {
-                        "Drzonków",
-                        "Kiełpin",
-                        "Kisielin",
-                        "Krępa",
-                        "Łężyca",
-                        "Ługowo",
-                        "Nowy Kisielin",
-                        "Ochla",
-                        "Przylep",
-                        "Racula",
-                        "Stary Kisielin",
-                        "Zatonie",
-                        "Zawada"
-                    };
+            
             string ulicaNazwa = sUlica;
             string dzielnicaNazwa = sDzielnica;
 
@@ -47,7 +49,7 @@ namespace AddressLibrary.Helpers
                 && miasto.Gmina.Nazwa == "Zielona Góra"
                 && miasto.Nazwa == "Zielona Góra")
             {
-                foreach (var dziel in dzielnice)
+                foreach (var dziel in dzielnice_zg)
                 {
                     if (sUlica.StartsWith(dziel + "-"))
                     {
@@ -128,6 +130,7 @@ namespace AddressLibrary.Helpers
         {
             { "aleja",    new List<string> { "al.", "al", "aleje", "aleja" } },
             { "bulwar",   new List<string> { "bulw.", "bulwar"} },
+            { "bulwary",   new List<string> { "bulw.", "bulwary"} },
             { "droga",    new List<string> { "droga" } },
             { "most",    new List<string> { "most" } },
             { "ogród",    new List<string> { "ogród"}},
@@ -141,7 +144,8 @@ namespace AddressLibrary.Helpers
             { "szosa",    new List<string> { "szosa" } },
             { "ścieżka",  new List<string> { "ścieżka"} },
             { "ulica",    new List<string> { "ul.", "ul", "ulica" } },
-            { "wybrzeże",    new List<string> { "wyb.", "wyb", "wybrzeże" } }
+            { "wybrzeże",    new List<string> { "wyb.", "wyb", "wybrzeże" } },
+            { "nabrzeże",    new List<string> { "nab.", "nab", "nabrzeże" } }
         };
         /// <summary>
         /// Zwraca preferowany skrót dla typu ulicy (np. "aleja" → "al.", "plac" → "pl.")
