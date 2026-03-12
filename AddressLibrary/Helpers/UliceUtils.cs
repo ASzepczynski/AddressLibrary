@@ -1,5 +1,6 @@
 ﻿using AddressLibrary.Models;
 using AddressLibrary.Structures;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 using System.Text;
 
@@ -128,24 +129,44 @@ namespace AddressLibrary.Helpers
 
         public static readonly Dictionary<string, List<string>> StreetPrefixes = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "aleja",    new List<string> { "al.", "al", "aleje", "aleja" } },
-            { "bulwar",   new List<string> { "bulw.", "bulwar"} },
-            { "bulwary",   new List<string> { "bulw.", "bulwary"} },
+            { "aleja",    new List<string> { "al.", "al", "aleja" } },
+            { "aleje",    new List<string> { "al.", "al", "aleje"} },
+            { "alejka",    new List<string> { "al.", "al", "alejka"} },
+            { "bulwar",   new List<string> { "bulw.", "bulw", "bulwar"} },
+            { "bulwary",   new List<string> { "bulw.", "bulw", "bulwary"} },
             { "droga",    new List<string> { "droga" } },
+            { "deptak",    new List<string> { "deptak" } },
+            { "dreptak",    new List<string> { "dreptak" } },
+            { "estakada",    new List<string> { "estakada" } },
+            { "grobla",    new List<string> { "grobla" } },
+            { "kładka",    new List<string> { "kładka" } },
+            { "kopiec",    new List<string> { "kopiec" } },
             { "most",    new List<string> { "most" } },
+            { "nabrzeże bulwar",    new List<string> { "nab. bulw.", "nab bulw", "nabrzeże bulwar" } },
+            { "nabrzeże",    new List<string> { "nab.", "nab", "nabrzeże" } },
             { "ogród",    new List<string> { "ogród"}},
             { "osiedle",    new List<string> { "os.", "os", "oś.", "oś","osiedle" } },
             { "park",     new List<string> { "park" } },
             { "pasaż",    new List<string> { "pasaż"}},
             { "plac",     new List<string> { "pl.", "pl", "plac" } },
+            { "planty",     new List<string> { "planty"} },
+            { "promenada", new List<string> { "prom.","promenada" } },
             { "rondo",    new List<string> { "rondo" } },
             { "rynek",    new List<string> { "rynek"}},
             { "skwer",    new List<string> { "skw.", "skw", "skwer"} },
+            { "szlak",    new List<string> { "szlak"} },
             { "szosa",    new List<string> { "szosa" } },
             { "ścieżka",  new List<string> { "ścieżka"} },
+            { "trasa",    new List<string> { "trasa"} },
+            { "trakt",    new List<string> { "trakt"} },
+            { "tunel",    new List<string> { "tunel"} },
             { "ulica",    new List<string> { "ul.", "ul", "ulica" } },
+            { "węzeł",    new List<string> { "węzeł"} },
+            { "wiadukt",    new List<string> { "wiad.","wiadukt"} },
+            { "wiadukty",    new List<string> { "wiad.","wiadukty"} },
             { "wybrzeże",    new List<string> { "wyb.", "wyb", "wybrzeże" } },
-            { "nabrzeże",    new List<string> { "nab.", "nab", "nabrzeże" } }
+            { "wzgórze",    new List<string> { "wzg.", "wzg", "wzgórze" } },
+            { "zaułek",    new List<string> { "zaułek" } }
         };
         /// <summary>
         /// Zwraca preferowany skrót dla typu ulicy (np. "aleja" → "al.", "plac" → "pl.")
@@ -347,6 +368,27 @@ namespace AddressLibrary.Helpers
                 // Nie chcemy zostawiać nazwy ulicy pustej czyli przypadku "Rynek" czy "Osiedle"
             }
             return ("", streetName);
+        }
+        public static (string prefiks, string reszta) RozdzielPrefiksTeryt(string ulica)
+        {
+// Usuń Inne na początku
+            if (ulica.StartsWith("inne "))
+            {
+                ulica = ulica.Substring(5).Trim();
+            }
+
+            var (prefix, name) = SplitStreetPrefix(ulica);
+
+// sprawdzamy czy coś jeszcze zostało w ulicy, na przykład rondo Rondo
+            var (prefix2, name2) = SplitStreetPrefix(name);
+
+            if (prefix2 != "")
+            {
+                return (prefix, name2);
+            }
+
+            return (prefix, name);
+
         }
 
         public static string RemoveStreetTypeDuplication(string streetType, string streetName)

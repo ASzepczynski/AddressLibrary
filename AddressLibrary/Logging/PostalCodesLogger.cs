@@ -11,7 +11,7 @@ namespace AddressLibrary.Logging
         /// Konstruktor domyślny - używa pliku "PostalCodesLoader.txt"
         /// </summary>
         public PostalCodesLogger(string? appDataPath)
-            : base(appDataPath, "PostalCodesLoader.txt", "Log ładowania kodów pocztowych")
+            : base(appDataPath, "PostalCodesLoader.txt", "Log ładowania pocztowych")
         {
         }
 
@@ -21,7 +21,7 @@ namespace AddressLibrary.Logging
         /// <param name="appDataPath">Ścieżka do katalogu głównego aplikacji</param>
         /// <param name="logFileName">Nazwa pliku logu (np. "PostalCodesLoader_Fuzzy.txt")</param>
         public PostalCodesLogger(string? appDataPath, string logFileName)
-            : base(appDataPath, logFileName, "Log ładowania kodów pocztowych")
+            : base(appDataPath, logFileName, "Log ładowania")
         {
         }
     }
