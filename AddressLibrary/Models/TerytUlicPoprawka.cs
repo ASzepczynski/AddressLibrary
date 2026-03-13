@@ -3,7 +3,7 @@ namespace AddressLibrary.Models
     /// <summary>
     /// Model reprezentuj¹cy typy ulic osobowych z pe³n¹ dekompozycj¹ nazwy
     /// </summary>
-    public class TypUlicy
+    public class TerytUlicPoprawka
     {
         /// <summary>
         /// Identyfikator (klucz g³ówny)
@@ -44,5 +44,11 @@ namespace AddressLibrary.Models
         /// Postfiks/przydomek (np. "Zapory" w "Hieronima Dekutowskiego Zapory", "Zoœki" w "Tadeusza Zawadzkiego Zoœki")
         /// </summary>
         public string? Postfiks { get; set; }
+
+        /// <summary>
+        /// Oryginalna pe³na nazwa ulicy: Cecha + Nazwa2 + Nazwa1
+        /// Przyk³ad: "ul. Adama Mickiewicza", "al. Jana Paw³a II"
+        /// </summary>
+        public string? Original { get; set; }
     }
 }

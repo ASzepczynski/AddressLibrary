@@ -119,7 +119,7 @@ namespace AddressLibrary.Services
             });
 
             // KROK 3: Przetwórz każdą unikalną nazwę
-            var batch = new List<TypUlicy>();
+            var batch = new List<TerytUlicPoprawka>();
             const int batchSize = 1000;
 
             for (int i = 0; i < uniqueStreets.Count; i++)
@@ -127,8 +127,8 @@ namespace AddressLibrary.Services
                 var street = uniqueStreets[i];
 
                 // ✅ Parsuj nazwę ulicy (przekaż Cecha jako parametr)
-                var typUlicy = ParseStreetName(street.Cecha, street.Nazwa1, street.Nazwa2);
-                batch.Add(typUlicy);
+                var TerytUlicPoprawka = ParseStreetName(street.Cecha, street.Nazwa1, street.Nazwa2);
+                batch.Add(TerytUlicPoprawka);
 
                 // Zapisz batch co 1000 rekordów
                 if (batch.Count >= batchSize || i == uniqueStreets.Count - 1)
@@ -162,9 +162,9 @@ namespace AddressLibrary.Services
         /// <summary>
         /// Parsuje nazwę ulicy na komponenty
         /// </summary>
-        private TypUlicy ParseStreetName(string? cecha, string nazwa1, string? nazwa2)
+        private TerytUlicPoprawka ParseStreetName(string? cecha, string nazwa1, string? nazwa2)
         {
-            var typ = new TypUlicy();
+            var typ = new TerytUlicPoprawka();
             typ.Prefiks = "";
             typ.Tytul = "";
             

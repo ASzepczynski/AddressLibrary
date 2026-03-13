@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    [Migration("20260309081409_DodanieTerytUlicPoprawki")]
-    partial class DodanieTerytUlicPoprawki
+    [Migration("20260313074832_dodanie_typy_ulic")]
+    partial class dodanie_typy_ulic
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -452,30 +452,6 @@ namespace AddressLibrary.Migrations
                     b.ToTable("TerytUlic");
                 });
 
-            modelBuilder.Entity("AddressLibrary.Models.TerytWmRodz", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Nazwa")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RozdzajMiasta")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("StanNa")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TerytWmRodz");
-                });
-
             modelBuilder.Entity("AddressLibrary.Models.TerytUlicPoprawka", b =>
                 {
                     b.Property<int>("Id")
@@ -504,6 +480,11 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasComment("Drugie nazwisko patrona ulicy");
 
+                    b.Property<string>("Original")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasComment("Oryginalna pełna nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
+
                     b.Property<string>("Postfiks")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
@@ -512,19 +493,100 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Prefiks")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
-                        .HasComment("Prefiks nazwy ulicy");
+                        .HasComment("Prefiks nazwy ulicy (np. płk., gen., ks., im., imienia)");
 
                     b.Property<string>("Tytul")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
-                        .HasComment("Tytuł osoby (np. doktora, profesora)");
+                        .HasComment("Tytuł osoby (np. dr., prof., płk.)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Nazwisko")
                         .HasDatabaseName("IX_TerytUlicPoprawki_Nazwisko");
 
+                    b.HasIndex("Original")
+                        .HasDatabaseName("IX_TerytUlicPoprawki_Original");
+
                     b.ToTable("TerytUlicPoprawki", (string)null);
+                });
+
+            modelBuilder.Entity("AddressLibrary.Models.TerytWmRodz", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Nazwa")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RozdzajMiasta")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StanNa")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TerytWmRodz");
+                });
+
+            modelBuilder.Entity("AddressLibrary.Models.TypUlicy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Imie")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Pierwsze imię patrona ulicy");
+
+                    b.Property<string>("Imie2")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Drugie imię patrona ulicy (np. Kamil w Krzysztofa Kamila Baczyńskiego)");
+
+                    b.Property<string>("Nazwisko")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Pierwsze nazwisko patrona ulicy");
+
+                    b.Property<string>("Nazwisko2")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Drugie nazwisko patrona ulicy (np. Reymonta w Władysława Stanisława Reymonta)");
+
+                    b.Property<string>("Postfiks")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Postfiks/przydomek (np. Zapory w Hieronima Dekutowskiego Zapory, Zośki w Tadeusza Zawadzkiego Zośki)");
+
+                    b.Property<string>("Prefiks")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasComment("Prefiks nazwy ulicy (np. płk., gen., ks., im.)");
+
+                    b.Property<string>("Tytul")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasComment("Tytuł osoby (np. dr., prof., płk.)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nazwisko")
+                        .HasDatabaseName("IX_TypyUlic_Nazwisko");
+
+                    b.HasIndex("Imie", "Nazwisko")
+                        .HasDatabaseName("IX_TypyUlic_Imie_Nazwisko");
+
+                    b.ToTable("TypyUlic", (string)null);
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Ulica", b =>

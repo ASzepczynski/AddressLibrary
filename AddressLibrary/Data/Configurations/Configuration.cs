@@ -7,9 +7,9 @@ namespace AddressLibrary.Data.Configurations
     /// <summary>
     /// Konfiguracja Entity Framework dla tabeli TerytUlicPoprawki
     /// </summary>
-    public class TerytUlicPoprawkiConfiguration : IEntityTypeConfiguration<TypUlicy>
+    public class TerytUlicPoprawkiConfiguration : IEntityTypeConfiguration<TerytUlicPoprawka>
     {
-        public void Configure(EntityTypeBuilder<TypUlicy> builder)
+        public void Configure(EntityTypeBuilder<TerytUlicPoprawka> builder)
         {
             builder.ToTable("TerytUlicPoprawki");
 

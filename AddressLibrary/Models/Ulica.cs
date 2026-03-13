@@ -33,6 +33,11 @@ namespace AddressLibrary.Models
         public int MiastoId { get; set; }
         public Miasto Miasto { get; set; } = null!;
 
+        // ✅ DODANO: Klucz obcy do TypUlicy (opcjonalny - nullable)
+        [ForeignKey(nameof(TypUlicy))]
+        public int? TypUlicyId { get; set; }
+        public TypUlicy? TypUlicy { get; set; }
+
         // Relacja 1:N - jedna ulica ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
     }

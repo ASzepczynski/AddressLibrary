@@ -35,7 +35,10 @@ namespace AddressLibrary.Data
 
         // Urzędy Skarbowe 
         public DbSet<UrzadSkarbowy> UrzedySkarbowe { get; set; }
-        public DbSet<TypUlicy> TerytUlicPoprawki { get; set; }
+        public DbSet<TerytUlicPoprawka> TerytUlicPoprawki { get; set; }
+        
+        // Typy ulic osobowych
+        public DbSet<TypUlicy> TypyUlic { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

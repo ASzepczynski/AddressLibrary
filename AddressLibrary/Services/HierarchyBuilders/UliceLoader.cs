@@ -207,21 +207,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 }
 
-                // 🆕 KROK 2: sprawdź konwersję z Excel
-                if (_personalConverter.TryConvert(
-                    Cecha,
-                    Nazwa1,
-                    Nazwa2,
-                    out var convertedCecha,
-                    out var convertedNazwa1,
-                    out var convertedNazwa2))
-                {
-                    Cecha = convertedCecha;
-                    Nazwa1 = convertedNazwa1;
-                    Nazwa2 = convertedNazwa2;
-                    convertedFromExcel++;
-                }
-
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,

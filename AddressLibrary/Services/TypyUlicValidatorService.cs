@@ -26,107 +26,6 @@ namespace AddressLibrary.Services
         }
 
         /// <summary>
-        /// Wczytuje słownik TerytUlicPoprawki z pliku Excel
-        /// Struktura kolumn:
-        /// A = Id
-        /// B = Prefiks
-        /// C = Tytul
-        /// D = Imie
-        /// E = Imie2
-        /// F = Nazwisko
-        /// G = Nazwisko2
-        /// H = Postfiks
-        /// I = Original (klucz słownika)
-        /// </summary>
-        private Dictionary<string, TypUlicyFromExcel> LoadTerytUlicPoprawkiDictionary()
-        {
-            var dictionary = new Dictionary<string, TypUlicyFromExcel>(StringComparer.OrdinalIgnoreCase);
-            var excelPath = Path.Combine(_appDataPath, "AppData", "Dictionaries", "TerytUlicPoprawki.xlsx");
-
-            if (!File.Exists(excelPath))
-            {
-                Console.WriteLine($"⚠️ Plik {excelPath} nie istnieje");
-                _logger.LogError($"Plik słownika nie istnieje: {excelPath}");
-                return dictionary;
-            }
-
-            try
-            {
-                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(excelPath, false))
-                {
-                    WorkbookPart? workbookPart = spreadsheet.WorkbookPart;
-                    if (workbookPart == null)
-                    {
-                        Console.WriteLine("⚠️ Nie można otworzyć arkusza Excel");
-                        return dictionary;
-                    }
-
-                    // ✅ Załaduj SharedStringTable raz na początku i skonwertuj do tablicy
-                    string[] sharedStrings = Array.Empty<string>();
-                    var sharedStringPart = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
-                    if (sharedStringPart?.SharedStringTable != null)
-                    {
-                        sharedStrings = sharedStringPart.SharedStringTable
-                            .Elements<SharedStringItem>()
-                            .Select(item => item.InnerText)
-                            .ToArray();
-                    }
-
-                    WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
-                    SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
-
-                    bool isFirstRow = true;
-
-                    // ✅ Iteruj bezpośrednio bez ToList() - oszczędność pamięci
-                    foreach (var row in sheetData.Elements<Row>())
-                    {
-                        // Pomiń nagłówek
-                        if (isFirstRow)
-                        {
-                            isFirstRow = false;
-                            continue;
-                        }
-
-                        // ✅ Pobierz wszystkie komórki wiersza JEDNORAZOWO
-                        var cellValues = GetRowCellsDictionary(row, sharedStrings);
-
-                        // ✅ Original jest w kolumnie I (ostatnia)
-                        var original = cellValues.GetValueOrDefault("I")?.Trim();
-
-                        if (!string.IsNullOrWhiteSpace(original))
-                        {
-                            var typUlicy = new TypUlicyFromExcel
-                            {
-                                Id = cellValues.GetValueOrDefault("A")?.Trim() ?? "",
-                                Prefiks = cellValues.GetValueOrDefault("B")?.Trim() ?? "",
-                                Tytul = cellValues.GetValueOrDefault("C")?.Trim() ?? "",
-                                Imie = cellValues.GetValueOrDefault("D")?.Trim() ?? "",
-                                Imie2 = cellValues.GetValueOrDefault("E")?.Trim() ?? "",
-                                Nazwisko = cellValues.GetValueOrDefault("F")?.Trim() ?? "",
-                                Nazwisko2 = cellValues.GetValueOrDefault("G")?.Trim() ?? "",
-                                Postfiks = cellValues.GetValueOrDefault("H")?.Trim() ?? "",
-                                Original = original
-                            };
-
-                            // Klucz słownika to Original (kolumna I)
-                            dictionary[original] = typUlicy;
-                        }
-                    }
-                }
-
-                Console.WriteLine($"✓ Załadowano {dictionary.Count} wpisów ze słownika TerytUlicPoprawki.xlsx");
-                _logger.LogInfo($"Załadowano {dictionary.Count} wpisów ze słownika");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ Błąd ładowania słownika TerytUlicPoprawki: {ex.Message}");
-                _logger.LogError($"Błąd ładowania słownika: {ex.Message}");
-            }
-
-            return dictionary;
-        }
-
-        /// <summary>
         /// Waliduje wszystkie wpisy z TerytUlic względem słownika
         /// </summary>
         public async Task<ValidatorResult> ValidateAsync(IProgress<ValidatorProgress>? progress = null)
@@ -143,7 +42,7 @@ namespace AddressLibrary.Services
             });
 
             // KROK 1: Wczytaj słownik
-            var dictionary = LoadTerytUlicPoprawkiDictionary();
+            var dictionary = TerytUlicPoprawkiDictionary.Load(_appDataPath,_logger);
 
             if (dictionary.Count == 0)
             {
@@ -189,12 +88,12 @@ namespace AddressLibrary.Services
                 var original = string.Join(" ", originalParts);
 
                 // Sprawdź czy wpis istnieje w słowniku
-                if (dictionary.TryGetValue(original, out var typUlicy))
+                if (dictionary.TryGetValue(original, out var TerytUlicPoprawka))
                 {
                     result.FoundCount++;
 
                     // ✅ Porównaj terytUlica ze znalezioną pozycją w słowniku
-                    CompareAndLog(terytUlica, typUlicy, original);
+                    CompareAndLog(terytUlica, TerytUlicPoprawka, original);
                 }
                 else
                 {
@@ -239,15 +138,15 @@ namespace AddressLibrary.Services
         /// <summary>
         /// Porównuje wpis z TerytUlic z pozycją ze słownika i loguje różnice
         /// </summary>
-        private void CompareAndLog(TerytUlic terytUlica, TypUlicyFromExcel typUlicy, string original)
+        private void CompareAndLog(TerytUlic terytUlica, TerytUlicPoprawka TerytUlicPoprawka, string original)
         {
 
             (var prefiks, var reszta) = UliceUtils.RozdzielPrefiksTeryt(original);
             var poprawiona = $"{prefiks} {reszta}".Trim();
 
-            var nazwisko = typUlicy.Nazwisko + (typUlicy.Nazwisko2 != "" ? $"-{typUlicy.Nazwisko2}" : "");
+            var nazwisko = TerytUlicPoprawka.Nazwisko + (TerytUlicPoprawka.Nazwisko2 != "" ? $"-{TerytUlicPoprawka.Nazwisko2}" : "");
 
-            string ulica = $"{prefiks} {typUlicy.Tytul} {typUlicy.Imie} {typUlicy.Imie2} {nazwisko} {typUlicy.Postfiks}";
+            string ulica = $"{prefiks} {TerytUlicPoprawka.Tytul} {TerytUlicPoprawka.Imie} {TerytUlicPoprawka.Imie2} {nazwisko} {TerytUlicPoprawka.Postfiks}";
             // ✅ Zastąp wielokrotne spacje jedną spacją
             ulica = Regex.Replace(ulica.Trim(), @"\s+", " ");
 
@@ -257,7 +156,7 @@ namespace AddressLibrary.Services
             poprawiona = Znormalizuj(poprawiona);
             if (!string.Equals(ulica, poprawiona, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning($"Różnica|{typUlicy.Id}|{ulica}|{poprawiona}");
+                _logger.LogWarning($"Różnica|{TerytUlicPoprawka.Id}|{ulica}|{poprawiona}");
             }
         }
 
@@ -360,21 +259,7 @@ namespace AddressLibrary.Services
         }
     }
 
-    /// <summary>
-    /// Struktura wpisu ze słownika Excel
-    /// </summary>
-    public class TypUlicyFromExcel
-    {
-        public string Id { get; set; } = string.Empty;        // Kolumna A
-        public string Prefiks { get; set; } = string.Empty;   // Kolumna B
-        public string Tytul { get; set; } = string.Empty;     // Kolumna C
-        public string Imie { get; set; } = string.Empty;      // Kolumna D
-        public string Imie2 { get; set; } = string.Empty;     // Kolumna E
-        public string Nazwisko { get; set; } = string.Empty;  // Kolumna F
-        public string Nazwisko2 { get; set; } = string.Empty; // Kolumna G
-        public string Postfiks { get; set; } = string.Empty;  // Kolumna H
-        public string Original { get; set; } = string.Empty;  // Kolumna I (KLUCZ)
-    }
+    
 
     /// <summary>
     /// Wynik walidacji

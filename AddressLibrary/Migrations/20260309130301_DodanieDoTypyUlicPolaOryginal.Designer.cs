@@ -476,7 +476,7 @@ namespace AddressLibrary.Migrations
                     b.ToTable("TerytWmRodz");
                 });
 
-            modelBuilder.Entity("AddressLibrary.Models.TypUlicy", b =>
+            modelBuilder.Entity("AddressLibrary.Models.TerytUlicPoprawka", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
