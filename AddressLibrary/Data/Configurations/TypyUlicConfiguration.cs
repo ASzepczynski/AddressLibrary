@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace AddressLibrary.Data.Configurations
 {
     /// <summary>
-    /// Konfiguracja Entity Framework dla tabeli TypyUlic
+    /// Konfiguracja Entity Framework dla tabeli TerytUlicPoprawki
     /// </summary>
-    public class TypyUlicConfiguration : IEntityTypeConfiguration<TypUlicy>
+    public class TerytUlicPoprawkiConfiguration : IEntityTypeConfiguration<TypUlicy>
     {
         public void Configure(EntityTypeBuilder<TypUlicy> builder)
         {
-            builder.ToTable("TypyUlic");
+            builder.ToTable("TerytUlicPoprawki");
 
             builder.HasKey(t => t.Id);
 
@@ -57,10 +57,10 @@ namespace AddressLibrary.Data.Configurations
 
             // Indeksy dla wydajnoœci wyszukiwania
             builder.HasIndex(t => t.Nazwisko)
-                .HasDatabaseName("IX_TypyUlic_Nazwisko");
+                .HasDatabaseName("IX_TerytUlicPoprawki_Nazwisko");
 
             builder.HasIndex(t => t.Original)
-                .HasDatabaseName("IX_TypyUlic_Original");
+                .HasDatabaseName("IX_TerytUlicPoprawki_Original");
         }
     }
 }

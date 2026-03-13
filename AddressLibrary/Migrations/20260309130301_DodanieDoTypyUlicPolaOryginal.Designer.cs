@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    [Migration("20260309130301_DodanieDoTypyUlicPolaOryginal")]
-    partial class DodanieDoTypyUlicPolaOryginal
+    [Migration("20260309130301_DodanieDoTerytUlicPoprawkiPolaOryginal")]
+    partial class DodanieDoTerytUlicPoprawkiPolaOryginal
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -527,12 +527,12 @@ namespace AddressLibrary.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Nazwisko")
-                        .HasDatabaseName("IX_TypyUlic_Nazwisko");
+                        .HasDatabaseName("IX_TerytUlicPoprawki_Nazwisko");
 
                     b.HasIndex("Original")
-                        .HasDatabaseName("IX_TypyUlic_Original");
+                        .HasDatabaseName("IX_TerytUlicPoprawki_Original");
 
-                    b.ToTable("TypyUlic", (string)null);
+                    b.ToTable("TerytUlicPoprawki", (string)null);
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Ulica", b =>

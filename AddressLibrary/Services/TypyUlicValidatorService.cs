@@ -10,15 +10,15 @@ using AddressLibrary.Helpers;
 namespace AddressLibrary.Services
 {
     /// <summary>
-    /// Serwis do walidacji nazw ulic z TerytUlic względem słownika TypyUlic.xlsx
+    /// Serwis do walidacji nazw ulic z TerytUlic względem słownika TerytUlicPoprawki.xlsx
     /// </summary>
-    public class TypyUlicValidatorService
+    public class TerytUlicPoprawkiValidatorService
     {
         private readonly AddressDbContext _context;
         private readonly string _appDataPath;
         private readonly PostalCodesLogger _logger;
 
-        public TypyUlicValidatorService(AddressDbContext context, string appDataPath)
+        public TerytUlicPoprawkiValidatorService(AddressDbContext context, string appDataPath)
         {
             _context = context;
             _appDataPath = appDataPath;
@@ -26,7 +26,7 @@ namespace AddressLibrary.Services
         }
 
         /// <summary>
-        /// Wczytuje słownik TypyUlic z pliku Excel
+        /// Wczytuje słownik TerytUlicPoprawki z pliku Excel
         /// Struktura kolumn:
         /// A = Id
         /// B = Prefiks
@@ -38,10 +38,10 @@ namespace AddressLibrary.Services
         /// H = Postfiks
         /// I = Original (klucz słownika)
         /// </summary>
-        private Dictionary<string, TypUlicyFromExcel> LoadTypyUlicDictionary()
+        private Dictionary<string, TypUlicyFromExcel> LoadTerytUlicPoprawkiDictionary()
         {
             var dictionary = new Dictionary<string, TypUlicyFromExcel>(StringComparer.OrdinalIgnoreCase);
-            var excelPath = Path.Combine(_appDataPath, "AppData", "Dictionaries", "TypyUlic.xlsx");
+            var excelPath = Path.Combine(_appDataPath, "AppData", "Dictionaries", "TerytUlicPoprawki.xlsx");
 
             if (!File.Exists(excelPath))
             {
@@ -114,12 +114,12 @@ namespace AddressLibrary.Services
                     }
                 }
 
-                Console.WriteLine($"✓ Załadowano {dictionary.Count} wpisów ze słownika TypyUlic.xlsx");
+                Console.WriteLine($"✓ Załadowano {dictionary.Count} wpisów ze słownika TerytUlicPoprawki.xlsx");
                 _logger.LogInfo($"Załadowano {dictionary.Count} wpisów ze słownika");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Błąd ładowania słownika TypyUlic: {ex.Message}");
+                Console.WriteLine($"⚠️ Błąd ładowania słownika TerytUlicPoprawki: {ex.Message}");
                 _logger.LogError($"Błąd ładowania słownika: {ex.Message}");
             }
 
@@ -139,11 +139,11 @@ namespace AddressLibrary.Services
 
             progress?.Report(new ValidatorProgress
             {
-                CurrentOperation = "Ładowanie słownika TypyUlic..."
+                CurrentOperation = "Ładowanie słownika TerytUlicPoprawki..."
             });
 
             // KROK 1: Wczytaj słownik
-            var dictionary = LoadTypyUlicDictionary();
+            var dictionary = LoadTerytUlicPoprawkiDictionary();
 
             if (dictionary.Count == 0)
             {
@@ -269,6 +269,7 @@ namespace AddressLibrary.Services
             ("księdza", "ks."),
             ("świętego", "św."),
             ("braci", "br."),
+            ("imienia", "im."),
             ("Curie-Skłodowskiej", "Skłodowskiej-Curie")
         };
 

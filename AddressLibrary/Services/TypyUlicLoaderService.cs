@@ -8,9 +8,9 @@ using AddressLibrary.Utils;
 namespace AddressLibrary.Services
 {
     /// <summary>
-    /// Serwis do ładowania i parsowania nazw ulic z TerytUlic do TypyUlic
+    /// Serwis do ładowania i parsowania nazw ulic z TerytUlic do TerytUlicPoprawki
     /// </summary>
-    public class TypyUlicLoaderService
+    public class TerytUlicPoprawkiLoaderService
     {
         private readonly AddressDbContext _context;
         private readonly string? _appDataPath;
@@ -29,7 +29,7 @@ namespace AddressLibrary.Services
             }
         }
 
-        public TypyUlicLoaderService(AddressDbContext context, string? appDataPath = null)
+        public TerytUlicPoprawkiLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
             _appDataPath = appDataPath;
@@ -86,17 +86,17 @@ namespace AddressLibrary.Services
         }
 
         /// <summary>
-        /// Przetwarza unikalne kombinacje Nazwa1/Nazwa2 z TerytUlic i zapisuje do TypyUlic
+        /// Przetwarza unikalne kombinacje Nazwa1/Nazwa2 z TerytUlic i zapisuje do TerytUlicPoprawki
         /// </summary>
-        public async Task<LoadTypyUlicResult> LoadAsync(IProgress<LoadTypyUlicProgress>? progress = null)
+        public async Task<LoadTerytUlicPoprawkiResult> LoadAsync(IProgress<LoadTerytUlicPoprawkiProgress>? progress = null)
         {
-            var result = new LoadTypyUlicResult();
+            var result = new LoadTerytUlicPoprawkiResult();
 
-            // KROK 1: Wyczyść tabelę TypyUlic
-            await _context.Database.ExecuteSqlRawAsync("DELETE FROM TypyUlic");
+            // KROK 1: Wyczyść tabelę TerytUlicPoprawki
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM TerytUlicPoprawki");
             result.DeletedCount = await _context.Database.ExecuteSqlRawAsync("SELECT @@ROWCOUNT");
 
-            progress?.Report(new LoadTypyUlicProgress
+            progress?.Report(new LoadTerytUlicPoprawkiProgress
             {
                 CurrentOperation = "Pobieranie unikalnych nazw ulic...",
                 ProcessedCount = 0
@@ -111,7 +111,7 @@ namespace AddressLibrary.Services
 
             result.TotalCount = uniqueStreets.Count;
 
-            progress?.Report(new LoadTypyUlicProgress
+            progress?.Report(new LoadTerytUlicPoprawkiProgress
             {
                 CurrentOperation = $"Przetwarzanie {result.TotalCount} unikalnych nazw...",
                 TotalCount = result.TotalCount,
@@ -133,13 +133,13 @@ namespace AddressLibrary.Services
                 // Zapisz batch co 1000 rekordów
                 if (batch.Count >= batchSize || i == uniqueStreets.Count - 1)
                 {
-                    await _context.TypyUlic.AddRangeAsync(batch);
+                    await _context.TerytUlicPoprawki.AddRangeAsync(batch);
                     await _context.SaveChangesAsync();
 
                     result.InsertedCount += batch.Count;
                     batch.Clear();
 
-                    progress?.Report(new LoadTypyUlicProgress
+                    progress?.Report(new LoadTerytUlicPoprawkiProgress
                     {
                         CurrentOperation = $"Przetworzono {result.InsertedCount}/{result.TotalCount}...",
                         TotalCount = result.TotalCount,
@@ -148,7 +148,7 @@ namespace AddressLibrary.Services
                 }
             }
 
-            progress?.Report(new LoadTypyUlicProgress
+            progress?.Report(new LoadTerytUlicPoprawkiProgress
             {
                 CurrentOperation = "Zakończono ładowanie",
                 TotalCount = result.TotalCount,
@@ -351,9 +351,9 @@ namespace AddressLibrary.Services
     }
    
     /// <summary>
-    /// Wynik ładowania TypyUlic
+    /// Wynik ładowania TerytUlicPoprawki
     /// </summary>
-    public class LoadTypyUlicResult
+    public class LoadTerytUlicPoprawkiResult
     {
         public int TotalCount { get; set; }
         public int InsertedCount { get; set; }
@@ -363,7 +363,7 @@ namespace AddressLibrary.Services
     /// <summary>
     /// Informacja o postępie ładowania
     /// </summary>
-    public class LoadTypyUlicProgress
+    public class LoadTerytUlicPoprawkiProgress
     {
         public string CurrentOperation { get; set; } = string.Empty;
         public int TotalCount { get; set; }

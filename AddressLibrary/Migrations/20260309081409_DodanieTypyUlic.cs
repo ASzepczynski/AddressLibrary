@@ -5,13 +5,13 @@
 namespace AddressLibrary.Migrations
 {
     /// <inheritdoc />
-    public partial class DodanieTypyUlic : Migration
+    public partial class DodanieTerytUlicPoprawki : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "TypyUlic",
+                name: "TerytUlicPoprawki",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -26,12 +26,12 @@ namespace AddressLibrary.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TypyUlic", x => x.Id);
+                    table.PrimaryKey("PK_TerytUlicPoprawki", x => x.Id);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TypyUlic_Nazwisko",
-                table: "TypyUlic",
+                name: "IX_TerytUlicPoprawki_Nazwisko",
+                table: "TerytUlicPoprawki",
                 column: "Nazwisko");
         }
 
@@ -39,7 +39,7 @@ namespace AddressLibrary.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "TypyUlic");
+                name: "TerytUlicPoprawki");
         }
     }
 }

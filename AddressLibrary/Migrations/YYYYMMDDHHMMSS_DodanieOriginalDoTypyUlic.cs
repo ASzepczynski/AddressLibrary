@@ -5,14 +5,14 @@
 namespace AddressLibrary.Migrations
 {
     /// <inheritdoc />
-    public partial class DodanieOriginalDoTypyUlic : Migration
+    public partial class DodanieOriginalDoTerytUlicPoprawki : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
                 name: "Original",
-                table: "TypyUlic",
+                table: "TerytUlicPoprawki",
                 type: "nvarchar(500)",
                 maxLength: 500,
                 nullable: true,
@@ -20,8 +20,8 @@ namespace AddressLibrary.Migrations
 
             // ✅ Dodaj indeks dla szybszego wyszukiwania
             migrationBuilder.CreateIndex(
-                name: "IX_TypyUlic_Original",
-                table: "TypyUlic",
+                name: "IX_TerytUlicPoprawki_Original",
+                table: "TerytUlicPoprawki",
                 column: "Original");
         }
 
@@ -29,12 +29,12 @@ namespace AddressLibrary.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
-                name: "IX_TypyUlic_Original",
-                table: "TypyUlic");
+                name: "IX_TerytUlicPoprawki_Original",
+                table: "TerytUlicPoprawki");
 
             migrationBuilder.DropColumn(
                 name: "Original",
-                table: "TypyUlic");
+                table: "TerytUlicPoprawki");
         }
     }
 }

@@ -5,14 +5,14 @@
 namespace AddressLibrary.Migrations
 {
     /// <inheritdoc />
-    public partial class DodanieDoTypyUlicPolaOryginal : Migration
+    public partial class DodanieDoTerytUlicPoprawkiPolaOryginal : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<string>(
                 name: "Tytul",
-                table: "TypyUlic",
+                table: "TerytUlicPoprawki",
                 type: "nvarchar(50)",
                 maxLength: 50,
                 nullable: true,
@@ -25,7 +25,7 @@ namespace AddressLibrary.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "Prefiks",
-                table: "TypyUlic",
+                table: "TerytUlicPoprawki",
                 type: "nvarchar(20)",
                 maxLength: 20,
                 nullable: true,
@@ -38,15 +38,15 @@ namespace AddressLibrary.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "Original",
-                table: "TypyUlic",
+                table: "TerytUlicPoprawki",
                 type: "nvarchar(500)",
                 maxLength: 500,
                 nullable: true,
                 comment: "Oryginalna pełna nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TypyUlic_Original",
-                table: "TypyUlic",
+                name: "IX_TerytUlicPoprawki_Original",
+                table: "TerytUlicPoprawki",
                 column: "Original");
         }
 
@@ -54,16 +54,16 @@ namespace AddressLibrary.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
-                name: "IX_TypyUlic_Original",
-                table: "TypyUlic");
+                name: "IX_TerytUlicPoprawki_Original",
+                table: "TerytUlicPoprawki");
 
             migrationBuilder.DropColumn(
                 name: "Original",
-                table: "TypyUlic");
+                table: "TerytUlicPoprawki");
 
             migrationBuilder.AlterColumn<string>(
                 name: "Tytul",
-                table: "TypyUlic",
+                table: "TerytUlicPoprawki",
                 type: "nvarchar(50)",
                 maxLength: 50,
                 nullable: true,
@@ -76,7 +76,7 @@ namespace AddressLibrary.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "Prefiks",
-                table: "TypyUlic",
+                table: "TerytUlicPoprawki",
                 type: "nvarchar(20)",
                 maxLength: 20,
                 nullable: true,
