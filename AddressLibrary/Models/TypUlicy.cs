@@ -41,7 +41,12 @@ namespace AddressLibrary.Models
         public string? Nazwisko2 { get; set; }
 
         /// <summary>
-        /// Postfiks/przydomek (np. "Zapory" w "Hieronima Dekutowskiego Zapory", "Zoœki" w "Tadeusza Zawadzkiego Zoœki")
+        /// Pseudonim (np. "Zapory", "Zoœki", "Nila")
+        /// </summary>
+        public string? Pseudonim { get; set; }
+
+        /// <summary>
+        /// Postfiks/przydomek (np. dodatkowe informacje po pseudonimie)
         /// </summary>
         public string? Postfiks { get; set; }
     }

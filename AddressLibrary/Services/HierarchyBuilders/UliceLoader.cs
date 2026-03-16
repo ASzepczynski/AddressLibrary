@@ -15,14 +15,14 @@ namespace AddressLibrary.Services.HierarchyBuilders
     {
         private readonly AddressDbContext _context;
         private readonly HierarchyStreetLogger _logger;
-        private readonly PrefixChangeLogger _prefixLogger; // 🆕 DODANE
+        private readonly PrefixChangeLogger _prefixLogger;
         private readonly StreetNamePersonalConverter _personalConverter;
 
         public UliceLoader(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
             _logger = new HierarchyStreetLogger(appDataPath);
-            _prefixLogger = new PrefixChangeLogger(appDataPath); // 🆕 DODANE
+            _prefixLogger = new PrefixChangeLogger(appDataPath);
             _personalConverter = new StreetNamePersonalConverter(appDataPath ?? string.Empty);
 
             _logger.LogInfo($"Załadowano {_personalConverter.Count} konwersji ulic osobowych z Excel");
@@ -48,12 +48,39 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _corrections = new NameCorrectionHelper(appDataPath);
             Console.WriteLine($"Załadowano {_corrections.Count} korekt ({_corrections.GetCountByType("M")} miast, {_corrections.GetCountByType("U")} ulic)");
 
+            // ✅ DODANO: Wczytaj słownik TerytUlicPoprawki
+            _logger.LogInfo("Wczytywanie słownika TerytUlicPoprawki...");
+            var terytUlicPoprawkiDict = TerytUlicPoprawkiDictionary.Load(appDataPath, _logger);
+            _logger.LogInfo($"Załadowano {terytUlicPoprawkiDict.Count} wpisów ze słownika TerytUlicPoprawki");
+
+            // ✅ DODANO: Załaduj mapowanie TypyUlic z bazy (TypUlicy -> Id)
+            _logger.LogInfo("Wczytywanie mapowania TypyUlic z bazy danych...");
+            var typyUlicDict = await _context.TypyUlic
+                .AsNoTracking()
+                .ToDictionaryAsync(
+                    t => new TypUlicyKey
+                    {
+                        Prefiks = t.Prefiks ?? "",
+                        Tytul = t.Tytul ?? "",
+                        Imie = t.Imie ?? "",
+                        Imie2 = t.Imie2 ?? "",
+                        Nazwisko = t.Nazwisko ?? "",
+                        Nazwisko2 = t.Nazwisko2 ?? "",
+                        Pseudonim = t.Pseudonim ?? "",
+                        Postfiks = t.Postfiks ?? ""
+                    },
+                    t => t.Id,
+                    new TypUlicyKeyEqualityComparer()
+                );
+            _logger.LogInfo($"Załadowano {typyUlicDict.Count} wpisów z tabeli TypyUlic");
+
             int przetworzono = 0;
             int brakujacych = 0;
             int cityWithRightsProcessed = 0;
             int regularProcessed = 0;
             int convertedFromExcel = 0;
-            int prefixChanges = 0; // 🆕 DODANE - licznik zmian prefiksów
+            int prefixChanges = 0;
+            int typUlicyAssigned = 0; // ✅ DODANO: Licznik przypisanych typów ulic
 
             // Dla miast na prawach powiatu - załaduj raz na początku
             _logger.LogInfo("Przygotowuję mapowanie miast na prawach powiatu...");
@@ -68,7 +95,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _logger.LogInfo($"Załadowano {gminyAll.Count} gmin z bazy");
 
             // POPRAWKA: Filtruj gminy w miastach na prawach powiatu
-            // Powiat.Kod jest teraz 4-cyfrowy (np. "2261"), więc sprawdzamy końcówkę
             var gminyWMiastachNaPrawachPowiatu = gminyAll
                 .Where(g => g.Powiat.Kod.EndsWith("61") || g.Powiat.Kod.EndsWith("62") ||
                            g.Powiat.Kod.EndsWith("63") || g.Powiat.Kod.EndsWith("64") ||
@@ -79,8 +105,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             foreach (var gmina in gminyWMiastachNaPrawachPowiatu)
             {
-                // Klucz to pełny 4-cyfrowy kod powiatu (już jest w gmina.Powiat.Kod)
-                var kodPowiatu = gmina.Powiat.Kod; // np. "2261"
+                var kodPowiatu = gmina.Powiat.Kod;
                 var miasto = miastoDict.Values.FirstOrDefault(m => m.GminaId == gmina.Id);
 
                 if (miasto != null)
@@ -135,9 +160,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     _logger.LogInfo($"Przetworzono {przetworzono}/{ulicData.Count} ulic...");
                 }
 
-                // POPRAWKA: Buduj 4-cyfrowy kod powiatu
-                var kodPowiatu = ulic.Ulica.Wojewodztwo + ulic.Ulica.Powiat; // np. "2261"
-                var powiatCode = ulic.Ulica.Powiat; // 2 cyfry, np. "61"
+                var kodPowiatu = ulic.Ulica.Wojewodztwo + ulic.Ulica.Powiat;
+                var powiatCode = ulic.Ulica.Powiat;
                 var isCityWithPowiatRights = powiatCode == "61" || powiatCode == "62" ||
                                             powiatCode == "63" || powiatCode == "64" || powiatCode == "65";
 
@@ -152,7 +176,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     }
                     else
                     {
-                        // Loguj pierwsze nieznalezione miasta
                         if (brakujacych < 10)
                         {
                             _logger.LogWarning($"Brak mapowania dla miasta na prawach powiatu: kod powiatu={kodPowiatu}, ulica={ulic.Ulica.Nazwa1}");
@@ -189,24 +212,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 (Nazwa1, Nazwa2) = UliceUtils.GetCorrectedStreetName(Nazwa1, Nazwa2);
 
-                // Tutaj usuwamy duplikaty
-                Nazwa1 = UliceUtils.RemoveStreetTypeDuplication(Cecha, Nazwa1);
-
-                // 🆕 KROK 1.5: Sprawdź czy Nazwa1 zaczyna się od prefiksu i przenieś go do Cecha
-                var (extractedPrefix, cleanedName) = UliceUtils.SplitStreetPrefix(Nazwa1);
-
-                if (extractedPrefix!=Cecha)
-                {
-                    var oldCecha = Cecha;
-                    var oldNazwa1 = Nazwa1;
-
-                    Cecha = extractedPrefix;
-                    Nazwa1 = cleanedName;
-
-                    prefixChanges++;
-
-                }
-
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
@@ -214,28 +219,50 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     Nazwa1 = Nazwa1,
                     Nazwa2 = Nazwa2,
                     MiastoId = miasto.Id,
-                    Dzielnica = dzielnica
+                    Dzielnica = dzielnica,
+                    TypUlicyId = null // Domyślnie null
                 };
 
+                // ✅ DODANO: Przypisz TypUlicyId na podstawie słownika
+                var originalParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(ulica.Cecha))
+                    originalParts.Add(ulica.Cecha.Trim());
+                if (!string.IsNullOrWhiteSpace(ulica.Nazwa2))
+                    originalParts.Add(ulica.Nazwa2.Trim());
+                if (!string.IsNullOrWhiteSpace(ulica.Nazwa1))
+                    originalParts.Add(ulica.Nazwa1.Trim());
 
-                (bool zmiana, ulica.Cecha, ulica.Nazwa1) = PrefixModification.ModifyPrefix(ulica.Cecha, ulica.Nazwa1, miasto.Nazwa);
-                if (zmiana) prefixChanges++;
+                var original = string.Join(" ", originalParts);
 
-         
-                if (_corrections.TryCorrect("U", ulica.Nazwa1 , out var correctedStreet))
+                if (terytUlicPoprawkiDict.TryGetValue(original, out var terytUlicPoprawka))
                 {
-                    Console.WriteLine($"Skorygowano ulicę: '{ulica.Nazwa1}' -> '{correctedStreet}'");
-                    ulica.Nazwa1 = correctedStreet;
-                }
+                    // Znaleziono w słowniku - spróbuj znaleźć odpowiedni TypUlicy w bazie
+                    var key = new TypUlicyKey
+                    {
+                        Prefiks = terytUlicPoprawka.Prefiks ?? "",
+                        Tytul = terytUlicPoprawka.Tytul ?? "",
+                        Imie = terytUlicPoprawka.Imie ?? "",
+                        Imie2 = terytUlicPoprawka.Imie2 ?? "",
+                        Nazwisko = terytUlicPoprawka.Nazwisko ?? "",
+                        Nazwisko2 = terytUlicPoprawka.Nazwisko2 ?? "",
+                        Pseudonim = terytUlicPoprawka.Pseudonim ?? "",
+                        Postfiks = terytUlicPoprawka.Postfiks ?? ""
+                    };
 
+                    if (typyUlicDict.TryGetValue(key, out var typUlicyId))
+                    {
+                        ulica.TypUlicyId = typUlicyId;
+                        typUlicyAssigned++;
+                    }
+                } 
                 allUlice.Add(ulica);
-
             }
 
             _logger.LogInfo($"Zebrano {allUlice.Count} ulic");
+            _logger.LogInfo($"Przypisano TypUlicyId dla {typUlicyAssigned} ulic");
             _logger.LogInfo("Usuwam duplikaty (Symbol + Dzielnica + MiastoId)...");
 
-            // ✅ ZMIENIONO: Usuń duplikaty po Symbol + Dzielnica + MiastoId
+            // Usuń duplikaty
             var uniqueUlice = allUlice
                 .GroupBy(u => new { u.Symbol, u.Dzielnica, u.MiastoId })
                 .Select(g => g.First())
@@ -265,7 +292,56 @@ namespace AddressLibrary.Services.HierarchyBuilders
         public void Dispose()
         {
             _logger?.Dispose();
-            _prefixLogger?.Dispose(); // 🆕 DODANE
+            _prefixLogger?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Klucz do wyszukiwania TypUlicy (wszystkie pola oprócz Id)
+    /// </summary>
+    internal class TypUlicyKey
+    {
+        public string Prefiks { get; set; } = "";
+        public string Tytul { get; set; } = "";
+        public string Imie { get; set; } = "";
+        public string Imie2 { get; set; } = "";
+        public string Nazwisko { get; set; } = "";
+        public string Nazwisko2 { get; set; } = "";
+        public string Pseudonim { get; set; } = "";
+        public string Postfiks { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Comparer dla TypUlicyKey
+    /// </summary>
+    internal class TypUlicyKeyEqualityComparer : IEqualityComparer<TypUlicyKey>
+    {
+        public bool Equals(TypUlicyKey? x, TypUlicyKey? y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (x is null || y is null) return false;
+
+            return x.Prefiks == y.Prefiks &&
+                   x.Tytul == y.Tytul &&
+                   x.Imie == y.Imie &&
+                   x.Imie2 == y.Imie2 &&
+                   x.Nazwisko == y.Nazwisko &&
+                   x.Nazwisko2 == y.Nazwisko2 &&
+                   x.Pseudonim == y.Pseudonim &&
+                   x.Postfiks == y.Postfiks;
+        }
+
+        public int GetHashCode(TypUlicyKey obj)
+        {
+            return HashCode.Combine(
+                obj.Prefiks,
+                obj.Tytul,
+                obj.Imie,
+                obj.Imie2,
+                obj.Nazwisko,
+                obj.Nazwisko2,
+                HashCode.Combine(obj.Pseudonim, obj.Postfiks)
+            );
         }
     }
 }

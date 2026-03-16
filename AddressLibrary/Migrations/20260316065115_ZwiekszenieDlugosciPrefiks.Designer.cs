@@ -4,6 +4,7 @@ using AddressLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    partial class AddressDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260316065115_ZwiekszenieDlugosciPrefiks")]
+    partial class ZwiekszenieDlugosciPrefiks
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -492,9 +495,6 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasComment("Prefiks nazwy ulicy (np. płk., gen., ks., im., imienia)");
 
-                    b.Property<string>("Pseudonim")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Tytul")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
@@ -544,43 +544,38 @@ namespace AddressLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Imie")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasComment("Pierwsze imię patrona ulicy");
 
                     b.Property<string>("Imie2")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasComment("Drugie imię patrona ulicy (np. Kamil w Krzysztofa Kamila Baczyńskiego)");
 
                     b.Property<string>("Nazwisko")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasComment("Pierwsze nazwisko patrona ulicy");
 
                     b.Property<string>("Nazwisko2")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasComment("Drugie nazwisko patrona ulicy (np. Reymonta w Władysława Stanisława Reymonta)");
 
                     b.Property<string>("Postfiks")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Postfiks/przydomek (dodatkowe informacje)");
-
-                    b.Property<string>("Prefiks")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Prefiks nazwy ulicy (im., Leśny, Miejski)");
-
-                    b.Property<string>("Pseudonim")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Pseudonim patrona ulicy (np. Zapory, Zośki, Nila)");
-
-                    b.Property<string>("Tytul")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
+                        .HasComment("Postfiks/przydomek (np. Zapory w Hieronima Dekutowskiego Zapory, Zośki w Tadeusza Zawadzkiego Zośki)");
+
+                    b.Property<string>("Prefiks")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(50)")
+                        .HasComment("Prefiks nazwy ulicy (np. im., Leśny, Miejski)");
+
+                    b.Property<string>("Tytul")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
                         .HasComment("Tytuł osoby (np. dr., prof., płk.)");
 
                     b.HasKey("Id");

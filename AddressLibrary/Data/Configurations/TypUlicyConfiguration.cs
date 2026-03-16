@@ -17,39 +17,44 @@ namespace AddressLibrary.Data.Configurations
 
             // Kolumny tekstowe z ograniczeniami d³ugoœci
             builder.Property(t => t.Prefiks)
-                .HasColumnType("nvarchar(20)")
-                .HasMaxLength(20)
-                .HasComment("Prefiks nazwy ulicy (np. p³k., gen., ks., im.)");
+                .HasColumnType("nvarchar(200)")
+                .HasMaxLength(200)
+                .HasComment("Prefiks nazwy ulicy (im., Leœny, Miejski)");
 
             builder.Property(t => t.Tytul)
-                .HasColumnType("nvarchar(50)")
-                .HasMaxLength(50)
+                .HasColumnType("nvarchar(100)")
+                .HasMaxLength(100)
                 .HasComment("Tytu³ osoby (np. dr., prof., p³k.)");
 
             builder.Property(t => t.Imie)
-                .HasColumnType("nvarchar(100)")
-                .HasMaxLength(100)
+                .HasColumnType("nvarchar(200)")
+                .HasMaxLength(200)
                 .HasComment("Pierwsze imiê patrona ulicy");
 
             builder.Property(t => t.Imie2)
-                .HasColumnType("nvarchar(100)")
-                .HasMaxLength(100)
+                .HasColumnType("nvarchar(200)")
+                .HasMaxLength(200)
                 .HasComment("Drugie imiê patrona ulicy (np. Kamil w Krzysztofa Kamila Baczyñskiego)");
 
             builder.Property(t => t.Nazwisko)
-                .HasColumnType("nvarchar(100)")
-                .HasMaxLength(100)
+                .HasColumnType("nvarchar(200)")
+                .HasMaxLength(200)
                 .HasComment("Pierwsze nazwisko patrona ulicy");
 
             builder.Property(t => t.Nazwisko2)
-                .HasColumnType("nvarchar(100)")
-                .HasMaxLength(100)
+                .HasColumnType("nvarchar(200)")
+                .HasMaxLength(200)
                 .HasComment("Drugie nazwisko patrona ulicy (np. Reymonta w W³adys³awa Stanis³awa Reymonta)");
 
+            builder.Property(t => t.Pseudonim)
+                .HasColumnType("nvarchar(200)")
+                .HasMaxLength(200)
+                .HasComment("Pseudonim patrona ulicy (np. Zapory, Zoœki, Nila)");
+
             builder.Property(t => t.Postfiks)
-                .HasColumnType("nvarchar(100)")
-                .HasMaxLength(100)
-                .HasComment("Postfiks/przydomek (np. Zapory w Hieronima Dekutowskiego Zapory, Zoœki w Tadeusza Zawadzkiego Zoœki)");
+                .HasColumnType("nvarchar(200)")
+                .HasMaxLength(200)
+                .HasComment("Postfiks/przydomek (dodatkowe informacje)");
 
             // Indeks na nazwisku dla szybszego wyszukiwania
             builder.HasIndex(t => t.Nazwisko)

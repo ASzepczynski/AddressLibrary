@@ -1,5 +1,4 @@
-﻿using AddressLibrary.Services;
-using AddressLibrary.Models;
+﻿using AddressLibrary.Models;
 using AddressLibrary.Logging;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -16,17 +15,18 @@ namespace AddressLibrary.Helpers
         /// <summary>
         /// Wczytuje słownik TypyUlic z pliku Excel
         /// Struktura kolumn:
-        /// A = Id
+        /// A = Id (pomijane)
         /// B = Prefiks
         /// C = Tytul
         /// D = Imie
         /// E = Imie2
         /// F = Nazwisko
         /// G = Nazwisko2
-        /// H = Postfiks
-        /// I = Original (klucz słownika)
+        /// H = Pseudonim
+        /// I = Postfiks
+        /// J = Original (klucz słownika)
         /// </summary>
-        public static Dictionary<string, TerytUlicPoprawka> Load(string _appDataPath, PostalCodesLogger _logger)
+        public static Dictionary<string, TerytUlicPoprawka> Load(string _appDataPath, GeneralLogger _logger)
         {
             var DictName = "TerytUlicPoprawki.xlsx";
             var dictionary = new Dictionary<string, TerytUlicPoprawka>(StringComparer.OrdinalIgnoreCase);
@@ -79,8 +79,8 @@ namespace AddressLibrary.Helpers
                         // ✅ Pobierz wszystkie komórki wiersza JEDNORAZOWO
                         var cellValues = GetRowCellsDictionary(row, sharedStrings);
 
-                        // ✅ Original jest w kolumnie I (ostatnia)
-                        var original = cellValues.GetValueOrDefault("I")?.Trim();
+                        // ✅ Original jest w kolumnie J (ostatnia)
+                        var original = cellValues.GetValueOrDefault("J")?.Trim();
 
                         if (!string.IsNullOrWhiteSpace(original))
                         {
@@ -93,11 +93,12 @@ namespace AddressLibrary.Helpers
                                 Imie2 = cellValues.GetValueOrDefault("E")?.Trim() ?? "",
                                 Nazwisko = cellValues.GetValueOrDefault("F")?.Trim() ?? "",
                                 Nazwisko2 = cellValues.GetValueOrDefault("G")?.Trim() ?? "",
-                                Postfiks = cellValues.GetValueOrDefault("H")?.Trim() ?? "",
+                                Pseudonim = cellValues.GetValueOrDefault("H")?.Trim() ?? "",
+                                Postfiks = cellValues.GetValueOrDefault("I")?.Trim() ?? "",
                                 Original = original
                             };
 
-                            // Klucz słownika to Original (kolumna I)
+                            // Klucz słownika to Original (kolumna J)
                             dictionary[original] = terytUlicPoprawka;
                         }
                     }
