@@ -15,7 +15,7 @@ namespace AddressLibrary.Helpers
         /// <summary>
         /// Wczytuje słownik TypyUlic z pliku Excel
         /// Struktura kolumn:
-        /// A = Id (pomijane)
+        /// A = Cecha
         /// B = Prefiks
         /// C = Tytul
         /// D = Imie
@@ -24,7 +24,7 @@ namespace AddressLibrary.Helpers
         /// G = Nazwisko2
         /// H = Pseudonim
         /// I = Postfiks
-        /// J = Original (klucz słownika)
+        /// J = Id (klucz słownika - oryginalna nazwa ulicy)
         /// </summary>
         public static Dictionary<string, TerytUlicPoprawka> Load(string _appDataPath, GeneralLogger _logger)
         {
@@ -79,14 +79,16 @@ namespace AddressLibrary.Helpers
                         // ✅ Pobierz wszystkie komórki wiersza JEDNORAZOWO
                         var cellValues = GetRowCellsDictionary(row, sharedStrings);
 
-                        // ✅ Original jest w kolumnie J (ostatnia)
-                        var original = cellValues.GetValueOrDefault("J")?.Trim();
+                        // ✅ Id jest w kolumnie J (była Original)
+                        var id = cellValues.GetValueOrDefault("J")?.Trim();
 
-                        if (!string.IsNullOrWhiteSpace(original))
+                        if (!string.IsNullOrWhiteSpace(id))
                         {
                             var terytUlicPoprawka = new TerytUlicPoprawka
                             {
-                                // Id jest pomijane - będzie auto-generowane przez bazę danych
+                                // DbId jest pomijane - będzie auto-generowane przez bazę danych
+                                Id = id,
+                                Cecha = cellValues.GetValueOrDefault("A")?.Trim() ?? "",
                                 Prefiks = cellValues.GetValueOrDefault("B")?.Trim() ?? "",
                                 Tytul = cellValues.GetValueOrDefault("C")?.Trim() ?? "",
                                 Imie = cellValues.GetValueOrDefault("D")?.Trim() ?? "",
@@ -94,12 +96,11 @@ namespace AddressLibrary.Helpers
                                 Nazwisko = cellValues.GetValueOrDefault("F")?.Trim() ?? "",
                                 Nazwisko2 = cellValues.GetValueOrDefault("G")?.Trim() ?? "",
                                 Pseudonim = cellValues.GetValueOrDefault("H")?.Trim() ?? "",
-                                Postfiks = cellValues.GetValueOrDefault("I")?.Trim() ?? "",
-                                Original = original
+                                Postfiks = cellValues.GetValueOrDefault("I")?.Trim() ?? ""
                             };
 
-                            // Klucz słownika to Original (kolumna J)
-                            dictionary[original] = terytUlicPoprawka;
+                            // Klucz słownika to Id (kolumna J)
+                            dictionary[id] = terytUlicPoprawka;
                         }
                     }
                 }

@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace AddressLibrary.Models
 {
     /// <summary>
@@ -6,9 +9,25 @@ namespace AddressLibrary.Models
     public class TerytUlicPoprawka
     {
         /// <summary>
-        /// Identyfikator (klucz g³ówny)
+        /// Identyfikator (klucz g³ówny w bazie danych - auto-increment)
         /// </summary>
-        public int Id { get; set; }
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int DbId { get; set; }
+
+        /// <summary>
+        /// Identyfikator z Excela (klucz biznesowy - u¿ywany do wyszukiwania)
+        /// Oryginalna pe³na nazwa ulicy: Cecha + Nazwa2 + Nazwa1
+        /// Przyk³ad: "ul. Adama Mickiewicza", "al. Jana Paw³a II"
+        /// </summary>
+        [Required]
+        [MaxLength(500)]
+        public string Id { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Cecha ulicy (np. "ul.", "al.", "pl.")
+        /// </summary>
+        public string? Cecha { get; set; }
 
         /// <summary>
         /// Prefiks (np. "p³k.", "gen.", "ks.", "im.", "imienia")
@@ -49,11 +68,5 @@ namespace AddressLibrary.Models
         /// Postfiks/przydomek (np. dodatkowe informacje)
         /// </summary>
         public string? Postfiks { get; set; }
-
-        /// <summary>
-        /// Oryginalna pe³na nazwa ulicy: Cecha + Nazwa2 + Nazwa1
-        /// Przyk³ad: "ul. Adama Mickiewicza", "al. Jana Paw³a II"
-        /// </summary>
-        public string? Original { get; set; }
     }
 }

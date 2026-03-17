@@ -144,9 +144,14 @@ namespace AddressLibrary.Services
             (var prefiks, var reszta) = UliceUtils.RozdzielPrefiksTeryt(original);
             var poprawiona = $"{prefiks} {reszta}".Trim();
 
-            var nazwisko = TerytUlicPoprawka.Nazwisko + (TerytUlicPoprawka.Nazwisko2 != "" ? $"-{TerytUlicPoprawka.Nazwisko2}" : "");
+            var osoba = TerytUlicPoprawka.Tytul;
+            osoba += " " + TerytUlicPoprawka.Imie;
+            osoba += " " + TerytUlicPoprawka.Imie2;
+            osoba += " " + TerytUlicPoprawka.Nazwisko;
+            osoba += (TerytUlicPoprawka.Nazwisko2 != "" ? $"-{TerytUlicPoprawka.Nazwisko2}" : "");
+            osoba += TerytUlicPoprawka.Pseudonim;
 
-            string ulica = $"{prefiks} {TerytUlicPoprawka.Tytul} {TerytUlicPoprawka.Imie} {TerytUlicPoprawka.Imie2} {nazwisko} {TerytUlicPoprawka.Postfiks}";
+            string ulica = $"{prefiks} {TerytUlicPoprawka.Prefiks} {osoba} {TerytUlicPoprawka.Postfiks}";
             // ✅ Zastąp wielokrotne spacje jedną spacją
             ulica = Regex.Replace(ulica.Trim(), @"\s+", " ");
 

@@ -5,7 +5,7 @@
 namespace AddressLibrary.Migrations
 {
     /// <inheritdoc />
-    public partial class zmiana_nazwy_typulicy_na_terytulicpoprawka : Migration
+    public partial class ZwiekszCechaMaxLength : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

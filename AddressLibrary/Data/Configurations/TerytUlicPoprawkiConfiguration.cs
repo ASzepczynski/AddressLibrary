@@ -1,4 +1,4 @@
-using AddressLibrary.Models;
+﻿using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,27 +13,34 @@ namespace AddressLibrary.Data.Configurations
         {
             builder.ToTable("TerytUlicPoprawki");
 
-            builder.HasKey(t => t.Id);
+            // ✅ POPRAWIONE: DbId jest kluczem głównym
+            builder.HasKey(t => t.DbId);
+
+            // ✅ DODANO: Konfiguracja dla pola Cecha
+            builder.Property(t => t.Cecha)
+                .HasMaxLength(100)
+                .IsRequired(false)
+                .HasComment("Cecha ulicy (np. ul., al., pl.)");
 
             builder.Property(t => t.Prefiks)
-                .HasMaxLength(20)
+                .HasMaxLength(100)
                 .IsRequired(false)
-                .HasComment("Prefiks nazwy ulicy (np. p�k., gen., ks., im., imienia)");
+                .HasComment("Prefiks nazwy ulicy (imienia, leśny)");
 
             builder.Property(t => t.Tytul)
-                .HasMaxLength(50)
+                .HasMaxLength(100)
                 .IsRequired(false)
-                .HasComment("Tytu� osoby (np. dr., prof., p�k.)");
+                .HasComment("Tytuł osoby (np. dr., prof., płk.)");
 
             builder.Property(t => t.Imie)
                 .HasMaxLength(100)
                 .IsRequired(false)
-                .HasComment("Pierwsze imi� patrona ulicy");
+                .HasComment("Pierwsze imię patrona ulicy");
 
             builder.Property(t => t.Imie2)
                 .HasMaxLength(100)
                 .IsRequired(false)
-                .HasComment("Drugie imi� patrona ulicy");
+                .HasComment("Drugie imię patrona ulicy");
 
             builder.Property(t => t.Nazwisko)
                 .HasMaxLength(100)
@@ -45,22 +52,29 @@ namespace AddressLibrary.Data.Configurations
                 .IsRequired(false)
                 .HasComment("Drugie nazwisko patrona ulicy");
 
+            builder.Property(t => t.Pseudonim)
+                .HasMaxLength(100)
+                .IsRequired(false)
+                .HasComment("Pseudonim patrona ulicy (np. Zapory, Zośki, Nila)");
+
             builder.Property(t => t.Postfiks)
                 .HasMaxLength(100)
                 .IsRequired(false)
-                .HasComment("Postfiks/przydomek (np. Zapory, Zo�ki)");
+                .HasComment("Postfiks/przydomek (dodatkowe informacje)");
 
-            builder.Property(t => t.Original)
+            // ✅ POPRAWIONE: Original zmienione na Id (klucz biznesowy)
+            builder.Property(t => t.Id)
                 .HasMaxLength(500)
-                .IsRequired(false)
-                .HasComment("Oryginalna pe�na nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
+                .IsRequired(true)
+                .HasComment("Identyfikator/klucz biznesowy - oryginalna pełna nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
 
-            // Indeksy dla wydajno�ci wyszukiwania
+            // Indeksy dla wydajności wyszukiwania
             builder.HasIndex(t => t.Nazwisko)
                 .HasDatabaseName("IX_TerytUlicPoprawki_Nazwisko");
 
-            builder.HasIndex(t => t.Original)
-                .HasDatabaseName("IX_TerytUlicPoprawki_Original");
+            // ✅ POPRAWIONE: Indeks na Id (był Original)
+            builder.HasIndex(t => t.Id)
+                .HasDatabaseName("IX_TerytUlicPoprawki_Id");
         }
     }
 }

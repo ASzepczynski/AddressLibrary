@@ -44,6 +44,9 @@ namespace AddressLibrary.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Ustawienie kolacji Polish_CS_AS (case-sensitive) dla całej bazy danych
+            modelBuilder.UseCollation("Polish_CS_AS");
+
             // Automatycznie zastosuj wszystkie konfiguracje z assembly
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }

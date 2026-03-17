@@ -97,8 +97,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 Id = foundUlica.Id,
                 MiastoId = foundUlica.MiastoId,
                 Cecha = foundUlica.Cecha,
-                Nazwa1 = foundUlica.Nazwa1,
-                Nazwa2 = foundUlica.Nazwa2,
                 Miasto = foundUlica.Miasto
             };
 
@@ -331,8 +329,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     Id = m.street.Id,
                     MiastoId = m.street.MiastoId,
                     Cecha = m.street.Cecha,
-                    Nazwa1 = m.street.Nazwa1,
-                    Nazwa2 = m.street.Nazwa2,
                     Miasto = m.street.Miasto,
                     // ✅ Dodaj kody pocztowe dla tej ulicy
                     KodyPocztowe = kodyPocztowe
@@ -453,8 +449,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     Id = suggestedStreet.Id,
                     MiastoId = suggestedStreet.MiastoId,
                     Cecha = suggestedStreet.Cecha,
-                    Nazwa1 = suggestedStreet.Nazwa1,
-                    Nazwa2 = suggestedStreet.Nazwa2,
                     Miasto = suggestedStreet.Miasto
                 };
 

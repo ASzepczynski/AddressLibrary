@@ -199,44 +199,45 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 }
 
                 string? dzielnica = null;
-                string? Nazwa1 = ulic.Ulica.Nazwa1;
-                string? Nazwa2 = ulic.Ulica.Nazwa2;
+                string? tempNazwa1 = ulic.Ulica.Nazwa1; // Tymczasowa zmienna dla obliczeń
+                string? tempNazwa2 = ulic.Ulica.Nazwa2;
                 string? Cecha = ulic.Ulica.Cecha;
 
                 // 🔄 KROK 1: Zastosuj wstępne transformacje
                 dzielnica = UliceUtils.Wesola(ulic);
                 if (dzielnica == "")
                 {
-                    (Nazwa1, dzielnica) = UliceUtils.ZielonaGora(miasto, Nazwa1, dzielnica);
+                    (tempNazwa1, dzielnica) = UliceUtils.ZielonaGora(miasto, tempNazwa1, dzielnica);
                 }
 
-                (Nazwa1, Nazwa2) = UliceUtils.GetCorrectedStreetName(Nazwa1, Nazwa2);
+
+                // ✅ ZMIENIONO: Używamy tempNazwa1 i tempNazwa2 do wyszukiwania w słowniku
+                var originalParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(Cecha))
+                    originalParts.Add(Cecha.Trim());
+                if (!string.IsNullOrWhiteSpace(tempNazwa2))
+                    originalParts.Add(tempNazwa2.Trim());
+                if (!string.IsNullOrWhiteSpace(tempNazwa1))
+                    originalParts.Add(tempNazwa1.Trim());
+
+
+                var original = string.Join(" ", originalParts);
 
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
                     Cecha = Cecha,
-                    Nazwa1 = Nazwa1,
-                    Nazwa2 = Nazwa2,
                     MiastoId = miasto.Id,
                     Dzielnica = dzielnica,
                     TypUlicyId = null // Domyślnie null
                 };
 
-                // ✅ DODANO: Przypisz TypUlicyId na podstawie słownika
-                var originalParts = new List<string>();
-                if (!string.IsNullOrWhiteSpace(ulica.Cecha))
-                    originalParts.Add(ulica.Cecha.Trim());
-                if (!string.IsNullOrWhiteSpace(ulica.Nazwa2))
-                    originalParts.Add(ulica.Nazwa2.Trim());
-                if (!string.IsNullOrWhiteSpace(ulica.Nazwa1))
-                    originalParts.Add(ulica.Nazwa1.Trim());
-
-                var original = string.Join(" ", originalParts);
-
                 if (terytUlicPoprawkiDict.TryGetValue(original, out var terytUlicPoprawka))
                 {
+                    // Cecha z poprawek staje się cechą ulicy
+                    ulica.Cecha = terytUlicPoprawka.Cecha;
                     // Znaleziono w słowniku - spróbuj znaleźć odpowiedni TypUlicy w bazie
+
                     var key = new TypUlicyKey
                     {
                         Prefiks = terytUlicPoprawka.Prefiks ?? "",
@@ -254,7 +255,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
                         ulica.TypUlicyId = typUlicyId;
                         typUlicyAssigned++;
                     }
-                } 
+                }
+
                 allUlice.Add(ulica);
             }
 

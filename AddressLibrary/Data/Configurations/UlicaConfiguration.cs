@@ -8,11 +8,12 @@ namespace AddressLibrary.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Ulica> builder)
         {
-            // Indeks unikalny na Symbol + MiastoId (symbol ulicy jest unikalny w kontekście miejscowości)
-            builder.HasIndex(e => new { e.Symbol, e.MiastoId, e.Dzielnica }).IsUnique();
+            // ✅ DODANO: Jawnie ignoruj Nazwa1 i Nazwa2 (są NotMapped, ale dla jasności)
+            builder.Ignore(e => e.Nazwa1);
+            builder.Ignore(e => e.Nazwa2);
 
-            // Indeks na Nazwa1 dla wyszukiwania
-            builder.HasIndex(e => e.Nazwa1);
+            // Indeks unikalny na Symbol + MiastoId + Dzielnica (symbol ulicy jest unikalny w kontekście miejscowości)
+            builder.HasIndex(e => new { e.Symbol, e.MiastoId, e.Dzielnica }).IsUnique();
 
             // Indeks na TypUlicyId dla szybszego wyszukiwania
             builder.HasIndex(e => e.TypUlicyId);
@@ -23,7 +24,7 @@ namespace AddressLibrary.Data.Configurations
                   .HasForeignKey(e => e.MiastoId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            // ✅ DODANO: Relacja do TypUlicy (opcjonalna, DeleteBehavior.SetNull)
+            // Relacja do TypUlicy (opcjonalna, DeleteBehavior.SetNull)
             builder.HasOne(e => e.TypUlicy)
                   .WithMany()
                   .HasForeignKey(e => e.TypUlicyId)

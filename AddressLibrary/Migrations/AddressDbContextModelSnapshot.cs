@@ -17,6 +17,7 @@ namespace AddressLibrary.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .UseCollation("Polish_CS_AS")
                 .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -451,11 +452,22 @@ namespace AddressLibrary.Migrations
 
             modelBuilder.Entity("AddressLibrary.Models.TerytUlicPoprawka", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("DbId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DbId"));
+
+                    b.Property<string>("Cecha")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Cecha ulicy (np. ul., al., pl.)");
+
+                    b.Property<string>("Id")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasComment("Identyfikator/klucz biznesowy - oryginalna pełna nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
 
                     b.Property<string>("Imie")
                         .HasMaxLength(100)
@@ -477,36 +489,33 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasComment("Drugie nazwisko patrona ulicy");
 
-                    b.Property<string>("Original")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasComment("Oryginalna pełna nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
-
                     b.Property<string>("Postfiks")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
-                        .HasComment("Postfiks/przydomek (np. Zapory, Zośki)");
+                        .HasComment("Postfiks/przydomek (dodatkowe informacje)");
 
                     b.Property<string>("Prefiks")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasComment("Prefiks nazwy ulicy (np. płk., gen., ks., im., imienia)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Prefiks nazwy ulicy (imienia, leśny)");
 
                     b.Property<string>("Pseudonim")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Pseudonim patrona ulicy (np. Zapory, Zośki, Nila)");
 
                     b.Property<string>("Tytul")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasComment("Tytuł osoby (np. dr., prof., płk.)");
 
-                    b.HasKey("Id");
+                    b.HasKey("DbId");
+
+                    b.HasIndex("Id")
+                        .HasDatabaseName("IX_TerytUlicPoprawki_Id");
 
                     b.HasIndex("Nazwisko")
                         .HasDatabaseName("IX_TerytUlicPoprawki_Nazwisko");
-
-                    b.HasIndex("Original")
-                        .HasDatabaseName("IX_TerytUlicPoprawki_Original");
 
                     b.ToTable("TerytUlicPoprawki", (string)null);
                 });
@@ -603,8 +612,8 @@ namespace AddressLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Cecha")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Dzielnica")
                         .HasMaxLength(200)
@@ -612,15 +621,6 @@ namespace AddressLibrary.Migrations
 
                     b.Property<int>("MiastoId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Nazwa1")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Nazwa2")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
@@ -633,8 +633,6 @@ namespace AddressLibrary.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MiastoId");
-
-                    b.HasIndex("Nazwa1");
 
                     b.HasIndex("TypUlicyId");
 

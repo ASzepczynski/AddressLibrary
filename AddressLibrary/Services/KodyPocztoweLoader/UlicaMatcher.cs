@@ -145,8 +145,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 Id = ulicaCached.Id,
                 MiastoId = ulicaCached.MiastoId,
                 Cecha = ulicaCached.Cecha,
-                Nazwa1 = ulicaCached.Nazwa1,
-                Nazwa2 = ulicaCached.Nazwa2,
                 Miasto = ulicaCached.Miasto,
                 Dzielnica = ulicaCached.Dzielnica
             };
