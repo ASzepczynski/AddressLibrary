@@ -55,10 +55,13 @@ namespace AddressLibrary.Services
                 CurrentOperation = "Pobieranie danych z TerytUlic..."
             });
 
-            // KROK 2: Pobierz wszystkie wpisy z TerytUlic
+            // KROK 2: Pobierz wszystkie unikalne wpisy z TerytUlic
             var terytUlice = await _context.TerytUlic
-                .Where(u => !string.IsNullOrEmpty(u.Nazwa1))
-                .ToListAsync();
+             .Where(u => !string.IsNullOrEmpty(u.Nazwa1))
+             .Select(x => new { Cecha = x.Cecha, Nazwa1 = x.Nazwa1, Nazwa2 = x.Nazwa2 })
+             .Distinct()
+             .ToListAsync();
+
 
             result.TotalCount = terytUlice.Count;
 
@@ -67,6 +70,8 @@ namespace AddressLibrary.Services
                 CurrentOperation = $"Walidacja {result.TotalCount} wpisów...",
                 TotalCount = result.TotalCount
             });
+
+            var wyniki = new List<(string Teryt,string Excel)>();
 
             // KROK 3: Waliduj każdy wpis
             foreach (var terytUlica in terytUlice)
@@ -93,7 +98,11 @@ namespace AddressLibrary.Services
                     result.FoundCount++;
 
                     // ✅ Porównaj terytUlica ze znalezioną pozycją w słowniku
-                    CompareAndLog(terytUlica, TerytUlicPoprawka, original);
+                    (var ulica_teryt,var ulica_excel) = CompareAndLog(TerytUlicPoprawka, original);
+                    if (ulica_teryt != "")
+                    {
+                        wyniki.Add(new (ulica_teryt,ulica_excel));
+                    }
                 }
                 else
                 {
@@ -117,6 +126,13 @@ namespace AddressLibrary.Services
                 }
             }
 
+            var posortowane = wyniki.OrderBy(w => w.Teryt).ToList();
+
+            foreach (var (teryt, excel) in posortowane)
+            {
+                _logger.Log($"{teryt}|{excel}");
+            }
+
             // KROK 4: Podsumowanie
             _logger.LogInfo("=== Podsumowanie walidacji ===");
             _logger.LogInfo($"Przetworzono: {result.ProcessedCount}");
@@ -138,7 +154,7 @@ namespace AddressLibrary.Services
         /// <summary>
         /// Porównuje wpis z TerytUlic z pozycją ze słownika i loguje różnice
         /// </summary>
-        private void CompareAndLog(TerytUlic terytUlica, TerytUlicPoprawka TerytUlicPoprawka, string original)
+        private (string ulica_teryt,string ulica_excel) CompareAndLog(TerytUlicPoprawka TerytUlicPoprawka, string original)
         {
 
             (var prefiks, var reszta) = UliceUtils.RozdzielPrefiksTeryt(original);
@@ -149,9 +165,11 @@ namespace AddressLibrary.Services
             osoba += " " + TerytUlicPoprawka.Imie2;
             osoba += " " + TerytUlicPoprawka.Nazwisko;
             osoba += (TerytUlicPoprawka.Nazwisko2 != "" ? $"-{TerytUlicPoprawka.Nazwisko2}" : "");
-            osoba += TerytUlicPoprawka.Pseudonim;
+            osoba += " " + TerytUlicPoprawka.Pseudonim;
 
-            string ulica = $"{prefiks} {TerytUlicPoprawka.Prefiks} {osoba} {TerytUlicPoprawka.Postfiks}";
+            var cecha = TerytUlicPoprawka.Cecha == "inne" ? "" : TerytUlicPoprawka.Cecha;
+
+            string ulica = $"{cecha} {TerytUlicPoprawka.Prefiks} {osoba} {TerytUlicPoprawka.Postfiks}";
             // ✅ Zastąp wielokrotne spacje jedną spacją
             ulica = Regex.Replace(ulica.Trim(), @"\s+", " ");
 
@@ -161,8 +179,9 @@ namespace AddressLibrary.Services
             poprawiona = Znormalizuj(poprawiona);
             if (!string.Equals(ulica, poprawiona, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning($"Różnica|{TerytUlicPoprawka.Id}|{ulica}|{poprawiona}");
+                return (TerytUlicPoprawka.Id, ulica);
             }
+            return ("", "");
         }
 
 
@@ -171,9 +190,12 @@ namespace AddressLibrary.Services
             ("generała", "gen."),
             ("prymasa", "prym."),
             ("księdza", "ks."),
+            ("mjr.", "mjr"),
+            ("płk.", "płk"),
             ("świętego", "św."),
             ("braci", "br."),
             ("imienia", "im."),
+            ("Grota-Roweckiego", "Roweckiego Grota"),
             ("Curie-Skłodowskiej", "Skłodowskiej-Curie")
         };
 

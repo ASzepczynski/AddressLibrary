@@ -384,7 +384,7 @@ namespace AddressLibrary.Helpers
 
             if (prefix2 != "")
             {
-                return (prefix, name2);
+                return (prefix2, name2);
             }
 
             return (prefix, name);
