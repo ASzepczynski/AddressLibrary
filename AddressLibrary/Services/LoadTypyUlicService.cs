@@ -296,7 +296,8 @@ namespace AddressLibrary.Services
                         Nazwisko = TruncateString(item.Nazwisko, 200, ref truncatedCount, "Nazwisko"),
                         Nazwisko2 = TruncateString(item.Nazwisko2, 200, ref truncatedCount, "Nazwisko2"),
                         Pseudonim = TruncateString(item.Pseudonim, 200, ref truncatedCount, "Pseudonim"),
-                        Postfiks = TruncateString(item.Postfiks, 200, ref truncatedCount, "Postfiks")
+                        Postfiks = TruncateString(item.Postfiks, 200, ref truncatedCount, "Postfiks"),
+                        TerytUlicSymbol = item.TerytId
                     };
                     
                     if (!uniqueUliceSet.Add(typUlicy))

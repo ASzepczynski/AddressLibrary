@@ -13,7 +13,7 @@ namespace AddressLibrary.Models
         /// </summary>
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int DbId { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// Identyfikator z Excela (klucz biznesowy - u¿ywany do wyszukiwania)
@@ -22,7 +22,7 @@ namespace AddressLibrary.Models
         /// </summary>
         [Required]
         [MaxLength(500)]
-        public string Id { get; set; } = string.Empty;
+        public string TerytId { get; set; } = string.Empty;
 
         /// <summary>
         /// Cecha ulicy (np. "ul.", "al.", "pl.")

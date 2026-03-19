@@ -87,7 +87,7 @@ namespace AddressLibrary.Helpers
                             var terytUlicPoprawka = new TerytUlicPoprawka
                             {
                                 // DbId jest pomijane - będzie auto-generowane przez bazę danych
-                                Id = id,
+                                TerytId = id,
                                 Cecha = cellValues.GetValueOrDefault("A")?.Trim() ?? "",
                                 Prefiks = cellValues.GetValueOrDefault("B")?.Trim() ?? "",
                                 Tytul = cellValues.GetValueOrDefault("C")?.Trim() ?? "",

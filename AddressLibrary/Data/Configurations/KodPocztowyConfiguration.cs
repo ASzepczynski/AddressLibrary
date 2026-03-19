@@ -10,6 +10,17 @@ namespace AddressLibrary.Data.Configurations
         public void Configure(EntityTypeBuilder<KodPocztowy> builder)
         {
             builder.SetAllColumnsCaseSensitive();
+
+            // Relacje z Restrict aby unikn¹æ cyklicznych œcie¿ek kaskadowych
+            builder.HasOne(k => k.Miasto)
+                .WithMany(m => m.KodyPocztowe)
+                .HasForeignKey(k => k.MiastoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(k => k.Ulica)
+                .WithMany(u => u.KodyPocztowe)
+                .HasForeignKey(k => k.UlicaId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

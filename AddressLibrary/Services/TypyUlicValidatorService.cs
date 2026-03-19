@@ -179,7 +179,7 @@ namespace AddressLibrary.Services
             poprawiona = Znormalizuj(poprawiona);
             if (!string.Equals(ulica, poprawiona, StringComparison.OrdinalIgnoreCase))
             {
-                return (TerytUlicPoprawka.Id, ulica);
+                return (TerytUlicPoprawka.TerytId, ulica);
             }
             return ("", "");
         }

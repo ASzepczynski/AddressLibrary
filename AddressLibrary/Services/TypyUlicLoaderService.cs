@@ -264,7 +264,7 @@ namespace AddressLibrary.Services
                 originalParts.Add(nazwa2.Trim());
             if (!string.IsNullOrWhiteSpace(nazwa1))
                 originalParts.Add(nazwa1.Trim());
-            typ.Id = string.Join(" ", originalParts);
+            typ.TerytId = string.Join(" ", originalParts);
 
             // ✅ DOPIERO TERAZ normalizuj (ale zachowaj oryginały do sprawdzenia IsImie)
             var nazwiskoDoSprawdzenia = TextNormalizer.MakeCorrections(nazwa1);

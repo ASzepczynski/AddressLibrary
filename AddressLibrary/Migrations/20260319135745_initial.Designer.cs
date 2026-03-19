@@ -12,15 +12,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    [Migration("20260319075245_DodanieTytulyStopnieszerokosc")]
-    partial class DodanieTytulyStopnieszerokosc
+    [Migration("20260319135745_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .UseCollation("Polish_CS_AS")
                 .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -29,46 +28,53 @@ namespace AddressLibrary.Migrations
             modelBuilder.Entity("AddressLibrary.Models.Adres", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(450)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Gmina")
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Kod")
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Komentarz")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Kraj")
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Miasto")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("NrDomu")
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("NrLokalu")
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Powiat")
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Ulica")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Wojewodztwo")
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Kod");
-
-                    b.HasIndex("Miasto", "Kod");
-
-                    b.ToTable("Adresy", (string)null);
+                    b.ToTable("Adresy");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.CechaUlicy", b =>
@@ -82,20 +88,16 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(50)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Skrot")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(20)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Nazwa")
-                        .IsUnique();
-
-                    b.HasIndex("Skrot")
-                        .IsUnique();
 
                     b.ToTable("CechyUlic");
                 });
@@ -111,12 +113,14 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Kod")
                         .IsRequired()
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)");
+                        .HasColumnType("nvarchar(7)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("PowiatId")
                         .HasColumnType("int");
@@ -126,13 +130,9 @@ namespace AddressLibrary.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Nazwa");
+                    b.HasIndex("PowiatId");
 
                     b.HasIndex("RodzajGminyId");
-
-                    b.HasIndex("PowiatId", "Kod", "RodzajGminyId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Gminy_PowiatId_Kod_RodzajGminyId");
 
                     b.ToTable("Gminy");
                 });
@@ -148,21 +148,27 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Kod")
                         .IsRequired()
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)");
+                        .HasColumnType("nvarchar(6)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("MiastoId")
                         .HasColumnType("int");
 
                     b.Property<string>("Numery")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("Poczta")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("UlicaId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Kod");
 
                     b.HasIndex("MiastoId");
 
@@ -185,7 +191,8 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("RodzajMiastaId")
                         .HasColumnType("int");
@@ -193,18 +200,14 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)");
+                        .HasColumnType("nvarchar(7)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 
                     b.HasIndex("GminaId");
 
-                    b.HasIndex("Nazwa");
-
                     b.HasIndex("RodzajMiastaId");
-
-                    b.HasIndex("Symbol")
-                        .IsUnique();
 
                     b.ToTable("Miasta");
                 });
@@ -219,35 +222,43 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Dzielnica")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Gmina")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Kod")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Miasto")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Numery")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Powiat")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Ulica")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Wojewodztwo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 
@@ -265,23 +276,21 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Kod")
                         .IsRequired()
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)");
+                        .HasColumnType("nvarchar(4)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("WojewodztwoId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Nazwa");
-
-                    b.HasIndex("WojewodztwoId", "Kod")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Powiaty_WojewodztwoId_Kod");
+                    b.HasIndex("WojewodztwoId");
 
                     b.ToTable("Powiaty");
                 });
@@ -296,18 +305,15 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Kod")
                         .IsRequired()
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Kod")
-                        .IsUnique();
 
                     b.ToTable("RodzajeGmin");
                 });
@@ -322,18 +328,15 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Kod")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Kod")
-                        .IsUnique();
 
                     b.ToTable("RodzajeMiast");
                 });
@@ -348,42 +351,51 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Gmina")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Mz")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Powiat")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("RodzajGminy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("RodzajMiasta")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<DateTime>("StanNa")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("SymbolPodstawowy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Wojewodztwo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 
@@ -400,30 +412,36 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Gmina")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("NazwaDodatkowa")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Powiat")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("RodzajGminy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<DateTime>("StanNa")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Wojewodztwo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 
@@ -440,42 +458,51 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Cecha")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Gmina")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa1")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa2")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Powiat")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("RodzajGminy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<DateTime>("StanNa")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("SymbolUlicy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Wojewodztwo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 
@@ -484,64 +511,55 @@ namespace AddressLibrary.Migrations
 
             modelBuilder.Entity("AddressLibrary.Models.TerytUlicPoprawka", b =>
                 {
-                    b.Property<int>("DbId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DbId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Cecha")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Cecha ulicy (np. ul., al., pl.)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
-                    b.Property<string>("Id")
+                    b.Property<string>("Imie")
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("Imie2")
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("Nazwisko")
+                        .HasColumnType("nvarchar(450)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("Nazwisko2")
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("Postfiks")
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("Prefiks")
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("Pseudonim")
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<string>("TerytId")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)")
-                        .HasComment("Identyfikator/klucz biznesowy - oryginalna pełna nazwa ulicy: Cecha + Nazwa2 + Nazwa1");
-
-                    b.Property<string>("Imie")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Pierwsze imię patrona ulicy");
-
-                    b.Property<string>("Imie2")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Drugie imię patrona ulicy");
-
-                    b.Property<string>("Nazwisko")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Pierwsze nazwisko patrona ulicy");
-
-                    b.Property<string>("Nazwisko2")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Drugie nazwisko patrona ulicy");
-
-                    b.Property<string>("Postfiks")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Postfiks/przydomek (dodatkowe informacje)");
-
-                    b.Property<string>("Prefiks")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Prefiks nazwy ulicy (imienia, leśny)");
-
-                    b.Property<string>("Pseudonim")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Pseudonim patrona ulicy (np. Zapory, Zośki, Nila)");
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Tytul")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Tytuł osoby (np. dr., prof., płk.)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
-                    b.HasKey("DbId");
+                    b.HasKey("Id");
 
                     b.HasIndex("Id")
                         .HasDatabaseName("IX_TerytUlicPoprawki_Id");
@@ -549,7 +567,7 @@ namespace AddressLibrary.Migrations
                     b.HasIndex("Nazwisko")
                         .HasDatabaseName("IX_TerytUlicPoprawki_Nazwisko");
 
-                    b.ToTable("TerytUlicPoprawki", (string)null);
+                    b.ToTable("TerytUlicPoprawki");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.TerytWmRodz", b =>
@@ -562,11 +580,13 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
-                    b.Property<string>("RozdzajMiasta")
+                    b.Property<string>("RodzajMiasta")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<DateTime>("StanNa")
                         .HasColumnType("datetime2");
@@ -585,54 +605,49 @@ namespace AddressLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Imie")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Pierwsze imię patrona ulicy");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Imie2")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Drugie imię patrona ulicy (np. Kamil w Krzysztofa Kamila Baczyńskiego)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwisko")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Pierwsze nazwisko patrona ulicy");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwisko2")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Drugie nazwisko patrona ulicy (np. Reymonta w Władysława Stanisława Reymonta)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Postfiks")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Postfiks/przydomek (dodatkowe informacje)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Prefiks")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Prefiks nazwy ulicy (im., Leśny, Miejski)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Pseudonim")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasComment("Pseudonim patrona ulicy (np. Zapory, Zośki, Nila)");
+                        .HasColumnType("nvarchar(max)")
+                        .UseCollation("Polish_CS_AS");
 
-                    b.Property<string>("Tytul")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasComment("Tytuł osoby (np. dr., prof., płk.)");
+                    b.Property<string>("TerytUlicSymbol")
+                        .HasColumnType("nvarchar(450)")
+                        .UseCollation("Polish_CS_AS");
+
+                    b.Property<int>("TytulStopienId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Nazwisko")
-                        .HasDatabaseName("IX_TypyUlic_Nazwisko");
+                    b.HasIndex("TerytUlicSymbol")
+                        .HasDatabaseName("IX_TypyUlic_TerytUlicSymbol");
 
-                    b.HasIndex("Imie", "Nazwisko")
-                        .HasDatabaseName("IX_TypyUlic_Imie_Nazwisko");
+                    b.HasIndex("TytulStopienId")
+                        .HasDatabaseName("IX_TypyUlic_TytulStopienId");
 
-                    b.ToTable("TypyUlic", (string)null);
+                    b.ToTable("TypyUlic");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.TytulStopien", b =>
@@ -646,27 +661,22 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Dopelniacz")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(50)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(50)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Skrot")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(50)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Dopelniacz");
-
-                    b.HasIndex("Nazwa")
-                        .IsUnique();
-
-                    b.HasIndex("Skrot")
-                        .IsUnique();
 
                     b.ToTable("TytulyStopnie");
                 });
@@ -681,11 +691,13 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Cecha")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(20)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Dzielnica")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("MiastoId")
                         .HasColumnType("int");
@@ -693,7 +705,8 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("nvarchar(10)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int?>("TypUlicyId")
                         .HasColumnType("int");
@@ -703,10 +716,6 @@ namespace AddressLibrary.Migrations
                     b.HasIndex("MiastoId");
 
                     b.HasIndex("TypUlicyId");
-
-                    b.HasIndex("Symbol", "MiastoId", "Dzielnica")
-                        .IsUnique()
-                        .HasFilter("[Dzielnica] IS NOT NULL");
 
                     b.ToTable("Ulice");
                 });
@@ -721,49 +730,48 @@ namespace AddressLibrary.Migrations
 
                     b.Property<string>("Email")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Kod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("nvarchar(10)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Miasto")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("NrDomu")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(20)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Ulica")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<int?>("UlicaId")
                         .HasColumnType("int");
 
                     b.Property<string>("Www")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Kod");
-
-                    b.HasIndex("Miasto");
-
-                    b.HasIndex("Nazwa");
-
                     b.HasIndex("UlicaId");
 
-                    b.HasIndex("Miasto", "Ulica");
-
-                    b.ToTable("UrzedySkarbowe", (string)null);
+                    b.ToTable("UrzedySkarbowe");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Wojewodztwo", b =>
@@ -777,19 +785,16 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Kod")
                         .IsRequired()
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)");
+                        .HasColumnType("nvarchar(2)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Kod")
-                        .IsUnique();
-
-                    b.HasIndex("Nazwa");
 
                     b.ToTable("Wojewodztwa");
                 });
@@ -799,13 +804,13 @@ namespace AddressLibrary.Migrations
                     b.HasOne("AddressLibrary.Models.Powiat", "Powiat")
                         .WithMany("Gminy")
                         .HasForeignKey("PowiatId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("AddressLibrary.Models.RodzajGminy", "RodzajGminy")
                         .WithMany("Gminy")
                         .HasForeignKey("RodzajGminyId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Powiat");
@@ -837,13 +842,13 @@ namespace AddressLibrary.Migrations
                     b.HasOne("AddressLibrary.Models.Gmina", "Gmina")
                         .WithMany("Miasta")
                         .HasForeignKey("GminaId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("AddressLibrary.Models.RodzajMiasta", "RodzajMiasta")
                         .WithMany("Miasta")
                         .HasForeignKey("RodzajMiastaId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Gmina");
@@ -856,10 +861,21 @@ namespace AddressLibrary.Migrations
                     b.HasOne("AddressLibrary.Models.Wojewodztwo", "Wojewodztwo")
                         .WithMany("Powiaty")
                         .HasForeignKey("WojewodztwoId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Wojewodztwo");
+                });
+
+            modelBuilder.Entity("AddressLibrary.Models.TypUlicy", b =>
+                {
+                    b.HasOne("AddressLibrary.Models.TytulStopien", "TytulStopien")
+                        .WithMany()
+                        .HasForeignKey("TytulStopienId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TytulStopien");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Ulica", b =>
@@ -867,13 +883,12 @@ namespace AddressLibrary.Migrations
                     b.HasOne("AddressLibrary.Models.Miasto", "Miasto")
                         .WithMany("Ulice")
                         .HasForeignKey("MiastoId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("AddressLibrary.Models.TypUlicy", "TypUlicy")
                         .WithMany()
-                        .HasForeignKey("TypUlicyId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("TypUlicyId");
 
                     b.Navigation("Miasto");
 
@@ -884,8 +899,7 @@ namespace AddressLibrary.Migrations
                 {
                     b.HasOne("AddressLibrary.Models.Ulica", "UlicaNavigation")
                         .WithMany()
-                        .HasForeignKey("UlicaId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("UlicaId");
 
                     b.Navigation("UlicaNavigation");
                 });
