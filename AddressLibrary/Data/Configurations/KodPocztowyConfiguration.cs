@@ -1,4 +1,5 @@
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,19 +9,7 @@ namespace AddressLibrary.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<KodPocztowy> builder)
         {
-            // Indeks na kolumnie Kod (nie da siê zrobiæ atrybutem)
-            builder.HasIndex(e => e.Kod);
-
-            // DeleteBehavior.Restrict (nie da siê zrobiæ atrybutem)
-            builder.HasOne(e => e.Miasto)
-                  .WithMany(m => m.KodyPocztowe)
-                  .HasForeignKey(e => e.MiastoId)
-                  .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(e => e.Ulica)
-                  .WithMany(u => u.KodyPocztowe)
-                  .HasForeignKey(e => e.UlicaId)
-                  .OnDelete(DeleteBehavior.Restrict);
+            builder.SetAllColumnsCaseSensitive();
         }
     }
 }

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace AddressLibrary.Models
 {
     /// <summary>
@@ -16,9 +18,22 @@ namespace AddressLibrary.Models
         public string? Prefiks { get; set; }
 
         /// <summary>
-        /// Tytu³ (np. "dr.", "prof.", "p³k.")
+        /// Klucz obcy do tabeli TytulyStopnie (np. "dr.", "prof.", "p³k.")
+        /// Wartoœæ -1 oznacza brak tytu³u
         /// </summary>
-        public string? Tytul { get; set; }
+        [ForeignKey(nameof(TytulStopien))]
+        public int TytulStopienId { get; set; } = -1;
+
+        /// <summary>
+        /// Relacja do tabeli TytulyStopnie
+        /// </summary>
+        public TytulStopien? TytulStopien { get; set; }
+
+        /// <summary>
+        /// Computed property zwracaj¹ce skrót tytu³u dla zachowania kompatybilnoœci wstecznej
+        /// </summary>
+        [NotMapped]
+        public string? Tytul => TytulStopien?.Skrot;
 
         /// <summary>
         /// Pierwsze imiê (np. "Stanis³awa")
@@ -49,5 +64,10 @@ namespace AddressLibrary.Models
         /// Postfiks/przydomek (np. dodatkowe informacje po pseudonimie)
         /// </summary>
         public string? Postfiks { get; set; }
+
+        /// <summary>
+        /// Referencja do ulicy w s³owniku TerytUlic
+        /// </summary>
+        public string? TerytUlicSymbol { get; set; }
     }
 }

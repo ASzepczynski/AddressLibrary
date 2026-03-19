@@ -29,10 +29,56 @@ namespace AddressLibrary.Services
             }
         }
 
+        // ✅ NOWE: Lazy-loaded słownik tytułów (Skrot -> Id)
+        private Dictionary<string, int>? _tytulyDict;
+        private Dictionary<string, int> TytulyDict
+        {
+            get
+            {
+                if (_tytulyDict == null)
+                {
+                    _tytulyDict = LoadTytulyStopnie();
+                }
+                return _tytulyDict;
+            }
+        }
+
         public TerytUlicPoprawkiLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
             _appDataPath = appDataPath;
+        }
+
+        /// <summary>
+        /// Ładuje słownik tytułów i stopni z bazy danych (Skrot -> Id)
+        /// </summary>
+        private Dictionary<string, int> LoadTytulyStopnie()
+        {
+            var dict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                var tytuly = _context.TytulyStopnie
+                    .AsNoTracking()
+                    .Select(t => new { t.Id, t.Skrot })
+                    .ToList();
+
+                foreach (var tytul in tytuly)
+                {
+                    if (!string.IsNullOrWhiteSpace(tytul.Skrot))
+                    {
+                        dict[tytul.Skrot.Trim()] = tytul.Id;
+                    }
+                }
+
+                Console.WriteLine($"✓ Załadowano {dict.Count} tytułów/stopni z bazy danych");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Błąd ładowania słownika tytułów: {ex.Message}");
+            }
+
+            return dict;
         }
 
         /// <summary>
@@ -86,11 +132,46 @@ namespace AddressLibrary.Services
         }
 
         /// <summary>
+        /// Mapuje skrót tytułu na Id z tabeli TytulyStopnie (zwraca -1 jeśli nie znaleziono)
+        /// </summary>
+        private int MapTytulToId(string? tytul)
+        {
+            if (string.IsNullOrWhiteSpace(tytul))
+                return -1;
+
+            // Podziel tytuł na części (może być "dr. prof.")
+            var parts = tytul.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            // Spróbuj znaleźć pierwszy pasujący tytuł
+            foreach (var part in parts)
+            {
+                if (TytulyDict.TryGetValue(part, out int id))
+                {
+                    return id;
+                }
+            }
+
+            // Jeśli nie znaleziono, zwróć -1 (brak tytułu)
+            return -1;
+        }
+
+        /// <summary>
         /// Przetwarza unikalne kombinacje Nazwa1/Nazwa2 z TerytUlic i zapisuje do TerytUlicPoprawki
         /// </summary>
         public async Task<LoadTerytUlicPoprawkiResult> LoadAsync(IProgress<LoadTerytUlicPoprawkiProgress>? progress = null)
         {
+
             var result = new LoadTerytUlicPoprawkiResult();
+
+
+            // ✅ INICJALIZACJA TitleManager ze słownika z bazy danych
+            if (!TitleManager.IsInitialized)
+            {
+                var tytulyStopnie = await _context.TytulyStopnie
+                    .AsNoTracking()
+                    .ToListAsync();
+                TitleManager.Initialize(tytulyStopnie);
+            }
 
             // KROK 1: Wyczyść tabelę TerytUlicPoprawki
             await _context.Database.ExecuteSqlRawAsync("DELETE FROM TerytUlicPoprawki");
@@ -166,7 +247,7 @@ namespace AddressLibrary.Services
         {
             var typ = new TerytUlicPoprawka();
             typ.Prefiks = "";
-            typ.Tytul = "";
+            string tytulStr = ""; // Tymczasowa zmienna do przechowania skrótu tytułu
             
             // ✅ WAŻNE: NIE normalizuj od razu - zachowaj oryginalne formy
             typ.Imie = nazwa2;

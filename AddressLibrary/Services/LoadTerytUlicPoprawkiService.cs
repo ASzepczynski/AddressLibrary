@@ -24,6 +24,7 @@ namespace AddressLibrary.Services
 
         /// <summary>
         /// Ładuje dane z Excela do bazy danych
+        /// Najpierw ładuje słowniki CechyUlic i TytulyStopnie, potem TerytUlicPoprawki
         /// </summary>
         public async Task<LoadResult> LoadAsync(IProgress<LoadProgress>? progress = null)
         {
@@ -33,12 +34,45 @@ namespace AddressLibrary.Services
 
             _logger.LogInfo("=== Rozpoczęcie ładowania TerytUlicPoprawki ===");
 
+            // KROK 1: Załaduj słownik CechyUlic
+            _logger.LogInfo("KROK 1: Ładowanie słownika CechyUlic...");
+            progress?.Report(new LoadProgress { CurrentOperation = "Ładowanie słownika CechyUlic..." });
+
+            var cechyLoader = new LoadCechyUlicService(_context, _appDataPath);
+            var cechyResult = await cechyLoader.LoadAsync(null);
+            
+            if (!string.IsNullOrEmpty(cechyResult.ErrorMessage))
+            {
+                _logger.LogWarning($"Ostrzeżenie przy ładowaniu CechyUlic: {cechyResult.ErrorMessage}");
+            }
+            else
+            {
+                _logger.LogInfo($"✓ Załadowano CechyUlic: Dodano={cechyResult.InsertedCount}, Zaktualizowano={cechyResult.UpdatedCount}");
+            }
+
+            // KROK 2: Załaduj słownik TytulyStopnie
+            _logger.LogInfo("KROK 2: Ładowanie słownika TytulyStopnie...");
+            progress?.Report(new LoadProgress { CurrentOperation = "Ładowanie słownika TytulyStopnie..." });
+
+            var tytulyLoader = new LoadTytulyStopnieService(_context, _appDataPath);
+            var tytulyResult = await tytulyLoader.LoadAsync(null);
+            
+            if (!string.IsNullOrEmpty(tytulyResult.ErrorMessage))
+            {
+                _logger.LogWarning($"Ostrzeżenie przy ładowaniu TytulyStopnie: {tytulyResult.ErrorMessage}");
+            }
+            else
+            {
+                _logger.LogInfo($"✓ Załadowano TytulyStopnie: Dodano={tytulyResult.InsertedCount}, Zaktualizowano={tytulyResult.UpdatedCount}");
+            }
+
+            // KROK 3: Wczytaj dane TerytUlicPoprawki z Excela
+            _logger.LogInfo("KROK 3: Ładowanie TerytUlicPoprawki...");
             progress?.Report(new LoadProgress
             {
                 CurrentOperation = "Wczytywanie danych z Excela..."
             });
 
-            // KROK 1: Wczytaj dane z Excela
             var terytUlicDict = TerytUlicPoprawkiDictionary.Load(_appDataPath, _logger);
 
             if (terytUlicDict.Count == 0)
@@ -56,7 +90,7 @@ namespace AddressLibrary.Services
                 TotalCount = result.TotalCount
             });
 
-            // KROK 2: Wyczyść tabelę
+            // KROK 4: Wyczyść tabelę
             _logger.LogInfo("Czyszczenie tabeli TerytUlicPoprawki...");
             await _context.Database.ExecuteSqlRawAsync("DELETE FROM TerytUlicPoprawki");
             await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('TerytUlicPoprawki', RESEED, 0)");
@@ -68,7 +102,7 @@ namespace AddressLibrary.Services
                 TotalCount = result.TotalCount
             });
 
-            // KROK 3: Wstaw dane partiami
+            // KROK 5: Wstaw dane partiami
             _logger.LogInfo("Rozpoczynam wstawianie danych...");
 
             var dataList = terytUlicDict.Values.ToList();
@@ -120,7 +154,7 @@ namespace AddressLibrary.Services
 
             result.InsertedCount = insertedCount;
 
-            // KROK 4: Podsumowanie
+            // KROK 6: Podsumowanie
             _logger.LogInfo("=== Podsumowanie ładowania ===");
             _logger.LogInfo($"Wczytano z Excela: {result.TotalCount}");
             _logger.LogInfo($"Wstawiono do bazy: {result.InsertedCount}");
@@ -145,20 +179,5 @@ namespace AddressLibrary.Services
     /// <summary>
     /// Wynik ładowania
     /// </summary>
-    public class LoadResult
-    {
-        public int TotalCount { get; set; }
-        public int InsertedCount { get; set; }
-    }
-
-    /// <summary>
-    /// Postęp ładowania
-    /// </summary>
-    public class LoadProgress
-    {
-        public string CurrentOperation { get; set; } = string.Empty;
-        public int TotalCount { get; set; }
-        public int ProcessedCount { get; set; }
-        public bool IsCompleted { get; set; }
-    }
+   
 }

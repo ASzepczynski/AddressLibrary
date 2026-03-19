@@ -18,11 +18,125 @@ namespace AddressLibrary.Services
         private readonly string _appDataPath;
         private readonly PostalCodesLogger _logger;
 
+        // Słownik tytułów (Skrot -> Id)
+        private Dictionary<string, int>? _tytulyDict;
+
         public LoadTypyUlicService(AddressDbContext context, string appDataPath)
         {
             _context = context;
             _appDataPath = appDataPath;
             _logger = new PostalCodesLogger(appDataPath, "LoadTypyUlic.txt");
+        }
+
+        /// <summary>
+        /// Ładuje słownik tytułów i stopni z bazy danych (Skrot -> Id)
+        /// </summary>
+        private async Task<Dictionary<string, int>> LoadTytulyStopnieAsync()
+        {
+            if (_tytulyDict != null)
+                return _tytulyDict;
+
+            _tytulyDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                var tytuly = await _context.TytulyStopnie
+                    .AsNoTracking()
+                    .Select(t => new { t.Id, t.Skrot })
+                    .ToListAsync();
+
+                foreach (var tytul in tytuly)
+                {
+                    if (!string.IsNullOrWhiteSpace(tytul.Skrot))
+                    {
+                        var skrot = tytul.Skrot.Trim();
+                        
+                        // Dodaj oryginał
+                        if (!_tytulyDict.ContainsKey(skrot))
+                            _tytulyDict[skrot] = tytul.Id;
+                        
+                        // Dodaj warianty: bez kropek, bez spacji, kombinacje
+                        var variants = new List<string>
+                        {
+                            skrot.Replace(".", ""),                   // bez kropek
+                            skrot.Replace(".", "").Replace(" ", ""),  // bez kropek i spacji
+                            skrot.Replace(" ", ""),                   // bez spacji
+                            skrot.ToLower(),                          // lowercase
+                            skrot.Replace(".", "").ToLower(),
+                        };
+
+                        foreach (var variant in variants)
+                        {
+                            if (!string.IsNullOrEmpty(variant) && !_tytulyDict.ContainsKey(variant))
+                            {
+                                _tytulyDict[variant] = tytul.Id;
+                            }
+                        }
+                    }
+                }
+
+                _logger.LogInfo($"✓ Załadowano {tytuly.Count} tytułów/stopni ({_tytulyDict.Count} wariantów) z bazy danych");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"⚠️ Błąd ładowania słownika tytułów: {ex.Message}");
+            }
+
+            return _tytulyDict;
+        }
+
+        /// <summary>
+        /// Mapuje skrót tytułu na Id z tabeli TytulyStopnie (zwraca -1 jeśli nie znaleziono)
+        /// </summary>
+        private int MapTytulToId(string? tytul, Dictionary<string, int> tytulyDict)
+        {
+            if (string.IsNullOrWhiteSpace(tytul))
+                return -1;
+
+            var cleanTytul = tytul.Trim();
+
+            // Najpierw spróbuj znaleźć dokładne dopasowanie
+            if (tytulyDict.TryGetValue(cleanTytul, out int id))
+                return id;
+
+            // Spróbuj z różnymi wariantami (z kropkami i bez)
+            var variants = new List<string>
+            {
+                cleanTytul.Replace(".", ""),                   // bez kropek
+                cleanTytul.Replace(".", "").Replace(" ", ""),  // bez kropek i spacji
+                cleanTytul.Replace(" ", "")                    // bez spacji
+            };
+
+            foreach (var variant in variants)
+            {
+                if (!string.IsNullOrEmpty(variant) && tytulyDict.TryGetValue(variant, out id))
+                    return id;
+            }
+
+            // Podziel tytuł na części i szukaj każdej osobno (dla złożonych tytułów jak "dr. prof.")
+            var parts = cleanTytul.Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var part in parts)
+            {
+                var partTrimmed = part.Trim();
+                
+                // Spróbuj z różnymi wariantami dla każdej części
+                var partVariants = new List<string>
+                {
+                    partTrimmed,
+                    partTrimmed.Replace(".", ""),
+                    partTrimmed + ".",
+                };
+
+                foreach (var variant in partVariants)
+                {
+                    if (tytulyDict.TryGetValue(variant, out id))
+                        return id;
+                }
+            }
+
+            // Jeśli nie znaleziono, zwróć -1 (brak tytułu)
+            return -1;
         }
 
         /// <summary>
@@ -35,6 +149,19 @@ namespace AddressLibrary.Services
             var result = new ValidatorResult();
 
             _logger.LogInfo("=== Rozpoczęcie ładowania TypyUlic ===");
+
+            // ✅ INICJALIZACJA TitleManager ze słownika z bazy danych
+            if (!TitleManager.IsInitialized)
+            {
+                var tytulyStopnie = await _context.TytulyStopnie
+                    .AsNoTracking()
+                    .ToListAsync();
+                TitleManager.Initialize(tytulyStopnie);
+                _logger.LogInfo($"✓ Zainicjalizowano TitleManager: {tytulyStopnie.Count} tytułów");
+            }
+
+            // Załaduj słownik tytułów dla mapowania ID
+            var tytulyDict = await LoadTytulyStopnieAsync();
 
             progress?.Report(new ValidatorProgress
             {
@@ -94,7 +221,7 @@ namespace AddressLibrary.Services
                 {
                     result.FoundCount++;
 
-                    // ✅ Porównaj terytUlica ze znalezioną pozycją w słowniku
+                    // ✅ Porównaj terytUlica ze znalezioną pozycą w słowniku
 
                     uliceList.Add(terytUlicPoprawka);
                 }
@@ -154,10 +281,16 @@ namespace AddressLibrary.Services
                 
                 foreach (var item in uliceList)
                 {
+                    int tytulStopienId = MapTytulToId(item.Tytul, tytulyDict);
+                    if (!string.IsNullOrEmpty(item.Tytul) && tytulStopienId == -1)
+                    {
+                        // jakiś błędny tytuł
+                        _logger.LogError($"Brak tytułu/stopnia '{item.Tytul}]'");
+                    }
                     var typUlicy = new TypUlicy
                     {
                         Prefiks = TruncateString(item.Prefiks, 200, ref truncatedCount, "Prefiks"),
-                        Tytul = TruncateString(item.Tytul, 100, ref truncatedCount, "Tytul"),
+                        TytulStopienId = tytulStopienId, 
                         Imie = TruncateString(item.Imie, 200, ref truncatedCount, "Imie"),
                         Imie2 = TruncateString(item.Imie2, 200, ref truncatedCount, "Imie2"),
                         Nazwisko = TruncateString(item.Nazwisko, 200, ref truncatedCount, "Nazwisko"),
@@ -232,7 +365,7 @@ namespace AddressLibrary.Services
                         for (int j = 0; j < Math.Min(5, batch.Count); j++)
                         {
                             var record = batch[j];
-                            _logger.LogError($"  [{j}] Prefiks:'{record.Prefiks}' Tytul:'{record.Tytul}' Imie:'{record.Imie}' Imie2:'{record.Imie2}' Nazwisko:'{record.Nazwisko}' Nazwisko2:'{record.Nazwisko2}' Postfiks:'{record.Postfiks}'");
+                            _logger.LogError($"  [{j}] Prefiks:'{record.Prefiks}' TytulStopienId:{record.TytulStopienId} Imie:'{record.Imie}' Imie2:'{record.Imie2}' Nazwisko:'{record.Nazwisko}' Nazwisko2:'{record.Nazwisko2}' Postfiks:'{record.Postfiks}'");
                         }
                         
                         _logger.LogError($"Stack trace: {ex.StackTrace}");
@@ -304,7 +437,7 @@ namespace AddressLibrary.Services
             if (x is null || y is null) return false;
 
             return string.Equals(x.Prefiks, y.Prefiks, StringComparison.Ordinal) &&
-                   string.Equals(x.Tytul, y.Tytul, StringComparison.Ordinal) &&
+                   x.TytulStopienId == y.TytulStopienId &&
                    string.Equals(x.Imie, y.Imie, StringComparison.Ordinal) &&
                    string.Equals(x.Imie2, y.Imie2, StringComparison.Ordinal) &&
                    string.Equals(x.Nazwisko, y.Nazwisko, StringComparison.Ordinal) &&
@@ -319,7 +452,7 @@ namespace AddressLibrary.Services
 
             return HashCode.Combine(
                 obj.Prefiks ?? "",
-                obj.Tytul ?? "",
+                obj.TytulStopienId,
                 obj.Imie ?? "",
                 obj.Imie2 ?? "",
                 obj.Nazwisko ?? "",

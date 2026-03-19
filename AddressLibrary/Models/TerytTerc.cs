@@ -9,7 +9,7 @@ namespace AddressLibrary.Models
         public string RodzajGminy { get; set; } = string.Empty;
         public string Nazwa { get; set; } = string.Empty;
         public string NazwaDodatkowa { get; set; } = string.Empty;
-        public DateTime StanNa { get; set; } 
+        public DateTime StanNa { get; set; }
 
     }
 }

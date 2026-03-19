@@ -4,6 +4,7 @@ using AddressLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    partial class AddressDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260319072106_DodanieCechyUlic")]
+    partial class DodanieCechyUlic
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -616,59 +619,20 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("nvarchar(200)")
                         .HasComment("Pseudonim patrona ulicy (np. Zapory, Zośki, Nila)");
 
-                    b.Property<string>("TerytUlicSymbol")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasComment("Symbol ulicy z TERYT");
-
-                    b.Property<int>("TytulStopienId")
-                        .HasColumnType("int")
-                        .HasComment("Klucz obcy do tabeli TytulyStopnie (tytuł osoby, np. dr., prof., płk.)");
+                    b.Property<string>("Tytul")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasComment("Tytuł osoby (np. dr., prof., płk.)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TerytUlicSymbol")
-                        .HasDatabaseName("IX_TypyUlic_TerytUlicSymbol");
+                    b.HasIndex("Nazwisko")
+                        .HasDatabaseName("IX_TypyUlic_Nazwisko");
 
-                    b.HasIndex("TytulStopienId")
-                        .HasDatabaseName("IX_TypyUlic_TytulStopienId");
+                    b.HasIndex("Imie", "Nazwisko")
+                        .HasDatabaseName("IX_TypyUlic_Imie_Nazwisko");
 
                     b.ToTable("TypyUlic", (string)null);
-                });
-
-            modelBuilder.Entity("AddressLibrary.Models.TytulStopien", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Dopelniacz")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Nazwa")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Skrot")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Dopelniacz");
-
-                    b.HasIndex("Nazwa")
-                        .IsUnique();
-
-                    b.HasIndex("Skrot");
-
-                    b.ToTable("TytulyStopnie");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Ulica", b =>
@@ -860,17 +824,6 @@ namespace AddressLibrary.Migrations
                         .IsRequired();
 
                     b.Navigation("Wojewodztwo");
-                });
-
-            modelBuilder.Entity("AddressLibrary.Models.TypUlicy", b =>
-                {
-                    b.HasOne("AddressLibrary.Models.TytulStopien", "TytulStopien")
-                        .WithMany()
-                        .HasForeignKey("TytulStopienId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("TytulStopien");
                 });
 
             modelBuilder.Entity("AddressLibrary.Models.Ulica", b =>

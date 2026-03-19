@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AddressLibrary.Data.Configurations
 {
-    public class PnaConfiguration : IEntityTypeConfiguration<Pna>
+    public class MiastoConfiguration : IEntityTypeConfiguration<Miasto>
     {
-        public void Configure(EntityTypeBuilder<Pna> builder)
+        public void Configure(EntityTypeBuilder<Miasto> builder)
         {
             builder.SetAllColumnsCaseSensitive();
         }

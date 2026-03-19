@@ -21,6 +21,8 @@ namespace AddressLibrary.Data
         // Słowniki
         public DbSet<RodzajGminy> RodzajeGmin { get; set; }
         public DbSet<RodzajMiasta> RodzajeMiast { get; set; }
+        public DbSet<CechaUlicy> CechyUlic { get; set; }
+        public DbSet<TytulStopien> TytulyStopnie { get; set; }
 
         // Tabele hierarchiczne
         public DbSet<Wojewodztwo> Wojewodztwa { get; set; }
@@ -45,7 +47,7 @@ namespace AddressLibrary.Data
             base.OnModelCreating(modelBuilder);
 
             // Ustawienie kolacji Polish_CS_AS (case-sensitive) dla całej bazy danych
-            modelBuilder.UseCollation("Polish_CS_AS");
+//            modelBuilder.UseCollation("Polish_CS_AS");
 
             // Automatycznie zastosuj wszystkie konfiguracje z assembly
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

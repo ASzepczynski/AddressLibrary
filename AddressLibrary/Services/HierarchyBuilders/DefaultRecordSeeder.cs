@@ -19,28 +19,15 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
         public async Task SeedDefaultRecordsAsync()
         {
-            // 1. Województwo "Brak"
-            await SeedWojewodztwoAsync();
-
-            // 2. Powiat "Brak"
-            await SeedPowiatAsync();
-
-            // 3. RodzajGminy "Brak"
             await SeedRodzajGminyAsync();
-
-            // 4. Gmina "Brak"
-            await SeedGminaAsync();
-
-            // 5. RodzajMiasta "Brak"
             await SeedRodzajMiastaAsync();
-
-            // 6. Miasto "Brak"
+            await SeedCechaUlicyAsync();
+            await SeedTytulStopienAsync();
+            await SeedWojewodztwoAsync();
+            await SeedPowiatAsync();
+            await SeedGminaAsync();
             await SeedMiastoAsync();
-
-            // 7. Ulica "Brak"
             await SeedUlicaAsync();
-
-            // 8. KodPocztowy "Brak"
             await SeedKodPocztowyAsync();
         }
 
@@ -159,6 +146,34 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     VALUES (-1, '00-000', '', -1, -1);
                     SET IDENTITY_INSERT KodyPocztowe OFF;
                     DBCC CHECKIDENT ('KodyPocztowe', RESEED, 0);
+                ");
+            }
+        }
+
+        private async Task SeedCechaUlicyAsync()
+        {
+            if (!await _context.CechyUlic.AnyAsync(c => c.Id == -1))
+            {
+                await _context.Database.ExecuteSqlRawAsync(@"
+                    SET IDENTITY_INSERT CechyUlic ON;
+                    INSERT INTO CechyUlic (Id, Nazwa, Skrot) 
+                    VALUES (-1, '-', '-');
+                    SET IDENTITY_INSERT CechyUlic OFF;
+                    DBCC CHECKIDENT ('CechyUlic', RESEED, 0);
+                ");
+            }
+        }
+
+        private async Task SeedTytulStopienAsync()
+        {
+            if (!await _context.TytulyStopnie.AnyAsync(t => t.Id == -1))
+            {
+                await _context.Database.ExecuteSqlRawAsync(@"
+                    SET IDENTITY_INSERT TytulyStopnie ON;
+                    INSERT INTO TytulyStopnie (Id, Nazwa, Skrot, Dopelniacz) 
+                    VALUES (-1, '-', '-', '-');
+                    SET IDENTITY_INSERT TytulyStopnie OFF;
+                    DBCC CHECKIDENT ('TytulyStopnie', RESEED, 0);
                 ");
             }
         }

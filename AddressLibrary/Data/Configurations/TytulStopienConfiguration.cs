@@ -1,13 +1,13 @@
+﻿using AddressLibrary.Helpers;
 using AddressLibrary.Models;
-using AddressLibrary.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AddressLibrary.Data.Configurations
 {
-    public class PnaConfiguration : IEntityTypeConfiguration<Pna>
+    public class TytulStopienConfiguration : IEntityTypeConfiguration<TytulStopien>
     {
-        public void Configure(EntityTypeBuilder<Pna> builder)
+        public void Configure(EntityTypeBuilder<TytulStopien> builder)
         {
             builder.SetAllColumnsCaseSensitive();
         }

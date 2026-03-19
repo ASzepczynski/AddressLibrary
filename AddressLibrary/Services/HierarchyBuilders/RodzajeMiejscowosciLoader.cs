@@ -37,8 +37,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             // ZMIANA: Grupuj po Kod, aby unikn¹æ duplikatów i filtruj puste kody
             var rodzajeMiasta = wmRodzData
-                .Where(wmRodz => !string.IsNullOrWhiteSpace(wmRodz.RozdzajMiasta))
-                .GroupBy(wmRodz => wmRodz.RozdzajMiasta)
+                .Where(wmRodz => !string.IsNullOrWhiteSpace(wmRodz.RodzajMiasta))
+                .GroupBy(wmRodz => wmRodz.RodzajMiasta)
                 .Select(group => new RodzajMiasta
                 {
                     Kod = group.Key,
