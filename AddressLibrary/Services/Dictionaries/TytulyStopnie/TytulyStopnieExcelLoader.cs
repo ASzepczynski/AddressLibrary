@@ -1,6 +1,7 @@
-using AddressLibrary.Data;
+Ôªøusing AddressLibrary.Data;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
 {
     /// <summary>
-    /// Serwis do ≥adowania s≥ownika TytulyStopnie z pliku Excel do bazy danych
+    /// Serwis do ≈Çadowania s≈Çownika TytulyStopnie z pliku Excel do bazy danych
     /// </summary>
     public class TytulyStopnieExcelLoader
     {
@@ -24,20 +25,20 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
         }
 
         /// <summary>
-        /// £aduje dane z pliku Excel TytulyStopnie.xlsx do tabeli TytulyStopnie
+        /// ≈Åaduje dane z pliku Excel TytulyStopnie.xlsx do tabeli TytulyStopnie
         /// Struktura kolumn:
-        /// A = Nazwa (pe≥na nazwa, np. "genera≥")
-        /// B = Dopelniacz (forma dope≥niacza, np. "genera≥a")
-        /// C = Skrot (skrÛt, np. "gen.")
+        /// A = Nazwa (pe≈Çna nazwa, np. "genera≈Ç")
+        /// B = Dopelniacz (forma dope≈Çniacza, np. "genera≈Ça")
+        /// C = Skrot (skr√≥t, np. "gen.")
         /// </summary>
         public async Task<LoadResult> LoadFromExcelAsync(IProgress<LoadProgress>? progress = null)
         {
             await _logger.InitializeAsync();
 
             var result = new LoadResult();
-            var excelPath = Path.Combine(_appDataPath, "AppData", "Dictionaries", "TytulyStopnie.xlsx");
+            var excelPath = GetExcelFilePath();
 
-            _logger.LogInfo("=== RozpoczÍcie ≥adowania TytulyStopnie ===");
+            _logger.LogInfo("=== Rozpoczƒôcie ≈Çadowania TytulyStopnie ===");
 
             try
             {
@@ -45,7 +46,28 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
             }
             catch (Exception ex)
             {
-                _logger.LogError($"B≥πd podczas dodawania domyúlnego rekordu: {ex.Message}");
+                _logger.LogError($"B≈ÇƒÖd podczas dodawania domy≈õlnego rekordu: {ex.Message}");
+            }
+
+            try
+            {
+                // Usu≈Ñ wszystkie rekordy opr√≥cz Id = -1
+                _logger.LogInfo("Usuwanie istniejƒÖcych rekord√≥w (opr√≥cz Id = -1)...");
+                var deletedCount = await _context.TytulyStopnie
+                    .Where(t => t.Id != -1)
+                    .ExecuteDeleteAsync();
+                _logger.LogInfo($"Usuniƒôto {deletedCount} rekord√≥w");
+
+                progress?.Report(new LoadProgress
+                {
+                    CurrentOperation = $"Usuniƒôto {deletedCount} starych rekord√≥w"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"B≈ÇƒÖd podczas usuwania rekord√≥w: {ex.Message}");
+                result.ErrorMessage = $"B≈ÇƒÖd podczas usuwania rekord√≥w: {ex.Message}";
+                return result;
             }
 
             if (!File.Exists(excelPath))
@@ -60,14 +82,15 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
                 progress?.Report(new LoadProgress { CurrentOperation = "Odczyt pliku Excel..." });
 
                 var tytulyFromExcel = new List<TytulStopien>();
+                int rowNumber = 0;
 
                 using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(excelPath, false))
                 {
                     WorkbookPart? workbookPart = spreadsheet.WorkbookPart;
                     if (workbookPart == null)
                     {
-                        _logger.LogError("Nie moøna otworzyÊ arkusza Excel");
-                        result.ErrorMessage = "Nie moøna otworzyÊ arkusza Excel";
+                        _logger.LogError("Nie mo≈ºna otworzyƒá arkusza Excel");
+                        result.ErrorMessage = "Nie mo≈ºna otworzyƒá arkusza Excel";
                         return result;
                     }
 
@@ -88,9 +111,12 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
 
                     foreach (var row in sheetData.Elements<Row>())
                     {
+                        rowNumber++;
+
                         if (isFirstRow)
                         {
                             isFirstRow = false;
+                            _logger.LogInfo($"Wiersz {rowNumber}: NAG≈Å√ìWEK (pomijam)");
                             continue;
                         }
 
@@ -99,6 +125,9 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
                         var nazwa = cellValues.GetValueOrDefault("A")?.Trim();
                         var dopelniacz = cellValues.GetValueOrDefault("B")?.Trim();
                         var skrot = cellValues.GetValueOrDefault("C")?.Trim();
+
+                        // Logowanie wczytanych warto≈õci
+                        _logger.LogInfo($"Wiersz {rowNumber}: A(Nazwa)='{nazwa}', B(Dopelniacz)='{dopelniacz}', C(Skrot)='{skrot}'");
 
                         if (!string.IsNullOrWhiteSpace(nazwa) && !string.IsNullOrWhiteSpace(skrot) && !string.IsNullOrWhiteSpace(dopelniacz))
                         {
@@ -109,56 +138,41 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
                                 Dopelniacz = dopelniacz
                             });
                         }
+                        else
+                        {
+                            _logger.LogWarning($"Wiersz {rowNumber}: Pominiƒôto - brak wymaganych danych");
+                        }
                     }
                 }
 
                 result.TotalCount = tytulyFromExcel.Count;
-                _logger.LogInfo($"Wczytano {result.TotalCount} wpisÛw z Excel");
+                _logger.LogInfo($"Wczytano {result.TotalCount} wpis√≥w z Excel");
+
+                // Wy≈õwietl wszystkie wczytane rekordy
+                _logger.LogInfo("=== Lista wczytanych tytu≈Ç√≥w ===");
+                foreach (var t in tytulyFromExcel)
+                {
+                    _logger.LogInfo($"  Nazwa='{t.Nazwa}', Dopelniacz='{t.Dopelniacz}', Skrot='{t.Skrot}'");
+                }
 
                 progress?.Report(new LoadProgress
                 {
-                    CurrentOperation = $"Aktualizacja bazy danych ({result.TotalCount} wpisÛw)...",
+                    CurrentOperation = $"Dodawanie do bazy danych ({result.TotalCount} wpis√≥w)...",
                     TotalCount = result.TotalCount
                 });
 
-                // Aktualizuj bazÍ danych - UPSERT
-                foreach (var tytul in tytulyFromExcel)
-                {
-                    var existing = await _context.TytulyStopnie
-                        .FirstOrDefaultAsync(t => t.Nazwa == tytul.Nazwa);
-
-                    if (existing != null)
-                    {
-                        existing.Skrot = tytul.Skrot;
-                        existing.Dopelniacz = tytul.Dopelniacz;
-                        result.UpdatedCount++;
-                    }
-                    else
-                    {
-                        await _context.TytulyStopnie.AddAsync(tytul);
-                        result.InsertedCount++;
-                    }
-
-                    result.ProcessedCount++;
-
-                    if (result.ProcessedCount % 10 == 0 || result.ProcessedCount == result.TotalCount)
-                    {
-                        progress?.Report(new LoadProgress
-                        {
-                            CurrentOperation = $"Przetworzono: {result.ProcessedCount}/{result.TotalCount}",
-                            TotalCount = result.TotalCount,
-                            ProcessedCount = result.ProcessedCount
-                        });
-                    }
-                }
-
+                // Dodaj nowe rekordy do bazy
+                await _context.TytulyStopnie.AddRangeAsync(tytulyFromExcel);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInfo($"ZakoÒczono: Dodano: {result.InsertedCount}, Zaktualizowano: {result.UpdatedCount}");
+                result.InsertedCount = tytulyFromExcel.Count;
+                result.ProcessedCount = tytulyFromExcel.Count;
+
+                _logger.LogInfo($"Zako≈Ñczono: Dodano: {result.InsertedCount} nowych rekord√≥w");
 
                 progress?.Report(new LoadProgress
                 {
-                    CurrentOperation = "ZakoÒczono",
+                    CurrentOperation = "Zako≈Ñczono",
                     TotalCount = result.TotalCount,
                     ProcessedCount = result.ProcessedCount,
                     IsCompleted = true
@@ -168,7 +182,8 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
             }
             catch (Exception ex)
             {
-                _logger.LogError($"B≥πd: {ex.Message}");
+                _logger.LogError($"B≈ÇƒÖd: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
                 result.ErrorMessage = ex.Message;
                 return result;
             }
@@ -176,40 +191,7 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
 
         private async Task EnsureDefaultRecordExistsAsync()
         {
-            var defaultRecord = await _context.TytulyStopnie
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == -1);
-
-            if (defaultRecord == null)
-            {
-                _logger.LogInfo("Dodawanie domyúlnego rekordu z ID = -1");
-
-                try
-                {
-                    await _context.Database.ExecuteSqlRawAsync(@"
-                        SET IDENTITY_INSERT TytulyStopnie ON;
-                        
-                        IF NOT EXISTS (SELECT 1 FROM TytulyStopnie WHERE Id = -1)
-                        BEGIN
-                            INSERT INTO TytulyStopnie (Id, Nazwa, Skrot, Dopelniacz) 
-                            VALUES (-1, 'brak', '', 'braku');
-                        END
-                        
-                        SET IDENTITY_INSERT TytulyStopnie OFF;
-                    ");
-
-                    _logger.LogInfo("Dodano domyúlny rekord z ID = -1");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"B≥πd podczas dodawania rekordu: {ex.Message}");
-                    throw;
-                }
-            }
-            else
-            {
-                _logger.LogInfo("Domyúlny rekord z ID = -1 juø istnieje");
-            }
+            await DefaultRecordHelper.EnsureTytulStopienDefaultAsync(_context, _logger);
         }
 
         private static Dictionary<string, string> GetRowCellsDictionary(Row row, string[] sharedStrings)
@@ -256,6 +238,18 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
             }
 
             return value;
+        }
+
+        /// <summary>
+        /// Znajduje ≈õcie≈ºkƒô do pliku Excel w AddressLibrary/AppData/Dictionaries/
+        /// </summary>
+        private string GetExcelFilePath()
+        {
+            var projectRoot = Helpers.Configuration.GetAddressLibraryFilePath();
+            // ≈öcie≈ºka do pliku Excel w AddressLibrary/AppData/Dictionaries/
+            var excelPath = Path.Combine(projectRoot, "AppData", "Dictionaries", "TytulyStopnie.xlsx");
+
+            return excelPath;
         }
     }
 }

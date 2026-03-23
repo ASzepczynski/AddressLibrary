@@ -55,6 +55,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
             var typyUlicDict = await _typyUlicService.GetTypyUlicMappingAsync();
             _logger.LogInfo($"Załadowano {typyUlicDict.Count} wpisów z tabeli TypyUlic");
 
+            // ✅ DODANO: Zainicjalizuj słownik tytułów/stopni PRZED użyciem
+            _logger.LogInfo("Wczytywanie słownika TytulyStopnie...");
+            await _tytulyService.GetSkrotToIdMappingAsync();
+            await _tytulyService.GetDopelniaczToIdMappingAsync();
+            _logger.LogInfo("Słownik TytulyStopnie został zainicjalizowany");
+
             int przetworzono = 0;
             int brakujacych = 0;
             int cityWithRightsProcessed = 0;
@@ -220,7 +226,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     ulica.Cecha = terytUlicPoprawka.Cecha;
 
                     // ✅ Użyj serwisu do mapowania tytułu
-                    int tytulStopienId = _tytulyService.MapSkrotToId(terytUlicPoprawka.Tytul);
+                    int tytulStopienId = _tytulyService.MapDopelniaczToId(terytUlicPoprawka.Tytul);
 
                     // ✅ Użyj serwisu do znalezienia TypUlicyId
                     var typUlicyId = await _typyUlicService.FindTypUlicyIdAsync(

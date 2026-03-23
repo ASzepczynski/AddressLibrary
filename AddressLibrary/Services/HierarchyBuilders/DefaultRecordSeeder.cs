@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 
 using AddressLibrary.Data;
+using AddressLibrary.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.HierarchyBuilders
@@ -19,169 +20,16 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
         public async Task SeedDefaultRecordsAsync()
         {
-            await SeedRodzajGminyAsync();
-            await SeedRodzajMiastaAsync();
-
-
-            await SeedWojewodztwoAsync();
-            await SeedPowiatAsync();
-            await SeedGminaAsync();
-
-            await SeedCechaUlicyAsync();
-            await SeedTytulStopienAsync();
-
-            await SeedTypUlicyAsync();
-            await SeedUlicaAsync();
-            await SeedKodPocztowyAsync();
-        }
-
-        private async Task SeedWojewodztwoAsync()
-        {
-            if (!await _context.Wojewodztwa.AnyAsync(w => w.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT Wojewodztwa ON;
-                    INSERT INTO Wojewodztwa (Id, Kod, Nazwa) VALUES (-1, '00', 'Brak');
-                    SET IDENTITY_INSERT Wojewodztwa OFF;
-                    DBCC CHECKIDENT ('Wojewodztwa', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedPowiatAsync()
-        {
-            if (!await _context.Powiaty.AnyAsync(p => p.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT Powiaty ON;
-                    INSERT INTO Powiaty (Id, Kod, Nazwa, WojewodztwoId) VALUES (-1, '0000', 'Brak', -1);
-                    SET IDENTITY_INSERT Powiaty OFF;
-                    DBCC CHECKIDENT ('Powiaty', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedRodzajGminyAsync()
-        {
-            if (!await _context.RodzajeGmin.AnyAsync(rg => rg.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT RodzajeGmin ON;
-                    INSERT INTO RodzajeGmin (Id, Kod, Nazwa) VALUES (-1, '0', 'Brak');
-                    SET IDENTITY_INSERT RodzajeGmin OFF;
-                    DBCC CHECKIDENT ('RodzajeGmin', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedGminaAsync()
-        {
-            if (!await _context.Gminy.AnyAsync(g => g.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT Gminy ON;
-                    INSERT INTO Gminy (Id, Kod, Nazwa, PowiatId, RodzajGminyId) VALUES (-1, '000000', 'Brak', -1, -1);
-                    SET IDENTITY_INSERT Gminy OFF;
-                    DBCC CHECKIDENT ('Gminy', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedRodzajMiastaAsync()
-        {
-            if (!await _context.RodzajeMiast.AnyAsync(rm => rm.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT RodzajeMiast ON;
-                    INSERT INTO RodzajeMiast (Id, Kod, Nazwa) VALUES (-1, '--', 'Brak');
-                    SET IDENTITY_INSERT RodzajeMiast OFF;
-                    DBCC CHECKIDENT ('RodzajeMiast', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedMiastoAsync()
-        {
-            if (!await _context.Miasta.AnyAsync(m => m.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT Miasta ON;
-                    INSERT INTO Miasta (Id, Symbol, Nazwa, GminaId, RodzajMiastaId) 
-                    VALUES (-1, '0000000', 'Brak', -1, -1);
-                    SET IDENTITY_INSERT Miasta OFF;
-                    DBCC CHECKIDENT ('Miasta', RESEED, 0);
-                ");
-            }
-        }
-        private async Task SeedTypUlicyAsync()
-        {
-            // Najpierw upewnij siê, ¿e istnieje domyœlny TypUlicy z Id = -1
-            if (!await _context.TypyUlic.AnyAsync(t => t.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                        SET IDENTITY_INSERT TypyUlic ON;
-                        INSERT INTO TypyUlic (Id, Nazwisko,TytulStopienId) 
-                        VALUES (-1, 'Brak',-1);
-                        SET IDENTITY_INSERT TypyUlic OFF;
-                    ");
-            }
-        }
-
-        private async Task SeedUlicaAsync()
-        {
-            if (!await _context.Ulice.AnyAsync(u => u.Id == -1))
-            {
-                // Dodaj domyœln¹ ulicê (bez Nazwa1 i Nazwa2 - s¹ to computed properties)
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT Ulice ON;
-                    INSERT INTO Ulice (Id, Symbol, Cecha, TypUlicyId, MiastoId) 
-                    VALUES (-1, '00000', '', -1, -1);
-                    SET IDENTITY_INSERT Ulice OFF;
-                    DBCC CHECKIDENT ('Ulice', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedKodPocztowyAsync()
-        {
-            if (!await _context.KodyPocztowe.AnyAsync(k => k.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT KodyPocztowe ON;
-                    INSERT INTO KodyPocztowe (Id, Kod, Numery, MiastoId, UlicaId) 
-                    VALUES (-1, '00-000', '', -1, -1);
-                    SET IDENTITY_INSERT KodyPocztowe OFF;
-                    DBCC CHECKIDENT ('KodyPocztowe', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedCechaUlicyAsync()
-        {
-            if (!await _context.CechyUlic.AnyAsync(c => c.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT CechyUlic ON;
-                    INSERT INTO CechyUlic (Id, Nazwa, Skrot) 
-                    VALUES (-1, '-', '-');
-                    SET IDENTITY_INSERT CechyUlic OFF;
-                    DBCC CHECKIDENT ('CechyUlic', RESEED, 0);
-                ");
-            }
-        }
-
-        private async Task SeedTytulStopienAsync()
-        {
-            if (!await _context.TytulyStopnie.AnyAsync(t => t.Id == -1))
-            {
-                await _context.Database.ExecuteSqlRawAsync(@"
-                    SET IDENTITY_INSERT TytulyStopnie ON;
-                    INSERT INTO TytulyStopnie (Id, Nazwa, Skrot, Dopelniacz) 
-                    VALUES (-1, '-', '-', '-');
-                    SET IDENTITY_INSERT TytulyStopnie OFF;
-                    DBCC CHECKIDENT ('TytulyStopnie', RESEED, 0);
-                ");
-            }
+            await DefaultRecordHelper.EnsureRodzajGminyDefaultAsync(_context);
+            await DefaultRecordHelper.EnsureRodzajMiastaDefaultAsync(_context);
+            await DefaultRecordHelper.EnsureCechaUlicyDefaultAsync(_context);
+            await DefaultRecordHelper.EnsureTytulStopienDefaultAsync(_context);
+            await DefaultRecordHelper.EnsureTypUlicyDefaultAsync(_context);
+            await DefaultRecordHelper.EnsureWojewodztwoDefaultAsync(_context);
+            await DefaultRecordHelper.EnsurePowiatDefaultAsync(_context);
+            await DefaultRecordHelper.EnsureGminaDefaultAsync(_context);
+            await DefaultRecordHelper.EnsureMiastoDefaultAsync(_context);
+            // ... pozosta³e
         }
     }
 }

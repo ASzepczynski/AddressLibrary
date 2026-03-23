@@ -14,6 +14,7 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
         private Dictionary<string, TytulStopien>? _nazwaDict;
         private Dictionary<string, TytulStopien>? _skrotDict;
         private Dictionary<string, int>? _skrotToIdDict;
+        private Dictionary<string, int>? _dopelniaczToIdDict;
         private List<TytulStopien>? _allTytuly;
 
         public TytulyStopnieDictionary(AddressDbContext context)
@@ -127,6 +128,57 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
         }
 
         /// <summary>
+        /// Pobiera s³ownik Dopelniacz -> Id z wariantami (obs³uguje duplikaty)
+        /// </summary>
+        public async Task<Dictionary<string, int>> GetDopelniaczToIdMappingAsync()
+        {
+            if (_dopelniaczToIdDict != null)
+                return _dopelniaczToIdDict;
+
+            var tytulyList = await GetAllAsync();
+
+            // Obs³u¿ duplikaty - weŸ pierwszy wpis dla ka¿dego unikalnego Dopelniacz
+            var baseDict = tytulyList
+                .Where(t => !string.IsNullOrWhiteSpace(t.Dopelniacz))
+                .GroupBy(t => t.Dopelniacz.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.First().Id,
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+            // Dodaj warianty
+            var variants = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in baseDict)
+            {
+                var dopelniacz = kvp.Key;
+                var id = kvp.Value;
+
+                // Dodaj orygina³
+                variants[dopelniacz] = id;
+
+                // Dodaj warianty
+                var variantKeys = new[]
+                {
+                    dopelniacz.ToLower(),
+                    dopelniacz.Replace(" ", ""),
+                    dopelniacz.Replace(" ", "").ToLower(),
+                };
+
+                foreach (var variant in variantKeys)
+                {
+                    if (!string.IsNullOrEmpty(variant) && !variants.ContainsKey(variant))
+                    {
+                        variants[variant] = id;
+                    }
+                }
+            }
+
+            _dopelniaczToIdDict = variants;
+            return _dopelniaczToIdDict;
+        }
+
+        /// <summary>
         /// Mapuje skrót tytu³u na Id (wersja synchroniczna, wymaga wczeœniejszego za³adowania)
         /// </summary>
         public int MapSkrotToId(string? tytul)
@@ -157,12 +209,46 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
         }
 
         /// <summary>
+        /// Mapuje dope³niacz tytu³u na Id (wersja synchroniczna, wymaga wczeœniejszego za³adowania)
+        /// </summary>
+        public int MapDopelniaczToId(string? dopelniacz)
+        {
+            if (string.IsNullOrWhiteSpace(dopelniacz))
+                return -1;
+
+            if (_dopelniaczToIdDict == null)
+                throw new InvalidOperationException("S³ownik nie zosta³ za³adowany. Wywo³aj najpierw GetDopelniaczToIdMappingAsync()");
+
+            if (_dopelniaczToIdDict.TryGetValue(dopelniacz.Trim(), out int id))
+                return id;
+
+            // Podziel na czêœci dla z³o¿onych tytu³ów
+            var parts = dopelniacz.Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                if (_dopelniaczToIdDict.TryGetValue(part.Trim(), out id))
+                    return id;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Mapuje skrót tytu³u na Id (wersja asynchroniczna)
         /// </summary>
         public async Task<int> MapSkrotToIdAsync(string? tytul)
         {
             await GetSkrotToIdMappingAsync();
             return MapSkrotToId(tytul);
+        }
+
+        /// <summary>
+        /// Mapuje dope³niacz tytu³u na Id (wersja asynchroniczna)
+        /// </summary>
+        public async Task<int> MapDopelniaczToIdAsync(string? dopelniacz)
+        {
+            await GetDopelniaczToIdMappingAsync();
+            return MapDopelniaczToId(dopelniacz);
         }
 
         /// <summary>
@@ -185,6 +271,7 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
             _nazwaDict = null;
             _skrotDict = null;
             _skrotToIdDict = null;
+            _dopelniaczToIdDict = null;
             _allTytuly = null;
         }
     }

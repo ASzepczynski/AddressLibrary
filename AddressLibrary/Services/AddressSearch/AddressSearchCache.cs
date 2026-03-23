@@ -62,9 +62,11 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(m => TextNormalizer.Normalize(m.Nazwa))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Załaduj wszystkie ulice i stwórz cached wersje
+            // ✅ POPRAWKA: Załaduj TypUlicy z TytulStopien dla computed properties Nazwa1/Nazwa2
             var ulice = await _context.Ulice
                 .Include(u => u.Miasto)
+                .Include(u => u.TypUlicy)
+                    .ThenInclude(t => t.TytulStopien)
                 .Where(u => u.Id != -1)
                 .ToListAsync();
 
@@ -98,85 +100,78 @@ namespace AddressLibrary.Services.AddressSearch
             var kodyPocztowe = await _context.KodyPocztowe
                 .Include(k => k.Miasto)
                 .Include(k => k.Ulica)
-                .Where(k => k.Id != -1)
                 .ToListAsync();
 
-            // Słownik: miasto ID -> lista kodów pocztowych
+            // Słownik: miasto ID -> kody pocztowe dla tego miasta (bez ulicy)
             _kodyPocztoweMiastDict = kodyPocztowe
+                .Where(k => k.UlicaId == null || k.UlicaId == -1)
                 .GroupBy(k => k.MiastoId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Słownik: ulica ID -> lista kodów pocztowych
+            // Słownik: ulica ID -> kody pocztowe dla tej ulicy
             _kodyPocztoweUlicDict = kodyPocztowe
-                .Where(k => k.UlicaId > 0)
+                .Where(k => k.UlicaId != -1)
                 .GroupBy(k => k.UlicaId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // ✅ NOWE: Załaduj ulice osobowe z Excela
+            // Załaduj ulice osobowe
             _personalStreets = LoadPersonalStreets();
 
             _isInitialized = true;
         }
 
         /// <summary>
-        /// Ładuje listę ulic osobowych z pliku Excel
+        /// Załaduj ulice osobowe z pliku Excel (zachowaj oryginalną nazwę)
         /// </summary>
         private HashSet<string> LoadPersonalStreets()
         {
             var personalStreets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            
-            // ✅ POPRAWKA: Dodaj folder "AppData" do ścieżki (tak jak w StreetNamePersonalConverter)
+
             var excelPath = Path.Combine(_appDataPath, "AppData", "Updates", "UliceOsobowe.xlsx");
 
             if (!File.Exists(excelPath))
             {
-                // Jeśli plik nie istnieje, zwróć pusty zbiór
+                Console.WriteLine($"⚠️ Plik {excelPath} nie istnieje");
                 return personalStreets;
             }
 
             try
             {
-                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(excelPath, false))
+                using (var spreadsheet = SpreadsheetDocument.Open(excelPath, false))
                 {
-                    WorkbookPart? workbookPart = spreadsheet.WorkbookPart;
+                    var workbookPart = spreadsheet.WorkbookPart;
                     if (workbookPart == null)
                         return personalStreets;
 
-                    WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
-                    SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
+                    var worksheetPart = workbookPart.WorksheetParts.First();
+                    var sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
 
-                    foreach (var row in sheetData.Elements<Row>().Skip(1)) // Pomiń nagłówek
+                    foreach (var row in sheetData.Elements<Row>().Skip(1))
                     {
                         var cells = row.Elements<Cell>().ToList();
-                        
-                        // ✅ Czytaj z kolumny "original" (cells[4]), nie cells[0]
-                        // Struktura: cells[0]=stara_cecha, cells[1]=nowa_cecha, cells[2]=nazwa1, cells[3]=nazwa2, cells[4]=original
+
                         if (cells.Count >= 5)
                         {
                             string? streetName = GetCellValue(workbookPart, cells[4]);
                             if (!string.IsNullOrWhiteSpace(streetName))
                             {
-                                // Normalizuj i dodaj do zbioru
                                 var normalized = TextNormalizer.Normalize(streetName);
                                 personalStreets.Add(normalized);
                             }
                         }
                     }
                 }
+
+                Console.WriteLine($"✓ Załadowano {personalStreets.Count} ulic osobowych z {excelPath}");
             }
             catch (Exception ex)
             {
-                // ✅ POPRAWKA: Loguj wyjątek zamiast go "połykać"
-                Console.WriteLine($"⚠️ Błąd ładowania ulic osobowych z {excelPath}: {ex.Message}");
-                // W przypadku błędu zwróć pusty zbiór
+                Console.WriteLine($"⚠️ Błąd ładowania ulic osobowych: {ex.Message}");
             }
 
             return personalStreets;
         }
 
-        /// <summary>
-        /// Pobiera wartość z komórki Excel
-        /// </summary>
         private static string GetCellValue(WorkbookPart workbookPart, Cell cell)
         {
             if (cell.CellValue == null)
@@ -186,7 +181,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
             {
-                SharedStringTablePart? stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+                var stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
                 if (stringTable != null)
                 {
                     return stringTable.SharedStringTable.ElementAt(int.Parse(value)).InnerText;

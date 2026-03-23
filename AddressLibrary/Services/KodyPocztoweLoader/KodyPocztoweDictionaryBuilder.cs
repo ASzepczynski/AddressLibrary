@@ -43,11 +43,9 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, Miasto>>> BuildMiastaDictionaryAsync()
         {
-            // var miastaList = await _context.Miasta.ToListAsync();
             var miastaList = await _context.Miasta
-        .Include(m => m.RodzajMiasta) // <-- to jest kluczowe!
-        .ToListAsync();
-
+                .Include(m => m.RodzajMiasta)
+                .ToListAsync();
 
             return miastaList
                 .GroupBy(m => m.GminaId)
@@ -69,13 +67,15 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         /// ⚠️ WYJĄTEK: 
         /// NIE dodawaj klucza tylko Nazwa1, aby uniknąć kolizji z krótszymi nazwami.
         /// 
-        /// ✅ EAGER LOADING: Ładuje relację KodyPocztowe dla rozstrzygania niejednoznaczności
+        /// ✅ EAGER LOADING: Ładuje relację KodyPocztowe, TypUlicy i TytulStopien
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, List<Ulica>>>> BuildUliceDictionaryAsync()
         {
-            // ✅ POPRAWKA: Dodano .Include(u => u.KodyPocztowe)
+            // ✅ POPRAWKA: Dodano .Include(u => u.TypUlicy).ThenInclude(t => t.TytulStopien)
             var uliceAllList = await _context.Ulice
                 .Include(u => u.KodyPocztowe)
+                .Include(u => u.TypUlicy)
+                    .ThenInclude(t => t.TytulStopien)
                 .ToListAsync();
 
             var uliceDict = new Dictionary<int, Dictionary<string, List<Ulica>>>();
@@ -96,22 +96,28 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 if (!hasSpecialPrefix)
                 {
                     var nazwa1Lower = ulica.Nazwa1.ToLowerInvariant();
-                    if (!ulice.ContainsKey(nazwa1Lower))
+                    if (!string.IsNullOrWhiteSpace(nazwa1Lower))
                     {
-                        ulice[nazwa1Lower] = new List<Ulica>();
+                        if (!ulice.ContainsKey(nazwa1Lower))
+                        {
+                            ulice[nazwa1Lower] = new List<Ulica>();
+                        }
+                        ulice[nazwa1Lower].Add(ulica);
                     }
-                    ulice[nazwa1Lower].Add(ulica);
                 }
 
                 // KROK 2: Jeśli Nazwa2 istnieje, dodaj także klucz "Nazwa2 Nazwa1"
                 if (!string.IsNullOrWhiteSpace(ulica.Nazwa2))
                 {
                     var nazwa2Plus1 = $"{ulica.Nazwa2} {ulica.Nazwa1}".ToLowerInvariant();
-                    if (!ulice.ContainsKey(nazwa2Plus1))
+                    if (!string.IsNullOrWhiteSpace(nazwa2Plus1))
                     {
-                        ulice[nazwa2Plus1] = new List<Ulica>();
+                        if (!ulice.ContainsKey(nazwa2Plus1))
+                        {
+                            ulice[nazwa2Plus1] = new List<Ulica>();
+                        }
+                        ulice[nazwa2Plus1].Add(ulica);
                     }
-                    ulice[nazwa2Plus1].Add(ulica);
                 }
             }
 

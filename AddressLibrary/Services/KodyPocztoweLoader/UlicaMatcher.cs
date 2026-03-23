@@ -15,7 +15,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
     {
         private readonly Dictionary<int, Dictionary<string, List<Ulica>>> _uliceDict;
         private readonly Dictionary<int, List<UlicaCached>> _uliceCachedDict;
-        private readonly StreetMatcher _streetMatcher; // ✅ Używaj StreetMatcher
+        private readonly StreetMatcher _streetMatcher;
         public readonly PostalCodesLogger _PostalCodesLogger;
         private readonly PostalCodesLogger _fuzzyLogger;
         private readonly PostalCodesLogger _errorLogger;
@@ -28,7 +28,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             PostalCodesLogger PostalCodesLogger,
             PostalCodesLogger fuzzyLogger,
             PostalCodesLogger errorLogger,
-            HashSet<string> personalStreets) // ✅ NOWY parametr
+            HashSet<string> personalStreets)
         {
             _uliceDict = uliceDict;
             _PostalCodesLogger = PostalCodesLogger;
@@ -38,12 +38,12 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             // Konwertuj na UlicaCached
             _uliceCachedDict = ConvertToUlicaCachedDict(uliceDict);
             
-            // ✅ Inicjalizuj StreetMatcher
+            // Inicjalizuj StreetMatcher
             _streetMatcher = new StreetMatcher(personalStreets);
         }
 
         /// <summary>
-        /// ✅ NOWE: Konwertuje słownik Ulica na słownik UlicaCached
+        /// Konwertuje słownik Ulica na słownik UlicaCached
         /// </summary>
         private Dictionary<int, List<UlicaCached>> ConvertToUlicaCachedDict(
             Dictionary<int, Dictionary<string, List<Ulica>>> uliceDict)
@@ -86,7 +86,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         }
 
         /// <summary>
-        /// ✅ PRZEPISANE: Używa StreetMatcher.FindStreet zamiast własnej logiki
+        /// Używa StreetMatcher.FindStreet do wyszukiwania ulic
         /// </summary>
         public (Ulica? ulica, string ulicaNazwa) Match(
             string kodPocztowy,
@@ -121,7 +121,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 return (null, currentUlica);
             }
 
-            // ✅ NOWE: Filtruj po dzielnicy (jeśli podana)
+            // Filtruj po dzielnicy (jeśli podana)
             var filteredUlice = string.IsNullOrEmpty(currentDzielnica)
                 ? uliceCachedList
                 : uliceCachedList.Where(u => u.Dzielnica == currentDzielnica).ToList();
@@ -131,7 +131,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 return (null, currentUlica);
             }
 
-            // ✅ NOWE: Deleguj wyszukiwanie do StreetMatcher.FindStreet
+            // Deleguj wyszukiwanie do StreetMatcher.FindStreet
             var ulicaCached = _streetMatcher.FindStreet(filteredUlice, currentUlica);
 
             if (ulicaCached == null)
@@ -139,7 +139,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 return (null, currentUlica);
             }
 
-            // ✅ Konwertuj UlicaCached z powrotem na Ulica
+            // Konwertuj UlicaCached z powrotem na Ulica
             var ulica = new Ulica
             {
                 Id = ulicaCached.Id,
@@ -149,15 +149,19 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 Dzielnica = ulicaCached.Dzielnica
             };
 
-            // ✅ Sprawdź czy to było fuzzy matching
+            // Sprawdź czy to było fuzzy matching
             var normalizedSearch = TextNormalizer.Normalize(currentUlica);
             var wasExactMatch = ulicaCached.NormalizedNazwa1 == normalizedSearch ||
                                (ulicaCached.NormalizedCombined != null && ulicaCached.NormalizedCombined == normalizedSearch);
 
             if (!wasExactMatch)
             {
-                // To było fuzzy matching - zaloguj
-                var fuzzyMessage = $"[UlicaMatcher] ✓ FUZZY: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{UliceUtils.GetPelnaNazwaZPrefiksem(ulica)}'";
+                // ✅ POPRAWKA: Użyj ulicaCached.Cecha, Nazwa1, Nazwa2 zamiast computed properties z ulica
+                var pelnaNazwa = string.IsNullOrEmpty(ulicaCached.Cecha)
+                    ? $"{ulicaCached.Nazwa1}{(string.IsNullOrEmpty(ulicaCached.Nazwa2) ? "" : $" ({ulicaCached.Nazwa2})")}"
+                    : $"{ulicaCached.Cecha} {ulicaCached.Nazwa1}{(string.IsNullOrEmpty(ulicaCached.Nazwa2) ? "" : $" ({ulicaCached.Nazwa2})")}_";
+
+                var fuzzyMessage = $"[UlicaMatcher] ✓ FUZZY: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{pelnaNazwa}'";
                 
                 _PostalCodesLogger.LogInfo(fuzzyMessage);
                 _fuzzyLogger.LogInfo(fuzzyMessage);

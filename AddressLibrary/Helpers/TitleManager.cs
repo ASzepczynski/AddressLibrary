@@ -211,22 +211,5 @@ namespace AddressLibrary.Helpers
             return null;
         }
     }
-
-    /// <summary>
-    /// Definicja tytułu - NIE UŻYWANE, zachowane dla kompatybilności wstecznej
-    /// </summary>
-    [Obsolete("Używaj modelu TytulStopien z bazy danych")]
-    internal class TitleDefinition
-    {
-        public string Skrot { get; }
-        public string Nazwa { get; }
-        public string[] Synonimy { get; }
-
-        public TitleDefinition(string skrot, string nazwa, params string[] synonimy)
-        {
-            Skrot = skrot;
-            Nazwa = nazwa;
-            Synonimy = synonimy;
-        }
-    }
+   
 }

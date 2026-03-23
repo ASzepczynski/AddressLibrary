@@ -84,7 +84,8 @@ namespace AddressLibrary.Services
             // ✅ KROK 3: Załaduj słownik tytułów do pamięci i zainicjalizuj TitleManager
             _logger.LogInfo("KROK 3: Inicjalizacja słownika tytułów w pamięci...");
             await _tytulyDict.GetSkrotToIdMappingAsync();
-            
+            await _tytulyDict.GetDopelniaczToIdMappingAsync();
+
             if (!TitleManager.IsInitialized)
             {
                 var tytuly = await _tytulyDict.GetAllAsync();
@@ -93,27 +94,27 @@ namespace AddressLibrary.Services
             }
 
             // ✅ KROK 4: Wczytaj słownik TypyUlic z Excel
-            _logger.LogInfo("KROK 4: Ładowanie słownika TypyUlic z Excel...");
+            _logger.LogInfo("KROK 4: Ładowanie słownika TerytUlicPoprawki z Excel...");
             progress?.Report(new ValidatorProgress
             {
-                CurrentOperation = "Ładowanie słownika TypyUlic z Excel..."
+                CurrentOperation = "Ładowanie słownika TypyUlicPoprawki z Excel..."
             });
 
             var dictionary = TerytUlicPoprawkiDictionary.Load(_appDataPath, _logger);
 
             if (dictionary.Count == 0)
             {
-                _logger.LogError("Słownik TypyUlic jest pusty - przerywam ładowanie");
+                _logger.LogError("Słownik TerytUlicPoprawki jest pusty - przerywam ładowanie");
                 return result;
             }
 
-            _logger.LogInfo($"✓ Załadowano {dictionary.Count} wpisów ze słownika TypyUlic");
+            _logger.LogInfo($"✓ Załadowano {dictionary.Count} wpisów ze słownika TerytUlicPoprawki");
 
             // ✅ KROK 5: Pobierz dane z TerytUlic
-            _logger.LogInfo("KROK 5: Pobieranie danych z TerytUlic...");
+            _logger.LogInfo("KROK 5: Pobieranie danych z TerytUlic ...");
             progress?.Report(new ValidatorProgress
             {
-                CurrentOperation = "Pobieranie danych z TerytUlic..."
+                CurrentOperation = "Pobieranie danych z TerytUlic ..."
             });
 
             var terytUlice = await _context.TerytUlic
@@ -210,7 +211,7 @@ namespace AddressLibrary.Services
                 foreach (var item in uliceList)
                 {
                     // ✅ Użyj słownika do mapowania tytułu
-                    int tytulStopienId = _tytulyDict.MapSkrotToId(item.Tytul);
+                    int tytulStopienId = _tytulyDict.MapDopelniaczToId(item.Tytul);
                     
                     var typUlicy = new TypUlicy
                     {

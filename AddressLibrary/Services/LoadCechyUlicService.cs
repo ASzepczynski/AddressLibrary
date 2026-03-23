@@ -1,4 +1,5 @@
 using AddressLibrary.Data;
+using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using DocumentFormat.OpenXml.Packaging;
@@ -41,12 +42,33 @@ namespace AddressLibrary.Services
             try
             {
                 // Upewnij siê, ¿e rekord z ID = -1 istnieje
-                await EnsureDefaultRecordExistsAsync();
+                await DefaultRecordHelper.EnsureCechaUlicyDefaultAsync(_context, _logger);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"B³¹d podczas dodawania domyœlnego rekordu: {ex.Message}");
                 // Kontynuuj mimo b³êdu - mo¿e rekord ju¿ istnieje
+            }
+
+            try
+            {
+                // Usuñ wszystkie rekordy oprócz Id = -1
+                _logger.LogInfo("Usuwanie istniej¹cych rekordów (oprócz Id = -1)...");
+                var deletedCount = await _context.CechyUlic
+                    .Where(c => c.Id != -1)
+                    .ExecuteDeleteAsync();
+                _logger.LogInfo($"Usuniêto {deletedCount} rekordów");
+
+                progress?.Report(new LoadProgress
+                {
+                    CurrentOperation = $"Usuniêto {deletedCount} starych rekordów"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"B³¹d podczas usuwania rekordów: {ex.Message}");
+                result.ErrorMessage = $"B³¹d podczas usuwania rekordów: {ex.Message}";
+                return result;
             }
 
             if (!File.Exists(excelPath))
@@ -118,45 +140,18 @@ namespace AddressLibrary.Services
 
                 progress?.Report(new LoadProgress
                 {
-                    CurrentOperation = $"Aktualizacja bazy danych ({result.TotalCount} wpisów)...",
+                    CurrentOperation = $"Dodawanie do bazy danych ({result.TotalCount} wpisów)...",
                     TotalCount = result.TotalCount
                 });
 
-                // Aktualizuj bazê danych - UPSERT
-                foreach (var cecha in cechyFromExcel)
-                {
-                    var existing = await _context.CechyUlic
-                        .FirstOrDefaultAsync(c => c.Nazwa == cecha.Nazwa);
-
-                    if (existing != null)
-                    {
-                        // UPDATE
-                        existing.Skrot = cecha.Skrot;
-                        result.UpdatedCount++;
-                    }
-                    else
-                    {
-                        // INSERT
-                        await _context.CechyUlic.AddAsync(cecha);
-                        result.InsertedCount++;
-                    }
-
-                    result.ProcessedCount++;
-
-                    if (result.ProcessedCount % 10 == 0 || result.ProcessedCount == result.TotalCount)
-                    {
-                        progress?.Report(new LoadProgress
-                        {
-                            CurrentOperation = $"Przetworzono: {result.ProcessedCount}/{result.TotalCount}",
-                            TotalCount = result.TotalCount,
-                            ProcessedCount = result.ProcessedCount
-                        });
-                    }
-                }
-
+                // Dodaj nowe rekordy do bazy
+                await _context.CechyUlic.AddRangeAsync(cechyFromExcel);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInfo($"Zakoñczono: Dodano: {result.InsertedCount}, Zaktualizowano: {result.UpdatedCount}");
+                result.InsertedCount = cechyFromExcel.Count;
+                result.ProcessedCount = cechyFromExcel.Count;
+
+                _logger.LogInfo($"Zakoñczono: Dodano: {result.InsertedCount} nowych rekordów");
 
                 progress?.Report(new LoadProgress
                 {
@@ -173,48 +168,6 @@ namespace AddressLibrary.Services
                 _logger.LogError($"B³¹d: {ex.Message}");
                 result.ErrorMessage = ex.Message;
                 return result;
-            }
-        }
-
-        /// <summary>
-        /// Zapewnia istnienie domyœlnego rekordu z ID = -1 (brak cechy)
-        /// </summary>
-        private async Task EnsureDefaultRecordExistsAsync()
-        {
-            var defaultRecord = await _context.CechyUlic
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == -1);
-
-            if (defaultRecord == null)
-            {
-                _logger.LogInfo("Dodawanie domyœlnego rekordu z ID = -1");
-
-                try
-                {
-                    // Wykonaj wszystko jako jedn¹ transakcjê SQL
-                    await _context.Database.ExecuteSqlRawAsync(@"
-                        SET IDENTITY_INSERT CechyUlic ON;
-                        
-                        IF NOT EXISTS (SELECT 1 FROM CechyUlic WHERE Id = -1)
-                        BEGIN
-                            INSERT INTO CechyUlic (Id, Nazwa, Skrot) 
-                            VALUES (-1, 'brak', '');
-                        END
-                        
-                        SET IDENTITY_INSERT CechyUlic OFF;
-                    ");
-
-                    _logger.LogInfo("Dodano domyœlny rekord z ID = -1");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"B³¹d podczas dodawania rekordu: {ex.Message}");
-                    throw;
-                }
-            }
-            else
-            {
-                _logger.LogInfo("Domyœlny rekord z ID = -1 ju¿ istnieje");
             }
         }
 
