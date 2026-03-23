@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    [Migration("20260319135745_initial")]
-    partial class initial
+    [Migration("20260323155414_kodsymbol")]
+    partial class kodsymbol
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -157,12 +157,6 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Numery")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
-                        .UseCollation("Polish_CS_AS");
-
-                    b.Property<string>("Poczta")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("UlicaId")
@@ -632,17 +626,10 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
-                    b.Property<string>("TerytUlicSymbol")
-                        .HasColumnType("nvarchar(450)")
-                        .UseCollation("Polish_CS_AS");
-
                     b.Property<int>("TytulStopienId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TerytUlicSymbol")
-                        .HasDatabaseName("IX_TypyUlic_TerytUlicSymbol");
 
                     b.HasIndex("TytulStopienId")
                         .HasDatabaseName("IX_TypyUlic_TytulStopienId");

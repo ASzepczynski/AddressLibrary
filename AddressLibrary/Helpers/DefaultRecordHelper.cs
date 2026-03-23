@@ -132,7 +132,7 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<Wojewodztwo>(
                 context,
                 "Wojewodztwa",
-                new[] { "Symbol", "Nazwa" },
+                new[] { "Kod", "Nazwa" },
                 new[] { "'00'", "'Brak'" },
                 logger
             );
@@ -146,7 +146,7 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<Powiat>(
                 context,
                 "Powiaty",
-                new[] { "Symbol", "Nazwa", "WojewodztwoId" },
+                new[] { "Kod", "Nazwa", "WojewodztwoId" },
                 new[] { "'0000'", "'Brak'", "-1" },
                 logger
             );
@@ -160,7 +160,7 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<Gmina>(
                 context,
                 "Gminy",
-                new[] { "Symbol", "Nazwa", "PowiatId", "RodzajGminyId" },
+                new[] { "Kod", "Nazwa", "PowiatId", "RodzajGminyId" },
                 new[] { "'0000000'", "'Brak'", "-1", "-1" },
                 logger
             );
@@ -174,7 +174,7 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<RodzajGminy>(
                 context,
                 "RodzajeGmin",
-                new[] { "Symbol", "Nazwa" },
+                new[] { "Kod", "Nazwa" },
                 new[] { "'0'", "'Brak'" },
                 logger
             );
@@ -188,7 +188,7 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<RodzajMiasta>(
                 context,
                 "RodzajeMiast",
-                new[] { "Symbol", "Nazwa" },
+                new[] { "Kod", "Nazwa" },
                 new[] { "'--'", "'Brak'" },
                 logger
             );
@@ -202,8 +202,22 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<Miasto>(
                 context,
                 "Miasta",
-                new[] { "Symbol", "Nazwa", "GminaId", "RodzajMiastaId" },
+                new[] { "Kod", "Nazwa", "GminaId", "RodzajMiastaId" },
                 new[] { "'0000000'", "'Brak'", "-1", "-1" },
+                logger
+            );
+        }
+
+        /// <summary>
+        /// Zapewnia istnienie domyślnego rekordu dla Ulica
+        /// </summary>
+        public static Task<bool> EnsureUlicaDefaultAsync(AddressDbContext context, GeneralLogger? logger = null)
+        {
+            return EnsureDefaultRecordAsync<Ulica>(
+                context,
+                "Ulice",
+                new[] { "Symbol", "MiastoId", "TypUlicyId" },
+                new[] { "'0000000'", "-1", "-1" },
                 logger
             );
         }

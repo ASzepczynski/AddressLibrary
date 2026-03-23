@@ -179,6 +179,12 @@ namespace AddressLibrary.Migrations
                     b.Property<int>("GminaId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Kod")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)")
+                        .UseCollation("Polish_CS_AS");
+
                     b.Property<string>("Nazwa")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -187,12 +193,6 @@ namespace AddressLibrary.Migrations
 
                     b.Property<int>("RodzajMiastaId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Symbol")
-                        .IsRequired()
-                        .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
-                        .UseCollation("Polish_CS_AS");
 
                     b.HasKey("Id");
 

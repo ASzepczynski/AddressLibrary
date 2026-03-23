@@ -11,7 +11,7 @@ namespace AddressLibrary.Models
 
         [Required]
         [MaxLength(7)]
-        public string Symbol { get; set; } = string.Empty;
+        public string Kod { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]

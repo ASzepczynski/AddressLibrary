@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    [Migration("20260320062855_usuniecie_pola_teryt_id")]
-    partial class usuniecie_pola_teryt_id
+    [Migration("20260323153841_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -157,12 +157,6 @@ namespace AddressLibrary.Migrations
                     b.Property<string>("Numery")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
-                        .UseCollation("Polish_CS_AS");
-
-                    b.Property<string>("Poczta")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<int>("UlicaId")

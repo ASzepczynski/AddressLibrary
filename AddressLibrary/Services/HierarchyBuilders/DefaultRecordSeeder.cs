@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
+ï»¿// Copyright (c) 2025-2026 Andrzej SzepczyÅ„ski. All rights reserved.
 
 using AddressLibrary.Data;
 using AddressLibrary.Helpers;
@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AddressLibrary.Services.HierarchyBuilders
 {
     /// <summary>
-    /// Tworzy domyœlne rekordy "Brak" z Id = -1 dla wszystkich encji hierarchicznych
+    /// Tworzy domyÅ›lne rekordy "Brak" z Id = -1 dla wszystkich encji hierarchicznych
     /// </summary>
     internal class DefaultRecordSeeder
     {
@@ -29,7 +29,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             await DefaultRecordHelper.EnsurePowiatDefaultAsync(_context);
             await DefaultRecordHelper.EnsureGminaDefaultAsync(_context);
             await DefaultRecordHelper.EnsureMiastoDefaultAsync(_context);
-            // ... pozosta³e
+            await DefaultRecordHelper.EnsureUlicaDefaultAsync(_context);  // âœ… DODANO
         }
     }
 }

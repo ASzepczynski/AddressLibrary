@@ -236,8 +236,7 @@ namespace AddressLibrary.Migrations
                     Nazwisko = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
                     Nazwisko2 = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
                     Pseudonim = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Postfiks = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    TerytUlicSymbol = table.Column<string>(type: "nvarchar(450)", nullable: true, collation: "Polish_CS_AS")
+                    Postfiks = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS")
                 },
                 constraints: table =>
                 {
@@ -363,7 +362,6 @@ namespace AddressLibrary.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Kod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false, collation: "Polish_CS_AS"),
                     Numery = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
-                    Poczta = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false, collation: "Polish_CS_AS"),
                     MiastoId = table.Column<int>(type: "int", nullable: false),
                     UlicaId = table.Column<int>(type: "int", nullable: false)
                 },
@@ -453,11 +451,6 @@ namespace AddressLibrary.Migrations
                 name: "IX_TerytUlicPoprawki_Nazwisko",
                 table: "TerytUlicPoprawki",
                 column: "Nazwisko");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TypyUlic_TerytUlicSymbol",
-                table: "TypyUlic",
-                column: "TerytUlicSymbol");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TypyUlic_TytulStopienId",

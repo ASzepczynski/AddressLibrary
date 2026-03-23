@@ -336,26 +336,70 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 await _context.SaveChangesAsync();
                 pendingRecords.Clear();
             }
-            catch (DbUpdateException dbEx)
+            catch (Exception ex)
             {
-                // ✅ ZMIENIONO: Loguj do error loggera
-                _errorLogger.LogError($"BŁĄD ZAPISU PARTII (batch {stats.ProcessedCount / 1000}):");
-                _errorLogger.LogError($"Message: {dbEx.Message}");
-
-                var innerEx = dbEx.InnerException;
+                // ✅ AWARYJNE ZAPISANIE BŁĘDU DO PLIKU
+                var errorFile = Path.Combine(Path.GetTempPath(), $"KodyPocztoweError_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"ERROR TIME: {DateTime.Now}");
+                sb.AppendLine($"ERROR TYPE: {ex.GetType().FullName}");
+                sb.AppendLine($"ERROR MESSAGE: {ex.Message}");
+                sb.AppendLine($"\nSTACK TRACE:\n{ex.StackTrace}");
+                
+                var innerEx = ex.InnerException;
+                int level = 1;
                 while (innerEx != null)
                 {
-                    _errorLogger.LogError($"Inner Exception: {innerEx.Message}");
-                    _errorLogger.LogError($"Inner Type: {innerEx.GetType().Name}");
+                    sb.AppendLine($"\n{'='*60}");
+                    sb.AppendLine($"INNER EXCEPTION LEVEL {level}");
+                    sb.AppendLine($"{'='*60}");
+                    sb.AppendLine($"Type: {innerEx.GetType().FullName}");
+                    sb.AppendLine($"Message: {innerEx.Message}");
+                    sb.AppendLine($"Stack Trace:\n{innerEx.StackTrace}");
+                    
+                    if (innerEx is Microsoft.Data.SqlClient.SqlException sqlEx)
+                    {
+                        sb.AppendLine($"\nSQL ERROR DETAILS:");
+                        sb.AppendLine($"  Number: {sqlEx.Number}");
+                        sb.AppendLine($"  State: {sqlEx.State}");
+                        sb.AppendLine($"  Server: {sqlEx.Server}");
+                        sb.AppendLine($"  Procedure: {sqlEx.Procedure}");
+                        sb.AppendLine($"  Line Number: {sqlEx.LineNumber}");
+                        
+                        foreach (Microsoft.Data.SqlClient.SqlError err in sqlEx.Errors)
+                        {
+                            sb.AppendLine($"\n  SQL Error:");
+                            sb.AppendLine($"    Message: {err.Message}");
+                            sb.AppendLine($"    Number: {err.Number}");
+                            sb.AppendLine($"    State: {err.State}");
+                            sb.AppendLine($"    Class: {err.Class}");
+                        }
+                    }
+                    
                     innerEx = innerEx.InnerException;
+                    level++;
                 }
-
+                
+                sb.AppendLine($"\n{'='*60}");
+                sb.AppendLine($"SAMPLE RECORDS ({pendingRecords.Count} total):");
+                sb.AppendLine($"{'='*60}");
                 for (int i = 0; i < Math.Min(10, pendingRecords.Count); i++)
                 {
                     var rec = pendingRecords[i];
-                    _errorLogger.LogError($"  Rekord {i}: Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}, Numery={rec.Numery}");
+                    sb.AppendLine($"[{i}] Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}, Numery={rec.Numery?.Substring(0, Math.Min(100, rec.Numery.Length))}");
                 }
-
+                
+                File.WriteAllText(errorFile, sb.ToString());
+                
+                Console.WriteLine($"\n\n❌❌❌ CRITICAL ERROR ❌❌❌");
+                Console.WriteLine($"Error details saved to: {errorFile}");
+                Console.WriteLine($"Error: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner: {ex.InnerException.Message}");
+                }
+                Console.WriteLine($"\n");
+                
                 throw;
             }
         }

@@ -89,7 +89,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                         var miasto = new Miasto
                         {
-                            Symbol = glowneMiasto.Symbol,
+                            Kod = glowneMiasto.Symbol,
                             Nazwa = glowneMiasto.Nazwa,
                             RodzajMiastaId = rodzajMiastaId ?? -1,
                             GminaId = gmina.Id
@@ -99,7 +99,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                         await _context.Miasta.AddAsync(miasto);
                         cityWithRightsCount++;
 
-                        _logger.LogInfo($"Dodano miasto na prawach powiatu: {miasto.Nazwa}, Symbol: {miasto.Symbol}, Gmina: {gmina.Nazwa}");
+                        _logger.LogInfo($"Dodano miasto na prawach powiatu: {miasto.Nazwa}, Symbol: {miasto.Kod}, Gmina: {gmina.Nazwa}");
                     }
                     else
                     {
@@ -135,7 +135,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                             var miasto = new Miasto
                             {
-                                Symbol = simc.Symbol,
+                                Kod = simc.Symbol,
                                 Nazwa = simc.Nazwa,
                                 RodzajMiastaId = rodzajMiastaId ?? -1,
                                 GminaId = gmina.Id
