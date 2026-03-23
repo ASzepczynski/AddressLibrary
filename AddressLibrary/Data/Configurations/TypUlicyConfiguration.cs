@@ -17,9 +17,6 @@ namespace AddressLibrary.Data.Configurations
             // Indeksy dla szybszego wyszukiwania
             builder.HasIndex(t => t.TytulStopienId)
                 .HasDatabaseName("IX_TypyUlic_TytulStopienId");
-
-            builder.HasIndex(t => t.TerytUlicSymbol)
-                .HasDatabaseName("IX_TypyUlic_TerytUlicSymbol");
         }
     }
 }

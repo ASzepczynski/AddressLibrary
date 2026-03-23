@@ -64,10 +64,6 @@ namespace AddressLibrary.Models
         /// Postfiks/przydomek (np. dodatkowe informacje po pseudonimie)
         /// </summary>
         public string? Postfiks { get; set; }
-
-        /// <summary>
-        /// Referencja do ulicy w s³owniku TerytUlic
-        /// </summary>
-        public string? TerytUlicSymbol { get; set; }
+       
     }
 }

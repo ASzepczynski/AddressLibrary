@@ -28,42 +28,6 @@ namespace AddressLibrary.Helpers
 
             foreach (var tytul in tytulyStopnie)
             {
-                // Dodaj skrót (oryginał i bez kropki)
-                if (!string.IsNullOrWhiteSpace(tytul.Skrot))
-                {
-                    var skrot = tytul.Skrot.Trim();
-                    if (!_titleMap.ContainsKey(skrot))
-                        _titleMap[skrot] = tytul;
-                    _titlesSet.Add(skrot);
-
-                    // Dodaj także bez kropki
-                    var skrotBezKropki = skrot.Replace(".", "");
-                    if (!_titleMap.ContainsKey(skrotBezKropki))
-                        _titleMap[skrotBezKropki] = tytul;
-                    _titlesSet.Add(skrotBezKropki);
-                    
-                    // Dodaj znormalizowaną wersję (bez polskich znaków)
-                    var normalized = UliceUtils.RemoveDiacritics(skrotBezKropki).ToLowerInvariant();
-                    if (!_titleMap.ContainsKey(normalized))
-                        _titleMap[normalized] = tytul;
-                    _titlesSet.Add(normalized);
-                }
-
-                // Dodaj pełną nazwę
-                if (!string.IsNullOrWhiteSpace(tytul.Nazwa))
-                {
-                    var nazwa = tytul.Nazwa.Trim();
-                    if (!_titleMap.ContainsKey(nazwa))
-                        _titleMap[nazwa] = tytul;
-                    _titlesSet.Add(nazwa);
-                    
-                    // Dodaj znormalizowaną wersję
-                    var normalized = UliceUtils.RemoveDiacritics(nazwa).ToLowerInvariant();
-                    if (!_titleMap.ContainsKey(normalized))
-                        _titleMap[normalized] = tytul;
-                    _titlesSet.Add(normalized);
-                }
-
                 // Dodaj dopełniacz
                 if (!string.IsNullOrWhiteSpace(tytul.Dopelniacz))
                 {
@@ -71,12 +35,7 @@ namespace AddressLibrary.Helpers
                     if (!_titleMap.ContainsKey(dopelniacz))
                         _titleMap[dopelniacz] = tytul;
                     _titlesSet.Add(dopelniacz);
-                    
-                    // Dodaj znormalizowaną wersję
-                    var normalized = UliceUtils.RemoveDiacritics(dopelniacz).ToLowerInvariant();
-                    if (!_titleMap.ContainsKey(normalized))
-                        _titleMap[normalized] = tytul;
-                    _titlesSet.Add(normalized);
+
                 }
             }
         }

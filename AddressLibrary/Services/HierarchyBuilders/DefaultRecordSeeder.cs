@@ -21,12 +21,16 @@ namespace AddressLibrary.Services.HierarchyBuilders
         {
             await SeedRodzajGminyAsync();
             await SeedRodzajMiastaAsync();
-            await SeedCechaUlicyAsync();
-            await SeedTytulStopienAsync();
+
+
             await SeedWojewodztwoAsync();
             await SeedPowiatAsync();
             await SeedGminaAsync();
-            await SeedMiastoAsync();
+
+            await SeedCechaUlicyAsync();
+            await SeedTytulStopienAsync();
+
+            await SeedTypUlicyAsync();
             await SeedUlicaAsync();
             await SeedKodPocztowyAsync();
         }
@@ -109,22 +113,24 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 ");
             }
         }
+        private async Task SeedTypUlicyAsync()
+        {
+            // Najpierw upewnij siê, ¿e istnieje domyœlny TypUlicy z Id = -1
+            if (!await _context.TypyUlic.AnyAsync(t => t.Id == -1))
+            {
+                await _context.Database.ExecuteSqlRawAsync(@"
+                        SET IDENTITY_INSERT TypyUlic ON;
+                        INSERT INTO TypyUlic (Id, Nazwisko,TytulStopienId) 
+                        VALUES (-1, 'Brak',-1);
+                        SET IDENTITY_INSERT TypyUlic OFF;
+                    ");
+            }
+        }
 
         private async Task SeedUlicaAsync()
         {
             if (!await _context.Ulice.AnyAsync(u => u.Id == -1))
             {
-                // Najpierw upewnij siê, ¿e istnieje domyœlny TypUlicy z Id = -1
-                if (!await _context.TypyUlic.AnyAsync(t => t.Id == -1))
-                {
-                    await _context.Database.ExecuteSqlRawAsync(@"
-                        SET IDENTITY_INSERT TypyUlic ON;
-                        INSERT INTO TypyUlic (Id, Nazwisko) 
-                        VALUES (-1, 'Brak');
-                        SET IDENTITY_INSERT TypyUlic OFF;
-                    ");
-                }
-
                 // Dodaj domyœln¹ ulicê (bez Nazwa1 i Nazwa2 - s¹ to computed properties)
                 await _context.Database.ExecuteSqlRawAsync(@"
                     SET IDENTITY_INSERT Ulice ON;

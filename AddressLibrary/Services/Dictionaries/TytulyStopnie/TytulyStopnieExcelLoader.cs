@@ -5,18 +5,18 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 
-namespace AddressLibrary.Services
+namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
 {
     /// <summary>
     /// Serwis do ³adowania s³ownika TytulyStopnie z pliku Excel do bazy danych
     /// </summary>
-    public class LoadTytulyStopnieService
+    public class TytulyStopnieExcelLoader
     {
         private readonly AddressDbContext _context;
         private readonly string _appDataPath;
         private readonly GeneralLogger _logger;
 
-        public LoadTytulyStopnieService(AddressDbContext context, string appDataPath)
+        public TytulyStopnieExcelLoader(AddressDbContext context, string appDataPath)
         {
             _context = context;
             _appDataPath = appDataPath;
@@ -30,7 +30,7 @@ namespace AddressLibrary.Services
         /// B = Dopelniacz (forma dope³niacza, np. "genera³a")
         /// C = Skrot (skrót, np. "gen.")
         /// </summary>
-        public async Task<LoadResult> LoadAsync(IProgress<LoadProgress>? progress = null)
+        public async Task<LoadResult> LoadFromExcelAsync(IProgress<LoadProgress>? progress = null)
         {
             await _logger.InitializeAsync();
 
@@ -41,13 +41,11 @@ namespace AddressLibrary.Services
 
             try
             {
-                // Upewnij siê, ¿e rekord z ID = -1 istnieje
                 await EnsureDefaultRecordExistsAsync();
             }
             catch (Exception ex)
             {
                 _logger.LogError($"B³¹d podczas dodawania domyœlnego rekordu: {ex.Message}");
-                // Kontynuuj mimo b³êdu - mo¿e rekord ju¿ istnieje
             }
 
             if (!File.Exists(excelPath))
@@ -73,7 +71,6 @@ namespace AddressLibrary.Services
                         return result;
                     }
 
-                    // Za³aduj SharedStringTable
                     string[] sharedStrings = Array.Empty<string>();
                     var sharedStringPart = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
                     if (sharedStringPart?.SharedStringTable != null)
@@ -91,7 +88,6 @@ namespace AddressLibrary.Services
 
                     foreach (var row in sheetData.Elements<Row>())
                     {
-                        // Pomiñ nag³ówek
                         if (isFirstRow)
                         {
                             isFirstRow = false;
@@ -129,18 +125,16 @@ namespace AddressLibrary.Services
                 foreach (var tytul in tytulyFromExcel)
                 {
                     var existing = await _context.TytulyStopnie
-                        .FirstOrDefaultAsync(t => t.Dopelniacz == tytul.Dopelniacz);
+                        .FirstOrDefaultAsync(t => t.Nazwa == tytul.Nazwa);
 
                     if (existing != null)
                     {
-                        // UPDATE
                         existing.Skrot = tytul.Skrot;
-                        existing.Nazwa = tytul.Nazwa;
+                        existing.Dopelniacz = tytul.Dopelniacz;
                         result.UpdatedCount++;
                     }
                     else
                     {
-                        // INSERT
                         await _context.TytulyStopnie.AddAsync(tytul);
                         result.InsertedCount++;
                     }
@@ -180,9 +174,6 @@ namespace AddressLibrary.Services
             }
         }
 
-        /// <summary>
-        /// Zapewnia istnienie domyœlnego rekordu z ID = -1 (brak tytu³u)
-        /// </summary>
         private async Task EnsureDefaultRecordExistsAsync()
         {
             var defaultRecord = await _context.TytulyStopnie
@@ -195,7 +186,6 @@ namespace AddressLibrary.Services
 
                 try
                 {
-                    // Wykonaj wszystko jako jedn¹ transakcjê SQL
                     await _context.Database.ExecuteSqlRawAsync(@"
                         SET IDENTITY_INSERT TytulyStopnie ON;
                         

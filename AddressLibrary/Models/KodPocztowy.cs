@@ -21,14 +21,8 @@ namespace AddressLibrary.Models
         /// </summary>
         public string Numery { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Miejscowoœæ
-        /// </summary>
-        [Required]
-        [MaxLength(100)]
-        public string Poczta { get; set; } = string.Empty;
-
         // Klucz obcy do miejscowoœci
+        [Required]
         [ForeignKey(nameof(Miasto))]
         public int MiastoId { get; set; }
         public Miasto Miasto { get; set; } = null!;
@@ -38,6 +32,6 @@ namespace AddressLibrary.Models
         // Klucz obcy do ulicy (opcjonalny - niektóre kody dotycz¹ ca³ych miejscowoœci bez konkretnej ulicy)
         [ForeignKey(nameof(Ulica))]
         public int UlicaId { get; set; }
-        public Ulica Ulica { get; set; } 
+        public Ulica? Ulica { get; set; }
     }
 }

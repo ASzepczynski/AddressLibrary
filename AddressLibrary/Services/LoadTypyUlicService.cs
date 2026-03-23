@@ -2,6 +2,9 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
+using AddressLibrary.Services.Dictionaries;
+using AddressLibrary.Services.Dictionaries.CechyUlic;
+using AddressLibrary.Services.Dictionaries.TytulyStopnie;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
@@ -17,126 +20,16 @@ namespace AddressLibrary.Services
         private readonly AddressDbContext _context;
         private readonly string _appDataPath;
         private readonly PostalCodesLogger _logger;
-
-        // Słownik tytułów (Skrot -> Id)
-        private Dictionary<string, int>? _tytulyDict;
+        private readonly TytulyStopnieDictionary _tytulyDict;
+        private readonly CechyUlicDictionary _cechyDict;
 
         public LoadTypyUlicService(AddressDbContext context, string appDataPath)
         {
             _context = context;
             _appDataPath = appDataPath;
             _logger = new PostalCodesLogger(appDataPath, "LoadTypyUlic.txt");
-        }
-
-        /// <summary>
-        /// Ładuje słownik tytułów i stopni z bazy danych (Skrot -> Id)
-        /// </summary>
-        private async Task<Dictionary<string, int>> LoadTytulyStopnieAsync()
-        {
-            if (_tytulyDict != null)
-                return _tytulyDict;
-
-            _tytulyDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-            try
-            {
-                var tytuly = await _context.TytulyStopnie
-                    .AsNoTracking()
-                    .Select(t => new { t.Id, t.Skrot })
-                    .ToListAsync();
-
-                foreach (var tytul in tytuly)
-                {
-                    if (!string.IsNullOrWhiteSpace(tytul.Skrot))
-                    {
-                        var skrot = tytul.Skrot.Trim();
-                        
-                        // Dodaj oryginał
-                        if (!_tytulyDict.ContainsKey(skrot))
-                            _tytulyDict[skrot] = tytul.Id;
-                        
-                        // Dodaj warianty: bez kropek, bez spacji, kombinacje
-                        var variants = new List<string>
-                        {
-                            skrot.Replace(".", ""),                   // bez kropek
-                            skrot.Replace(".", "").Replace(" ", ""),  // bez kropek i spacji
-                            skrot.Replace(" ", ""),                   // bez spacji
-                            skrot.ToLower(),                          // lowercase
-                            skrot.Replace(".", "").ToLower(),
-                        };
-
-                        foreach (var variant in variants)
-                        {
-                            if (!string.IsNullOrEmpty(variant) && !_tytulyDict.ContainsKey(variant))
-                            {
-                                _tytulyDict[variant] = tytul.Id;
-                            }
-                        }
-                    }
-                }
-
-                _logger.LogInfo($"✓ Załadowano {tytuly.Count} tytułów/stopni ({_tytulyDict.Count} wariantów) z bazy danych");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"⚠️ Błąd ładowania słownika tytułów: {ex.Message}");
-            }
-
-            return _tytulyDict;
-        }
-
-        /// <summary>
-        /// Mapuje skrót tytułu na Id z tabeli TytulyStopnie (zwraca -1 jeśli nie znaleziono)
-        /// </summary>
-        private int MapTytulToId(string? tytul, Dictionary<string, int> tytulyDict)
-        {
-            if (string.IsNullOrWhiteSpace(tytul))
-                return -1;
-
-            var cleanTytul = tytul.Trim();
-
-            // Najpierw spróbuj znaleźć dokładne dopasowanie
-            if (tytulyDict.TryGetValue(cleanTytul, out int id))
-                return id;
-
-            // Spróbuj z różnymi wariantami (z kropkami i bez)
-            var variants = new List<string>
-            {
-                cleanTytul.Replace(".", ""),                   // bez kropek
-                cleanTytul.Replace(".", "").Replace(" ", ""),  // bez kropek i spacji
-                cleanTytul.Replace(" ", "")                    // bez spacji
-            };
-
-            foreach (var variant in variants)
-            {
-                if (!string.IsNullOrEmpty(variant) && tytulyDict.TryGetValue(variant, out id))
-                    return id;
-            }
-
-            // Podziel tytuł na części i szukaj każdej osobno (dla złożonych tytułów jak "dr. prof.")
-            var parts = cleanTytul.Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var part in parts)
-            {
-                var partTrimmed = part.Trim();
-                
-                // Spróbuj z różnymi wariantami dla każdej części
-                var partVariants = new List<string>
-                {
-                    partTrimmed,
-                    partTrimmed.Replace(".", ""),
-                    partTrimmed + ".",
-                };
-
-                foreach (var variant in partVariants)
-                {
-                    if (tytulyDict.TryGetValue(variant, out id))
-                        return id;
-                }
-            }
-
-            // Jeśli nie znaleziono, zwróć -1 (brak tytułu)
-            return -1;
+            _tytulyDict = new TytulyStopnieDictionary(context);
+            _cechyDict = new CechyUlicDictionary(context);
         }
 
         /// <summary>
@@ -150,39 +43,79 @@ namespace AddressLibrary.Services
 
             _logger.LogInfo("=== Rozpoczęcie ładowania TypyUlic ===");
 
-            // ✅ INICJALIZACJA TitleManager ze słownika z bazy danych
-            if (!TitleManager.IsInitialized)
+            // ✅ KROK 1: Załaduj słownik CechyUlic z Excel
+            _logger.LogInfo("KROK 1: Ładowanie słownika CechyUlic z Excel...");
+            progress?.Report(new ValidatorProgress { CurrentOperation = "Ładowanie słownika CechyUlic..." });
+
+            var cechyLoader = new CechyUlicExcelLoader(_context, _appDataPath);
+            var cechyResult = await cechyLoader.LoadFromExcelAsync(null);
+
+            if (!string.IsNullOrEmpty(cechyResult.ErrorMessage))
             {
-                var tytulyStopnie = await _context.TytulyStopnie
-                    .AsNoTracking()
-                    .ToListAsync();
-                TitleManager.Initialize(tytulyStopnie);
-                _logger.LogInfo($"✓ Zainicjalizowano TitleManager: {tytulyStopnie.Count} tytułów");
+                _logger.LogWarning($"Ostrzeżenie przy ładowaniu CechyUlic: {cechyResult.ErrorMessage}");
+            }
+            else
+            {
+                _logger.LogInfo($"✓ Załadowano CechyUlic: Dodano={cechyResult.InsertedCount}, Zaktualizowano={cechyResult.UpdatedCount}");
             }
 
-            // Załaduj słownik tytułów dla mapowania ID
-            var tytulyDict = await LoadTytulyStopnieAsync();
+            // Wyczyść cache słownika CechyUlic po ładowaniu
+            _cechyDict.ClearCache();
 
+            // ✅ KROK 2: Załaduj słownik TytulyStopnie z Excel
+            _logger.LogInfo("KROK 2: Ładowanie słownika TytulyStopnie z Excel...");
+            progress?.Report(new ValidatorProgress { CurrentOperation = "Ładowanie słownika TytulyStopnie..." });
+
+            var tytulyLoader = new TytulyStopnieExcelLoader(_context, _appDataPath);
+            var tytulyResult = await tytulyLoader.LoadFromExcelAsync(null);
+
+            if (!string.IsNullOrEmpty(tytulyResult.ErrorMessage))
+            {
+                _logger.LogWarning($"Ostrzeżenie przy ładowaniu TytulyStopnie: {tytulyResult.ErrorMessage}");
+            }
+            else
+            {
+                _logger.LogInfo($"✓ Załadowano TytulyStopnie: Dodano={tytulyResult.InsertedCount}, Zaktualizowano={tytulyResult.UpdatedCount}");
+            }
+
+            // Wyczyść cache i załaduj ponownie do pamięci
+            _tytulyDict.ClearCache();
+
+            // ✅ KROK 3: Załaduj słownik tytułów do pamięci i zainicjalizuj TitleManager
+            _logger.LogInfo("KROK 3: Inicjalizacja słownika tytułów w pamięci...");
+            await _tytulyDict.GetSkrotToIdMappingAsync();
+            
+            if (!TitleManager.IsInitialized)
+            {
+                var tytuly = await _tytulyDict.GetAllAsync();
+                TitleManager.Initialize(tytuly);
+                _logger.LogInfo($"✓ Zainicjalizowano TitleManager: {tytuly.Count} tytułów");
+            }
+
+            // ✅ KROK 4: Wczytaj słownik TypyUlic z Excel
+            _logger.LogInfo("KROK 4: Ładowanie słownika TypyUlic z Excel...");
             progress?.Report(new ValidatorProgress
             {
-                CurrentOperation = "Ładowanie słownika TypyUlic..."
+                CurrentOperation = "Ładowanie słownika TypyUlic z Excel..."
             });
 
-            // KROK 1: Wczytaj słownik
-            var dictionary = TerytUlicPoprawkiDictionary.Load(_appDataPath,_logger);
+            var dictionary = TerytUlicPoprawkiDictionary.Load(_appDataPath, _logger);
 
             if (dictionary.Count == 0)
             {
-                _logger.LogError("Słownik jest pusty - przerywam ładowanie");
+                _logger.LogError("Słownik TypyUlic jest pusty - przerywam ładowanie");
                 return result;
             }
 
+            _logger.LogInfo($"✓ Załadowano {dictionary.Count} wpisów ze słownika TypyUlic");
+
+            // ✅ KROK 5: Pobierz dane z TerytUlic
+            _logger.LogInfo("KROK 5: Pobieranie danych z TerytUlic...");
             progress?.Report(new ValidatorProgress
             {
                 CurrentOperation = "Pobieranie danych z TerytUlic..."
             });
 
-            // KROK 2: Pobierz wszystkie wpisy z TerytUlic
             var terytUlice = await _context.TerytUlic
                 .Where(u => !string.IsNullOrEmpty(u.Nazwa1))
                 .ToListAsync();
@@ -195,9 +128,10 @@ namespace AddressLibrary.Services
                 TotalCount = result.TotalCount
             });
 
-
             var uliceList = new List<TerytUlicPoprawka>();
-            // KROK 3: Przetwórz każdy wpis
+            
+            // ✅ KROK 6: Przetwórz każdy wpis
+            _logger.LogInfo("KROK 6: Przetwarzanie wpisów z TerytUlic...");
             foreach (var terytUlica in terytUlice)
             {
                 result.ProcessedCount++;
@@ -220,19 +154,12 @@ namespace AddressLibrary.Services
                 if (dictionary.TryGetValue(original, out var terytUlicPoprawka))
                 {
                     result.FoundCount++;
-
-                    // ✅ Porównaj terytUlica ze znalezioną pozycą w słowniku
-
                     uliceList.Add(terytUlicPoprawka);
                 }
                 else
                 {
                     result.NotFoundCount++;
-
-                    // Loguj brakujący wpis
-                    _logger.LogWarning(
-                        $"BRAK w słowniku: '{original}'"
-                    );
+                    _logger.LogWarning($"BRAK w słowniku: '{original}'");
                 }
 
                 // Raportuj postęp co 1000 wpisów
@@ -247,7 +174,8 @@ namespace AddressLibrary.Services
                 }
             }
 
-            // KROK 4: Wstaw unikalne wartości do tabeli TypyUlic
+            // ✅ KROK 7: Wstaw unikalne wartości do tabeli TypyUlic
+            _logger.LogInfo("KROK 7: Wstawianie unikalnych wartości do tabeli TypyUlic...");
             progress?.Report(new ValidatorProgress
             {
                 CurrentOperation = "Wstawianie unikalnych wartości do bazy danych..."
@@ -257,22 +185,22 @@ namespace AddressLibrary.Services
 
             try
             {
-                // ✅ Usuń wszystkie referencje z tabeli Ulice
+                // Usuń wszystkie referencje z tabeli Ulice
                 _logger.LogInfo("Usuwanie referencji z tabeli Ulice...");
                 await _context.Database.ExecuteSqlRawAsync("UPDATE Ulice SET TypUlicyId = NULL WHERE TypUlicyId IS NOT NULL");
                 _logger.LogInfo("✓ Referencje usunięte");
 
-                // ✅ Wyczyść tabelę TypyUlic (DELETE zamiast TRUNCATE - działa z kluczami obcymi)
+                // Wyczyść tabelę TypyUlic (zachowaj rekord -1)
                 _logger.LogInfo("Czyszczenie tabeli TypyUlic...");
-                await _context.Database.ExecuteSqlRawAsync("DELETE FROM TypyUlic");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM TypyUlic WHERE Id != -1");
                 _logger.LogInfo("✓ Tabela wyczyszczona");
                 
-                // ✅ Opcjonalnie: Zresetuj licznik IDENTITY do 1
+                // Resetuj licznik IDENTITY
                 _logger.LogInfo("Resetowanie licznika IDENTITY...");
                 await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('TypyUlic', RESEED, 0)");
                 _logger.LogInfo("✓ Licznik zresetowany");
 
-                // ✅ OPTYMALIZACJA: Użyj HashSet zamiast GroupBy dla szybszej deduplikacji
+                // Deduplikacja
                 _logger.LogInfo($"Deduplikacja {uliceList.Count} wpisów...");
                 
                 var uniqueUliceSet = new HashSet<TypUlicy>(new TypUlicyEqualityComparer());
@@ -281,23 +209,19 @@ namespace AddressLibrary.Services
                 
                 foreach (var item in uliceList)
                 {
-                    int tytulStopienId = MapTytulToId(item.Tytul, tytulyDict);
-                    if (!string.IsNullOrEmpty(item.Tytul) && tytulStopienId == -1)
-                    {
-                        // jakiś błędny tytuł
-                        _logger.LogError($"Brak tytułu/stopnia '{item.Tytul}]'");
-                    }
+                    // ✅ Użyj słownika do mapowania tytułu
+                    int tytulStopienId = _tytulyDict.MapSkrotToId(item.Tytul);
+                    
                     var typUlicy = new TypUlicy
                     {
                         Prefiks = TruncateString(item.Prefiks, 200, ref truncatedCount, "Prefiks"),
-                        TytulStopienId = tytulStopienId, 
+                        TytulStopienId = tytulStopienId,
                         Imie = TruncateString(item.Imie, 200, ref truncatedCount, "Imie"),
                         Imie2 = TruncateString(item.Imie2, 200, ref truncatedCount, "Imie2"),
                         Nazwisko = TruncateString(item.Nazwisko, 200, ref truncatedCount, "Nazwisko"),
                         Nazwisko2 = TruncateString(item.Nazwisko2, 200, ref truncatedCount, "Nazwisko2"),
                         Pseudonim = TruncateString(item.Pseudonim, 200, ref truncatedCount, "Pseudonim"),
-                        Postfiks = TruncateString(item.Postfiks, 200, ref truncatedCount, "Postfiks"),
-                        TerytUlicSymbol = item.TerytId
+                        Postfiks = TruncateString(item.Postfiks, 200, ref truncatedCount, "Postfiks")
                     };
                     
                     if (!uniqueUliceSet.Add(typUlicy))
@@ -315,7 +239,7 @@ namespace AddressLibrary.Services
                 
                 _logger.LogInfo($"Znaleziono {uniqueUlice.Count} unikalnych wpisów (pominięto {duplicatesCount} duplikatów z {uliceList.Count} wszystkich)");
 
-                // Wstaw do bazy danych partiami (np. 500 naraz - zmniejszono dla stabilności)
+                // Wstaw do bazy danych partiami
                 const int batchSize = 500;
                 int insertedCount = 0;
                 int batchNumber = 0;
@@ -332,7 +256,6 @@ namespace AddressLibrary.Services
                         await _context.TypyUlic.AddRangeAsync(batch);
                         await _context.SaveChangesAsync();
                         
-                        // ✅ Wyczyść kontekst po każdej paczce, aby uniknąć problemów z pamięcią
                         _context.ChangeTracker.Clear();
                         
                         insertedCount += batch.Count;
@@ -350,30 +273,23 @@ namespace AddressLibrary.Services
                     {
                         _logger.LogError($"⚠️ Błąd podczas wstawiania partii {batchNumber}: {ex.Message}");
                         
-                        // ✅ DODANO: Logowanie wszystkich wyjątków wewnętrznych
                         var innerEx = ex.InnerException;
                         int level = 1;
                         while (innerEx != null)
                         {
                             _logger.LogError($"InnerException level {level}: {innerEx.Message}");
-                            _logger.LogError($"InnerException StackTrace: {innerEx.StackTrace}");
                             innerEx = innerEx.InnerException;
                             level++;
                         }
                         
-                        // ✅ DODANO: Logowanie problematycznych rekordów z partii
                         _logger.LogError($"Pierwszych 5 rekordów z problematycznej partii {batchNumber}:");
                         for (int j = 0; j < Math.Min(5, batch.Count); j++)
                         {
                             var record = batch[j];
-                            _logger.LogError($"  [{j}] Prefiks:'{record.Prefiks}' TytulStopienId:{record.TytulStopienId} Imie:'{record.Imie}' Imie2:'{record.Imie2}' Nazwisko:'{record.Nazwisko}' Nazwisko2:'{record.Nazwisko2}' Postfiks:'{record.Postfiks}'");
+                            _logger.LogError($"  [{j}] Prefiks:'{record.Prefiks}' TytulStopienId:{record.TytulStopienId} Imie:'{record.Imie}' Nazwisko:'{record.Nazwisko}'");
                         }
                         
-                        _logger.LogError($"Stack trace: {ex.StackTrace}");
-                        
-                        // ✅ Wyczyść kontekst przed rzuceniem wyjątku
                         _context.ChangeTracker.Clear();
-                        
                         throw;
                     }
                 }
@@ -387,7 +303,7 @@ namespace AddressLibrary.Services
                 throw;
             }
 
-            // KROK 5: Podsumowanie
+            // KROK 8: Podsumowanie
             _logger.LogInfo("=== Podsumowanie ładowania ===");
             _logger.LogInfo($"Przetworzono: {result.ProcessedCount}");
             _logger.LogInfo($"Znaleziono w słowniku: {result.FoundCount}");
@@ -405,9 +321,6 @@ namespace AddressLibrary.Services
             return result;
         }
 
-        /// <summary>
-        /// Przycina string do maksymalnej długości i loguje ostrzeżenie
-        /// </summary>
         private string? TruncateString(string? value, int maxLength, ref int truncatedCount, string fieldName)
         {
             if (string.IsNullOrEmpty(value))

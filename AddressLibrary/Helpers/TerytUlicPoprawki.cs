@@ -110,7 +110,7 @@ namespace AddressLibrary.Helpers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Błąd ładowania słownika TypyUlic: {ex.Message}");
+                Console.WriteLine($"⚠️ Błąd ładowania słownika TerytUlicPoprawka: {ex.Message}");
                 _logger.LogError($"Błąd ładowania słownika: {ex.Message}");
             }
 
