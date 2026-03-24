@@ -14,31 +14,21 @@ namespace AddressLibrary.Services.AddressSearch
         {
         }
                 
-        // Prawdziwa nazwa żeby wyświetlić duplikaty
+        /// <summary>
+        /// Zwraca prawdziwą nazwę ulicy do wyświetlania duplikatów
+        /// ✅ POPRAWKA: Użyj GetDisplayName() zamiast Nazwa1/Nazwa2
+        /// </summary>
         private string GetOriginalStreetName(UlicaCached street)
         {
-            var parts = new List<string>();
-
-            if (!string.IsNullOrWhiteSpace(street.Cecha))
-                parts.Add(street.Cecha);
-
-            parts.Add(street.Nazwa1);
-            if (!string.IsNullOrWhiteSpace(street.Nazwa2))
-            {
-                parts.Add(street.Nazwa2);
-            }
-            return string.Join(" ", parts);
+            return street.GetDisplayName();
         }
 
-
-        
         /// <summary>
         /// Zwraca szczegółowy komunikat o niejednoznaczności
         /// </summary>
         public string GetAmbiguityMessage(
-     List<UlicaCached> streets,
-     List<KodPocztowy> postalCodes
- )
+            List<UlicaCached> streets,
+            List<KodPocztowy> postalCodes)
         {
             var details = streets.Select(s =>
             {

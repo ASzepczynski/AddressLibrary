@@ -19,7 +19,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         private readonly PostalCodesLogger _errorLogger;
         private readonly PnaCorrectionHelper _pnaCorrections;
         private readonly NameCorrectionHelper _corrections;
-        private readonly HashSet<string> _personalStreets; // ✅ NOWE
         private string sKorekcja = "";
 
         public string LogFilePath => _logger.LogFilePath;
@@ -36,10 +35,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             _corrections = new NameCorrectionHelper(appDataPath);
             
             // ✅ NOWE: Załaduj ulice osobowe
-            _personalStreets = LoadPersonalStreets(appDataPath);
             
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
-            Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_personalStreets.Count} ulic osobowych");
         }
 
         /// <summary>
@@ -163,9 +160,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var miastaDict = await dictionaryBuilder.BuildMiastaDictionaryAsync();
             var uliceDict = await dictionaryBuilder.BuildUliceDictionaryAsync();
 
+            // ✅ POPRAWKA: Utwórz i zainicjalizuj StreetParser
+            var streetParser = new AddressLibrary.Services.AddressSearch.StreetParser(_context);
+            await streetParser.InitializeAsync();
+
             // Przekaż error logger do matcherów
             var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger, _fuzzyLogger, _errorLogger);
-            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger, _fuzzyLogger, _errorLogger, _personalStreets); // ✅ Dodano _personalStreets
+            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger, _fuzzyLogger, _errorLogger, streetParser); // ✅ DODANO: streetParser
 
             progressInfo.CurrentOperation = "Przetwarzanie kodów pocztowych...";
             progress?.Report(progressInfo);

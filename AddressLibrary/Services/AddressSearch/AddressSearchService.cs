@@ -13,9 +13,10 @@ namespace AddressLibrary.Services.AddressSearch
     /// </summary>
     public class AddressSearchService : IDisposable
     {
+        private readonly AddressDbContext _context; // ✅ DODANO: przechowuj context
         private readonly AddressSearchCache _cache;
-        private StreetSearchStrategy? _streetSearch;  // ✅ ZMIENIONO: usunięto readonly
-        private NoStreetSearchStrategy? _noStreetSearch;  // ✅ ZMIENIONO: usunięto readonly
+        private StreetSearchStrategy? _streetSearch;
+        private NoStreetSearchStrategy? _noStreetSearch;
         private string _appDataPath;
         private SearchLogger searchLogger;
         private bool _disposed = false;
@@ -23,6 +24,7 @@ namespace AddressLibrary.Services.AddressSearch
 
         public AddressSearchService(AddressDbContext context, string appDataPath)
         {
+            _context = context; // ✅ DODANO: zapisz context
             _appDataPath = appDataPath;
             _cache = new AddressSearchCache(context, _appDataPath);
 
@@ -35,8 +37,12 @@ namespace AddressLibrary.Services.AddressSearch
         {
             await _cache.InitializeAsync();
 
-            // ✅ POPRAWKA: Inicjalizuj strategie PO załadowaniu cache (aby mieć PersonalStreets)
-            var streetMatcher = new StreetMatcher(_cache.PersonalStreets);
+            // ✅ POPRAWKA: Utwórz i zainicjalizuj StreetParser
+            var streetParser = new StreetParser(_context);
+            await streetParser.InitializeAsync();
+
+            // ✅ POPRAWKA: Przekaż streetParser do StreetMatcher
+            var streetMatcher = new StreetMatcher(streetParser);
             var filters = new PostalCodeFilters();
             var resultFactory = new SearchResultFactory(_cache);
             var cityStrategy = new CityPostalCodeStrategy(_cache, filters);
@@ -50,7 +56,7 @@ namespace AddressLibrary.Services.AddressSearch
             AddressSearchRequest request
             )
         {
-            if (!_cache.IsInitialized || _streetSearch == null || _noStreetSearch == null)  // ✅ DODANO: sprawdzenie czy strategie są zainicjalizowane
+            if (!_cache.IsInitialized || _streetSearch == null || _noStreetSearch == null)
             {
                 await InitializeAsync();
             }
@@ -179,17 +185,17 @@ namespace AddressLibrary.Services.AddressSearch
             // Wybierz strategię wyszukiwania
             if (!string.IsNullOrWhiteSpace(request.Ulica))
             {
-                return _streetSearch!.Execute(request, miasta, searchLogger);  // ✅ DODANO: null-forgiving operator
+                return _streetSearch!.Execute(request, miasta, searchLogger);
             }
             else
             {
-                return _noStreetSearch!.Execute(request, miasta, searchLogger);  // ✅ DODANO: null-forgiving operator
+                return _noStreetSearch!.Execute(request, miasta, searchLogger);
             }
         }
 
         public async Task<List<AddressSearchResult>> SearchBatchAsync(IEnumerable<AddressSearchRequest> requests)
         {
-            if (!_cache.IsInitialized || _streetSearch == null || _noStreetSearch == null)  // ✅ DODANO: sprawdzenie czy strategie są zainicjalizowane
+            if (!_cache.IsInitialized || _streetSearch == null || _noStreetSearch == null)
             {
                 await InitializeAsync();
             }

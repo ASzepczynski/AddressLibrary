@@ -21,6 +21,7 @@ namespace AddressLibrary.Helpers
             normalized = normalized.Replace("  ", " ").Trim();
             normalized = normalized.Replace("-go", "").Trim();
             normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+
             return normalized;
         }
 
@@ -32,8 +33,25 @@ namespace AddressLibrary.Helpers
             normalized = normalized.ToLowerInvariant().Trim();
             normalized = UliceUtils.RemoveDiacritics(normalized);
             normalized = TitleManager.RemoveTitles(normalized);
+            normalized = RemoveNamePrefixes(normalized);
             normalized = RemoveInitialsPrefix(normalized);
             return normalized;
+        }
+
+        /// <summary>
+        /// Usuwa prefiksy związane z patronami ulic: "im.", "imienia", "imieniem" (case insensitive)
+        /// Przykłady: "im. Kowalskiego" -> "Kowalskiego", "Imienia Jana Pawła" -> "Jana Pawła"
+        /// </summary>
+        public static string RemoveNamePrefixes(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            // Wzorzec: na początku tekstu znajduje się "im.", "imienia" lub "imieniem" (case insensitive) + spacja
+            // Flaga RegexOptions.IgnoreCase zapewnia case insensitive
+            var pattern = @"^(im\.|imienia|imieniem)\s+";
+
+            return Regex.Replace(text, pattern, string.Empty, RegexOptions.IgnoreCase).TrimStart();
         }
 
         public static string RemoveInitialsPrefix(string text)

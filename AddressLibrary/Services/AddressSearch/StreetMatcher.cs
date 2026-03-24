@@ -1,307 +1,279 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
-
-// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
-
 using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.AddressSearch
 {
     /// <summary>
-    /// Serwis do dopasowywania nazw ulic (zoptymalizowany - używa cache)
+    /// Serwis do dopasowywania nazw ulic (strukturalne dopasowanie komponentów)
     /// </summary>
     public class StreetMatcher
     {
-        private readonly HashSet<string> _personalStreets;
+        private readonly StreetParser _parser;
 
-        public StreetMatcher(HashSet<string> personalStreets)
+        public StreetMatcher(StreetParser parser)
         {
-            _personalStreets = personalStreets;
+            _parser = parser;
         }
 
         /// <summary>
-        /// Sprawdza czy szukana ulica jest osobowa (zawiera dokładnie 2 słowa i występuje w UliceOsobowe.xlsx)
+        /// Sprawdza czy ulica pasuje do wyszukiwanej nazwy (dokładne dopasowanie = 100% score)
         /// </summary>
-        private bool IsPersonal(string searchTerm)
+        public bool IsMatch(UlicaCached ulica, string streetName)
         {
-            if (string.IsNullOrWhiteSpace(searchTerm))
+            if (string.IsNullOrWhiteSpace(streetName))
                 return false;
 
-            // Sprawdź czy zawiera dokładnie 2 słowa
-            var words = searchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length != 2)
-                return false;
-
-            // Normalizuj i sprawdź w zbiorze
-            var normalized = TextNormalizer.Normalize(searchTerm);
-            return _personalStreets.Contains(normalized);
-        }
-
-        /// <summary>
-        /// 🚀 ZOPTYMALIZOWANA: Sprawdza czy ulica pasuje (używa pre-znormalizowanych nazw)
-        /// Tylko dokładne dopasowanie (equality) - BEZ partial match
-        /// NIGDY nie porównuj z samą Nazwa2!
-        /// </summary>
-        public bool IsMatch(UlicaCached ulica, string normalizedSearchTerm)
-        {
-            // ✅ Sprawdź dokładne dopasowanie głównej nazwy
-            if (ulica.NormalizedNazwa1 == normalizedSearchTerm)
-                return true;
-
-            // ✅ Sprawdź dokładne dopasowanie kombinacji
-            if (ulica.NormalizedCombined != null && ulica.NormalizedCombined == normalizedSearchTerm)
-                return true;
-
-            return false;
-        }
-
-        /// <summary>
-        /// 🆕 ULEPSZONA: Znajduje ulicę metodą HIERARCHICZNĄ z obsługą ulic osobowych
-        /// 1. Jeśli ulica osobowa (2 słowa + w UliceOsobowe.xlsx) - szukaj tylko po pełnej nazwie
-        /// 2. Dokładne dopasowanie (equality)
-        /// 3. Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
-        /// 4. Dopasowanie częściowe (contains) jako ostateczny fallback
-        /// </summary>
-        public UlicaCached? FindStreet(List<UlicaCached> ulice, string originalStreetName)
-        {
-            var normalized = TextNormalizer.Normalize(originalStreetName);
-
-            // ✅ NOWE: Jeśli to ulica osobowa (2 słowa + w excelu), szukaj TYLKO po pełnej nazwie
-            if (IsPersonal(originalStreetName))
+            // ✅ KROK 1: Jeśli ulica jest nie-osobowa (brak komponentów) - dopasuj po pełnej nazwie
+            if (ulica.IsEmpty())
             {
-                // Wyciągnij nazwisko (ostatnie słowo)
-                var words = originalStreetName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                var lastName = words[^1]; // Ostatnie słowo (nazwisko)
-                var normalizedLastName = TextNormalizer.Normalize(lastName);
-
-                // Znajdź wszystkie ulice z tym nazwiskiem
-                var candidatesWithLastName = new List<UlicaCached>();
-
-                foreach (var ulica in ulice)
-                {
-                    // Sprawdź czy Nazwa1 lub NormalizedCombined kończy się na nazwisko
-                    if (ulica.NormalizedNazwa1.EndsWith(" " + normalizedLastName) || 
-                        ulica.NormalizedNazwa1 == normalizedLastName ||
-                        ulica.NormalizedCombined != null && 
-                         (ulica.NormalizedCombined.EndsWith(" " + normalizedLastName) || 
-                          ulica.NormalizedCombined == normalizedLastName))
-                    {
-                        candidatesWithLastName.Add(ulica);
-                    }
-                }
-
-                // Jeśli znaleziono dokładnie jedną - zwróć ją
-                if (candidatesWithLastName.Count == 1)
-                {
-                    return candidatesWithLastName[0];
-                }
-
-                // Jeśli znaleziono więcej - szukaj dokładnego dopasowania pełnej nazwy
-                if (candidatesWithLastName.Count > 1)
-                {
-                    foreach (var candidate in candidatesWithLastName)
-                    {
-                        if (IsMatch(candidate, normalized))
-                        {
-                            return candidate;
-                        }
-                    }
-
-                    // Jeśli brak dokładnego, zwróć pierwszą
-                    return candidatesWithLastName[0];
-                }
-
-                // Brak kandydatów - zwróć null (nie szukaj fuzzy dla ulic osobowych)
-                return null;
+                var normalizedSearch = TextNormalizer.Normalize(streetName);
+                var normalizedFull = ulica.GetFullNormalized();
+                return normalizedFull == normalizedSearch;
             }
 
-            // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
+            // ✅ KROK 2: Jeśli ulica jest osobowa - parsuj i dopasuj komponenty
+            var parsed = _parser.Parse(streetName);
+
+            // Dokładne dopasowanie wymaga 100% score
+            var score = CalculateMatchScore(parsed, ulica);
+
+            return score == 100;
+        }
+
+        /// <summary>
+        /// 🚀 Strukturalne dopasowywanie komponentów ulicy
+        /// Znajduje ulicę w liście UlicaCached na podstawie nazwy (fuzzy matching)
+        /// </summary>
+        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName)
+        {
+            if (string.IsNullOrWhiteSpace(streetName))
+                return null;
+
+            var normalizedSearch = TextNormalizer.Normalize(streetName);
+
+            // ✅ KROK 1: Znajdź ulice nie-osobowe (proste nazwy)
             foreach (var ulica in ulice)
             {
-                if (IsMatch(ulica, normalized))
-                    return ulica;
-            }
-
-            // ✅ KROK 2: Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
-            var withoutInitial = UliceUtils.RemoveNameInitial(originalStreetName);
-
-            if (withoutInitial != originalStreetName)
-            {
-                var normalizedWithoutInitial = TextNormalizer.Normalize(withoutInitial);
-
-                foreach (var ulica in ulice)
+                if (ulica.IsEmpty())
                 {
-                    if (IsMatch(ulica, normalizedWithoutInitial))
+                    var normalizedFull = ulica.GetFullNormalized();
+                    
+                    // Dokładne dopasowanie
+                    if (normalizedFull == normalizedSearch)
                         return ulica;
                 }
             }
 
-            // ⚠️ KROK 3: Dopasowanie fuzzy matching (TYLKO gdy nie znaleziono dokładnego)
-            var ulica_fuzzy = FindMostSimilarStreet(ulice, normalized);
-            return ulica_fuzzy;
-        }
+            // ✅ KROK 2: Parsuj nazwę dla ulic osobowych
+            var parsed = _parser.Parse(streetName);
 
-        /// <summary>
-        /// 🆕 Znajduje WSZYSTKIE ulice pasujące do wyszukiwanej nazwy (hierarchicznie)
-        /// </summary>
-        public List<UlicaCached> FindAllStreets(List<UlicaCached> ulice, string originalStreetName)
-        {
-            var results = new List<UlicaCached>();
-            var normalized = TextNormalizer.Normalize(originalStreetName);
-
-            // ✅ KROK 1: Dokładne dopasowanie z oryginalną nazwą
-            foreach (var ulica in ulice)
-            {
-                if (IsMatch(ulica, normalized))
-                    results.Add(ulica);
-            }
-
-            // Jeśli znaleziono dokładne dopasowania, zwróć je
-            if (results.Count > 0)
-                return results;
-
-            // ✅ KROK 2: Retry bez skrótu imienia (G.Zapolskiej -> Zapolskiej)
-            var withoutInitial = UliceUtils.RemoveNameInitial(originalStreetName);
-
-            if (withoutInitial != originalStreetName)
-            {
-                var normalizedWithoutInitial = TextNormalizer.Normalize(withoutInitial);
-
-                foreach (var ulica in ulice)
-                {
-                    if (IsMatch(ulica, normalizedWithoutInitial))
-                        results.Add(ulica);
-                }
-            }
-
-            // Jeśli znaleziono po usunięciu inicjału, zwróć je
-            if (results.Count > 0)
-                return results;
-
-            // ⚠️ KROK 3: Dopasowanie częściowe (TYLKO gdy nie znaleziono dokładnego)
-            foreach (var ulica in ulice)
-            {
-                // ✅ Sprawdź Nazwa1
-                bool matchesNazwa1 = IsPartialMatch(ulica.NormalizedNazwa1, normalized);
-
-                // ✅ Sprawdź pełne kombinacje
-                bool matchesCombined = ulica.NormalizedCombined != null &&
-                                      IsPartialMatch(ulica.NormalizedCombined, normalized);
-
-                if (matchesNazwa1 || matchesCombined)
-                {
-                    results.Add(ulica);
-                }
-            }
-
-            return results;
-        }
-
-        /// <summary>
-        /// 🆕 Znajduje ulicę TYLKO metodą dokładnego dopasowania (bez partial match)
-        /// Używane gdy priorytetem jest precyzja (np. "Powstańców" nie może znaleźć "Powstańców Śląskich")
-        /// </summary>
-        public UlicaCached? FindStreetExact(List<UlicaCached> ulice, string searchName)
-        {
-            var normalizedSearch = TextNormalizer.Normalize(searchName);
-
-            foreach (var ulica in ulice)
-            {
-                // ✅ Sprawdź TYLKO:
-                // 1. Nazwa1
-                // 2. Nazwa2 + Nazwa1 (NormalizedCombined)
-
-                if (ulica.NormalizedNazwa1 == normalizedSearch ||
-                    ulica.NormalizedCombined == normalizedSearch)
-                {
-                    return ulica;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Dopasowanie częściowe - sprawdza czy searchTerm jest CAŁYM SŁOWEM lub OSTATNIM SŁOWEM w nazwie ulicy
-        /// Obsługuje nazwy patronów (np. "Łokietka" znajdzie "Władysława Łokietka")
-        /// </summary>
-        private bool IsPartialMatch(string normalizedStreetName, string searchTerm)
-        {
-            // Split tylko raz, bez dodatkowej normalizacji
-            var words = normalizedStreetName.Split(new[] { ' ', '-', '.' }, StringSplitOptions.RemoveEmptyEntries);
-
-            // ✅ KROK 1: Sprawdź dokładne dopasowanie do któregokolwiek słowa
-            if (Array.IndexOf(words, searchTerm) >= 0)
-                return true;
-
-            // ✅ KROK 2: Sprawdź czy nazwa ulicy kończy się na " " + searchTerm (dla patronów)
-            // Przykład: "wladyslawa lokietka" kończy się na " lokietka" ✅
-            //          "lowiecka" NIE kończy się na " lokietka" ❌
-            if (normalizedStreetName.EndsWith(" " + searchTerm))
-                return true;
-
-            return false;
-        }
-
-        /// <summary>
-        /// Znajduje najbardziej podobną ulicę (fuzzy matching) używając odległości Levenshteina
-        /// </summary>
-        public UlicaCached? FindMostSimilarStreet(List<UlicaCached> ulice, string searchTerm, int maxDistance = 2)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return null;
-
-            var normalizedSearch = TextNormalizer.Normalize(searchTerm);
-
+            // ✅ KROK 3: Dopasuj do ulic osobowych
             UlicaCached? bestMatch = null;
-            int bestDistance = int.MaxValue;
-
-            var listaPodobnych = new List<UlicaCached>();
+            int bestScore = 0;
 
             foreach (var ulica in ulice)
             {
-                bool isLike = UliceUtils.IsLeftToRightMatch(ulica.NormalizedNazwa1, searchTerm);
-                if (isLike)
+                // Pomiń ulice nie-osobowe (już sprawdzone w KROK 1)
+                if (ulica.IsEmpty())
+                    continue;
+
+                // Sprawdź dopasowanie cechy
+                if (!string.IsNullOrEmpty(parsed.Cecha) && 
+                    !string.IsNullOrEmpty(ulica.Cecha) &&
+                    TextNormalizer.Normalize(ulica.Cecha) != parsed.Cecha)
                 {
-                    listaPodobnych.Add(ulica);
+                    continue; // Cecha się nie zgadza - pomiń
                 }
-                int distance1 = Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedNazwa1);
 
-                int distanceCombined = int.MaxValue;
-                if (!string.IsNullOrEmpty(ulica.NormalizedCombined))
+                // Oblicz score dopasowania komponentów
+                var score = CalculateMatchScore(parsed, ulica);
+
+                if (score > bestScore)
                 {
-                    distanceCombined = Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, ulica.NormalizedCombined);
-                }
-
-                int minDistance = Math.Min(distance1, distanceCombined);
-
-                if (minDistance < bestDistance)
-                {
-                    bestDistance = minDistance;
+                    bestScore = score;
                     bestMatch = ulica;
                 }
             }
 
-            if (bestMatch != null)
+            // ✅ KROK 4: Fuzzy matching dla ulic nie-osobowych (jeśli nie znaleziono osobowej)
+            if (bestMatch == null || bestScore < 70)
             {
-                var referenceLength = Math.Max(normalizedSearch.Length, bestMatch.NormalizedNazwa1.Length);
-                var similarity = 1.0 - (double)bestDistance / referenceLength;
-
-                // 🔧 POPRAWKA: Wyższy próg dla krótkich słów
-                double minSimilarity = normalizedSearch.Length <= 5 ? 0.7 : 0.5;
-
-                if (bestDistance < maxDistance)
+                foreach (var ulica in ulice)
                 {
-                    if (bestDistance <= maxDistance && similarity >= minSimilarity)
-                        return bestMatch;
+                    if (ulica.IsEmpty())
+                    {
+                        var normalizedFull = ulica.GetFullNormalized();
+                        
+                        // Częściowe dopasowanie (contains)
+                        if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
+                        {
+                            int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
+                            if (distance <= 2)
+                            {
+                                return ulica;
+                            }
+                        }
+                    }
                 }
             }
 
-            if (listaPodobnych.Count == 1)
+            // Wymagamy minimum 70% dopasowania dla ulic osobowych
+            return bestScore >= 70 ? bestMatch : null;
+        }
+
+        /// <summary>
+        /// 🔍 DIAGNOSTYKA: Znajduje wszystkie ulice z ich score'ami (do debugowania)
+        /// </summary>
+        public List<(UlicaCached ulica, int score, string reason, ParsedStreet? parsed)> FindAllWithScores(List<UlicaCached> ulice, string streetName)
+        {
+            var results = new List<(UlicaCached ulica, int score, string reason, ParsedStreet? parsed)>();
+            
+            if (string.IsNullOrWhiteSpace(streetName))
+                return results;
+
+            var normalizedSearch = TextNormalizer.Normalize(streetName);
+
+            // KROK 1: Ulice nie-osobowe (proste nazwy)
+            foreach (var ulica in ulice)
             {
-                return listaPodobnych[0];
+                if (ulica.IsEmpty())
+                {
+                    var normalizedFull = ulica.GetFullNormalized();
+                    
+                    if (normalizedFull == normalizedSearch)
+                    {
+                        results.Add((ulica, 100, "Dokładne dopasowanie nie-osobowej", null));
+                    }
+                    else if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
+                    {
+                        int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
+                        if (distance <= 2)
+                        {
+                            results.Add((ulica, 50 - (distance * 10), $"Fuzzy nie-osobowej (dist={distance})", null));
+                        }
+                    }
+                }
             }
-            return null;
+
+            // KROK 2: Ulice osobowe - parsuj i oblicz score
+            var parsed = _parser.Parse(streetName);
+
+            foreach (var ulica in ulice)
+            {
+                if (ulica.IsEmpty())
+                    continue; // Już sprawdzone w KROK 1
+
+                // Sprawdź cechę
+                if (!string.IsNullOrEmpty(parsed.Cecha) && 
+                    !string.IsNullOrEmpty(ulica.Cecha) &&
+                    TextNormalizer.Normalize(ulica.Cecha) != parsed.Cecha)
+                {
+                    results.Add((ulica, 0, "Cecha się nie zgadza", parsed));
+                    continue;
+                }
+
+                var score = CalculateMatchScore(parsed, ulica);
+                
+                string reason = score switch
+                {
+                    100 => "Dokładne dopasowanie komponentów",
+                    >= 70 => $"Częściowe dopasowanie komponentów (score={score})",
+                    > 0 => $"Słabe dopasowanie komponentów (score={score})",
+                    _ => "Brak dopasowania komponentów (score=0)"
+                };
+
+                results.Add((ulica, score, reason, parsed));
+            }
+
+            return results.OrderByDescending(r => r.score).ToList();
+        }
+
+        /// <summary>
+        /// Oblicza score dopasowania (0-100) porównując komponenty
+        /// ⚠️ UWAGA: Jeśli ulica nie ma nazwiska, zwraca 0 (nie jest osobowa)
+        /// </summary>
+        private int CalculateMatchScore(ParsedStreet search, UlicaCached ulica)
+        {
+            int totalWeight = 0;
+            int matchedWeight = 0;
+
+            // WAGI komponentów
+            const int NAZWISKO_WEIGHT = 50;
+            const int IMIE_WEIGHT = 20;
+            const int TYTUL_WEIGHT = 15;
+            const int PSEUDONIM_WEIGHT = 10;
+            const int IMIE2_WEIGHT = 5;
+
+            // 1. Nazwisko (MUST MATCH dla ulic osobowych!)
+            if (!string.IsNullOrEmpty(search.Nazwisko))
+            {
+                totalWeight += NAZWISKO_WEIGHT;
+
+                if (ulica.Nazwisko == search.Nazwisko)
+                {
+                    matchedWeight += NAZWISKO_WEIGHT;
+                }
+                else if (ulica.Nazwisko2 == search.Nazwisko)
+                {
+                    matchedWeight += NAZWISKO_WEIGHT / 2;
+                }
+                else
+                {
+                    // Nazwisko nie pasuje - zwróć 0
+                    return 0;
+                }
+            }
+            else
+            {
+                // ⚠️ Brak nazwiska w search - to może być ulica nie-osobowa
+                // Zwróć 0, aby wymusić dopasowanie przez pełną nazwę
+                return 0;
+            }
+
+            // 2. Imię
+            if (!string.IsNullOrEmpty(search.Imie))
+            {
+                totalWeight += IMIE_WEIGHT;
+
+                if (ulica.Imie == search.Imie)
+                    matchedWeight += IMIE_WEIGHT;
+                else if (ulica.Imie2 == search.Imie)
+                    matchedWeight += IMIE_WEIGHT / 2;
+            }
+
+            // 3. Tytuł
+            if (!string.IsNullOrEmpty(search.Tytul))
+            {
+                totalWeight += TYTUL_WEIGHT;
+
+                if (ulica.Tytul == search.Tytul)
+                    matchedWeight += TYTUL_WEIGHT;
+            }
+
+            // 4. Pseudonim
+            if (!string.IsNullOrEmpty(search.Pseudonim))
+            {
+                totalWeight += PSEUDONIM_WEIGHT;
+
+                if (ulica.Pseudonim == search.Pseudonim)
+                    matchedWeight += PSEUDONIM_WEIGHT;
+            }
+
+            // 5. Drugie imię
+            if (!string.IsNullOrEmpty(search.Imie2))
+            {
+                totalWeight += IMIE2_WEIGHT;
+
+                if (ulica.Imie2 == search.Imie2)
+                    matchedWeight += IMIE2_WEIGHT;
+            }
+
+            // Oblicz procent dopasowania
+            if (totalWeight == 0)
+                return 0;
+
+            return (matchedWeight * 100) / totalWeight;
         }
     }
 }

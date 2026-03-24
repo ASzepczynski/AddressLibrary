@@ -3,7 +3,6 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
-using AddressLibrary.Services.HierarchyBuilders;
 using AddressLibrary.Services.AddressSearch;
 
 namespace AddressLibrary.Services.KodyPocztoweLoader
@@ -28,7 +27,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             PostalCodesLogger PostalCodesLogger,
             PostalCodesLogger fuzzyLogger,
             PostalCodesLogger errorLogger,
-            HashSet<string> personalStreets)
+            StreetParser streetParser)
         {
             _uliceDict = uliceDict;
             _PostalCodesLogger = PostalCodesLogger;
@@ -38,8 +37,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             // Konwertuj na UlicaCached
             _uliceCachedDict = ConvertToUlicaCachedDict(uliceDict);
             
-            // Inicjalizuj StreetMatcher
-            _streetMatcher = new StreetMatcher(personalStreets);
+            // Inicjalizuj StreetMatcher z parserem
+            _streetMatcher = new StreetMatcher(streetParser);
         }
 
         /// <summary>
@@ -65,15 +64,45 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         {
                             Id = ulica.Id,
                             MiastoId = ulica.MiastoId,
-                            Cecha = ulica.Cecha,
-                            Nazwa1 = ulica.Nazwa1,
-                            Nazwa2 = ulica.Nazwa2,
+                            Cecha = ulica.Cecha ?? "",
                             Miasto = ulica.Miasto,
                             Dzielnica = ulica.Dzielnica,
-                            NormalizedNazwa1 = TextNormalizer.Normalize(ulica.Nazwa1),
-                            NormalizedCombined = string.IsNullOrEmpty(ulica.Nazwa2)
+                            TypUlicyId = ulica.TypUlicyId,
+                            
+                            // 🚀 Pre-normalizuj komponenty z TypUlicy
+                            // ✅ POPRAWKA: Sprawdzaj TypUlicyId != -1 zamiast null
+                            Prefiks = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Prefiks)
                                 ? null
-                                : TextNormalizer.Normalize($"{ulica.Nazwa2} {ulica.Nazwa1}")
+                                : TextNormalizer.Normalize(ulica.TypUlicy.Prefiks),
+                            
+                            // ✅ POPRAWKA: Sprawdzaj TytulStopienId != -1
+                            Tytul = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || ulica.TypUlicy.TytulStopienId == -1 || ulica.TypUlicy.TytulStopien == null
+                                ? null
+                                : TextNormalizer.Normalize(ulica.TypUlicy.TytulStopien.Dopelniacz ?? ulica.TypUlicy.TytulStopien.Skrot ?? ""),
+                            
+                            Imie = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Imie)
+                                ? null
+                                : TextNormalizer.Normalize(ulica.TypUlicy.Imie),
+                            
+                            Imie2 = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Imie2)
+                                ? null
+                                : TextNormalizer.Normalize(ulica.TypUlicy.Imie2),
+                            
+                            Nazwisko = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Nazwisko)
+                                ? null
+                                : TextNormalizer.Normalize(ulica.TypUlicy.Nazwisko),
+                            
+                            Nazwisko2 = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Nazwisko2)
+                                ? null
+                                : TextNormalizer.Normalize(ulica.TypUlicy.Nazwisko2),
+                            
+                            Pseudonim = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Pseudonim)
+                                ? null
+                                : TextNormalizer.Normalize(ulica.TypUlicy.Pseudonim),
+                            
+                            Postfiks = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Postfiks)
+                                ? null
+                                : TextNormalizer.Normalize(ulica.TypUlicy.Postfiks)
                         };
                         cachedList.Add(cached);
                     }
@@ -136,6 +165,37 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             if (ulicaCached == null)
             {
+                // ✅ POPRAWKA: Zdefiniuj normalizedSearch
+                var normalizedSearch = TextNormalizer.Normalize(currentUlica);
+                
+                // ✅ DIAGNOSTYKA: Wypisz TOP 20 najbliższych dopasowań z score'ami
+                var allWithScores = _streetMatcher.FindAllWithScores(filteredUlice, currentUlica);
+                
+                _errorLogger.LogError($"[DIAGNOSTYKA] Nie znaleziono ulicy '{currentUlica}' w {miasto.Nazwa}");
+                _errorLogger.LogError($"[DIAGNOSTYKA] Normalized search: '{normalizedSearch}'");
+                
+                if (allWithScores.Count > 0 && allWithScores[0].parsed != null)
+                {
+                    var p = allWithScores[0].parsed;
+                    _errorLogger.LogError($"[DIAGNOSTYKA] Parsed search: Cecha='{p.Cecha ?? "null"}', Prefiks='{p.Prefiks ?? "null"}', Tytul='{p.Tytul ?? "null"}', Imie='{p.Imie ?? "null"}', Nazwisko='{p.Nazwisko ?? "null"}', Pseudonim='{p.Pseudonim ?? "null"}'");
+                }
+                
+                _errorLogger.LogError($"[DIAGNOSTYKA] TOP 20 najbliższych dopasowań:");
+                
+                foreach (var (u, score, reason, parsed) in allWithScores.Take(20))
+                {
+                    var displayName = u.GetDisplayName();
+                    var fullNorm = u.GetFullNormalized();
+                    
+                    _errorLogger.LogError($"  [{score:000}] ID:{u.Id} | '{displayName}' | norm:'{fullNorm}' | {reason}");
+                    _errorLogger.LogError($"        Ulica: Imie='{u.Imie ?? "null"}', Nazwisko='{u.Nazwisko ?? "null"}', Tytul='{u.Tytul ?? "null"}', Pseudonim='{u.Pseudonim ?? "null"}', Postfiks='{u.Postfiks ?? "null"}'");
+                    
+                    if (parsed != null)
+                    {
+                        _errorLogger.LogError($"        Search: Imie='{parsed.Imie ?? "null"}', Nazwisko='{parsed.Nazwisko ?? "null"}', Tytul='{parsed.Tytul ?? "null"}', Pseudonim='{parsed.Pseudonim ?? "null"}'");
+                    }
+                }
+
                 return (null, currentUlica);
             }
 
@@ -149,23 +209,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 Dzielnica = ulicaCached.Dzielnica
             };
 
-            // Sprawdź czy to było fuzzy matching
-            var normalizedSearch = TextNormalizer.Normalize(currentUlica);
-            var wasExactMatch = ulicaCached.NormalizedNazwa1 == normalizedSearch ||
-                               (ulicaCached.NormalizedCombined != null && ulicaCached.NormalizedCombined == normalizedSearch);
-
-            if (!wasExactMatch)
-            {
-                // ✅ POPRAWKA: Użyj ulicaCached.Cecha, Nazwa1, Nazwa2 zamiast computed properties z ulica
-                var pelnaNazwa = string.IsNullOrEmpty(ulicaCached.Cecha)
-                    ? $"{ulicaCached.Nazwa1}{(string.IsNullOrEmpty(ulicaCached.Nazwa2) ? "" : $" ({ulicaCached.Nazwa2})")}"
-                    : $"{ulicaCached.Cecha} {ulicaCached.Nazwa1}{(string.IsNullOrEmpty(ulicaCached.Nazwa2) ? "" : $" ({ulicaCached.Nazwa2})")}_";
-
-                var fuzzyMessage = $"[UlicaMatcher] ✓ FUZZY: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{pelnaNazwa}'";
-                
-                _PostalCodesLogger.LogInfo(fuzzyMessage);
-                _fuzzyLogger.LogInfo(fuzzyMessage);
-            }
+            // Loguj matching
+            var matchMessage = $"[UlicaMatcher] ✓ MATCHED: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{ulicaCached.GetDisplayName()}'";
+            
+            _PostalCodesLogger.LogInfo(matchMessage);
+            _fuzzyLogger.LogInfo(matchMessage);
 
             return (ulica, currentUlica);
         }

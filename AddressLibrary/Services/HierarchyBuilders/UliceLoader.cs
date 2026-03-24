@@ -17,7 +17,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
         private readonly AddressDbContext _context;
         private readonly HierarchyStreetLogger _logger;
         private readonly PrefixChangeLogger _prefixLogger;
-        private readonly StreetNamePersonalConverter _personalConverter;
         private readonly TytulyStopnieDictionaryService _tytulyService;
         private readonly TypyUlicDictionaryService _typyUlicService;
 
@@ -26,11 +25,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _context = context;
             _logger = new HierarchyStreetLogger(appDataPath);
             _prefixLogger = new PrefixChangeLogger(appDataPath);
-            _personalConverter = new StreetNamePersonalConverter(appDataPath ?? string.Empty);
             _tytulyService = new TytulyStopnieDictionaryService(context);
             _typyUlicService = new TypyUlicDictionaryService(context);
 
-            _logger.LogInfo($"Załadowano {_personalConverter.Count} konwersji ulic osobowych z Excel");
         }
 
         private NameCorrectionHelper _corrections;
@@ -195,7 +192,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 dzielnica = UliceUtils.Wesola(ulic);
                 if (dzielnica == "")
                 {
-                    (tempNazwa1, dzielnica) = UliceUtils.ZielonaGora(miasto, tempNazwa1, dzielnica);
+                    (var tempNazwa3, dzielnica) = UliceUtils.ZielonaGora(miasto, tempNazwa1, dzielnica);
                 }
 
 

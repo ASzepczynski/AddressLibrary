@@ -304,7 +304,7 @@ namespace AddressLibrary.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Symbol = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: false, collation: "Polish_CS_AS"),
+                    Kod = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: false, collation: "Polish_CS_AS"),
                     Nazwa = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, collation: "Polish_CS_AS"),
                     GminaId = table.Column<int>(type: "int", nullable: false),
                     RodzajMiastaId = table.Column<int>(type: "int", nullable: false)

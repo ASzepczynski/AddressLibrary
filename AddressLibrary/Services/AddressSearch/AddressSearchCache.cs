@@ -3,8 +3,6 @@
 using AddressLibrary.Data;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 
 namespace AddressLibrary.Services.AddressSearch
@@ -21,7 +19,6 @@ namespace AddressLibrary.Services.AddressSearch
         private Dictionary<int, List<UlicaCached>>? _uliceDict;
         private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweMiastDict;
         private Dictionary<int, List<KodPocztowy>>? _kodyPocztoweUlicDict;
-        private HashSet<string>? _personalStreets;
         private bool _isInitialized;
 
         public AddressSearchCache(AddressDbContext context, string appDataPath)
@@ -32,11 +29,6 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         public bool IsInitialized => _isInitialized;
-
-        /// <summary>
-        /// Zwraca zbiór znormalizowanych nazw ulic osobowych
-        /// </summary>
-        public HashSet<string> PersonalStreets => _personalStreets ?? new HashSet<string>();
 
         /// <summary>
         /// Inicjalizuje wszystkie słowniki z bazy danych
@@ -62,7 +54,7 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(m => TextNormalizer.Normalize(m.Nazwa))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // ✅ POPRAWKA: Załaduj TypUlicy z TytulStopien dla computed properties Nazwa1/Nazwa2
+            // ✅ POPRAWKA: Załaduj TypUlicy z TytulStopien dla computed properties
             var ulice = await _context.Ulice
                 .Include(u => u.Miasto)
                 .Include(u => u.TypUlicy)
@@ -70,24 +62,50 @@ namespace AddressLibrary.Services.AddressSearch
                 .Where(u => u.Id != -1)
                 .ToListAsync();
 
-            // ✅ Konwertuj na UlicaCached z pre-znormalizowanymi nazwami
+            // ✅ Konwertuj na UlicaCached z pre-znormalizowanymi komponentami
             var uliceCached = ulice.Select(u => new UlicaCached
             {
                 Id = u.Id,
                 MiastoId = u.MiastoId,
-                Cecha = u.Cecha,
-                Nazwa1 = u.Nazwa1,
-                Nazwa2 = u.Nazwa2,
+                Cecha = u.Cecha ?? "",
                 Miasto = u.Miasto,
                 Dzielnica = u.Dzielnica,
+                TypUlicyId = u.TypUlicyId,
 
-                // ✅ POPRAWKA 1: Normalizuj tylko Nazwa1 (nazwisko)
-                NormalizedNazwa1 = TextNormalizer.Normalize(u.Nazwa1),
-
-                // ✅ POPRAWKA 2: Jeśli jest Nazwa2, normalizuj jako "Nazwa2 Nazwa1" (bez NormalizeOrdinalNumber!)
-                NormalizedCombined = string.IsNullOrEmpty(u.Nazwa2)
+                // 🚀 Pre-normalizuj komponenty z TypUlicy
+                // ✅ POPRAWKA: Sprawdzaj TypUlicyId != -1 zamiast null
+                Prefiks = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Prefiks)
                     ? null
-                    : TextNormalizer.Normalize($"{u.Nazwa2} {u.Nazwa1}")
+                    : TextNormalizer.Normalize(u.TypUlicy.Prefiks),
+                
+                // ✅ POPRAWKA: Sprawdzaj TytulStopienId != -1 zamiast TytulStopien == null
+                Tytul = u.TypUlicyId == -1 || u.TypUlicy == null || u.TypUlicy.TytulStopienId == -1 || u.TypUlicy.TytulStopien == null
+                    ? null
+                    : TextNormalizer.Normalize(u.TypUlicy.TytulStopien.Dopelniacz ?? u.TypUlicy.TytulStopien.Skrot ?? ""),
+                
+                Imie = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Imie)
+                    ? null
+                    : TextNormalizer.Normalize(u.TypUlicy.Imie),
+                
+                Imie2 = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Imie2)
+                    ? null
+                    : TextNormalizer.Normalize(u.TypUlicy.Imie2),
+                
+                Nazwisko = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Nazwisko)
+                    ? null
+                    : TextNormalizer.Normalize(u.TypUlicy.Nazwisko),
+                
+                Nazwisko2 = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Nazwisko2)
+                    ? null
+                    : TextNormalizer.Normalize(u.TypUlicy.Nazwisko2),
+                
+                Pseudonim = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Pseudonim)
+                    ? null
+                    : TextNormalizer.Normalize(u.TypUlicy.Pseudonim),
+                
+                Postfiks = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Postfiks)
+                    ? null
+                    : TextNormalizer.Normalize(u.TypUlicy.Postfiks)
 
             }).ToList();
 
@@ -114,81 +132,7 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(k => k.UlicaId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Załaduj ulice osobowe
-            _personalStreets = LoadPersonalStreets();
-
             _isInitialized = true;
-        }
-
-        /// <summary>
-        /// Załaduj ulice osobowe z pliku Excel (zachowaj oryginalną nazwę)
-        /// </summary>
-        private HashSet<string> LoadPersonalStreets()
-        {
-            var personalStreets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            var excelPath = Path.Combine(_appDataPath, "AppData", "Updates", "UliceOsobowe.xlsx");
-
-            if (!File.Exists(excelPath))
-            {
-                Console.WriteLine($"⚠️ Plik {excelPath} nie istnieje");
-                return personalStreets;
-            }
-
-            try
-            {
-                using (var spreadsheet = SpreadsheetDocument.Open(excelPath, false))
-                {
-                    var workbookPart = spreadsheet.WorkbookPart;
-                    if (workbookPart == null)
-                        return personalStreets;
-
-                    var worksheetPart = workbookPart.WorksheetParts.First();
-                    var sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
-
-                    foreach (var row in sheetData.Elements<Row>().Skip(1))
-                    {
-                        var cells = row.Elements<Cell>().ToList();
-
-                        if (cells.Count >= 5)
-                        {
-                            string? streetName = GetCellValue(workbookPart, cells[4]);
-                            if (!string.IsNullOrWhiteSpace(streetName))
-                            {
-                                var normalized = TextNormalizer.Normalize(streetName);
-                                personalStreets.Add(normalized);
-                            }
-                        }
-                    }
-                }
-
-                Console.WriteLine($"✓ Załadowano {personalStreets.Count} ulic osobowych z {excelPath}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ Błąd ładowania ulic osobowych: {ex.Message}");
-            }
-
-            return personalStreets;
-        }
-
-        private static string GetCellValue(WorkbookPart workbookPart, Cell cell)
-        {
-            if (cell.CellValue == null)
-                return string.Empty;
-
-            string value = cell.CellValue.InnerText;
-
-            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
-            {
-                var stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
-                if (stringTable != null)
-                {
-                    return stringTable.SharedStringTable.ElementAt(int.Parse(value)).InnerText;
-                }
-            }
-
-            return value;
         }
 
         /// <summary>
@@ -202,6 +146,34 @@ namespace AddressLibrary.Services.AddressSearch
                 return false;
 
             return _miastaDict.TryGetValue(normalizedName, out miasta!);
+        }
+
+        /// <summary>
+        /// Znajduje miasta o podanej nazwie (automatyczna normalizacja)
+        /// </summary>
+        public List<Miasto> FindCitiesByName(string cityName)
+        {
+            var normalized = TextNormalizer.Normalize(cityName);
+            
+            if (TryGetMiasta(normalized, out var miasta))
+            {
+                return miasta;
+            }
+            
+            return new List<Miasto>();
+        }
+
+        /// <summary>
+        /// Zwraca wszystkie miasta z cache
+        /// </summary>
+        public List<Miasto> GetAllCities()
+        {
+            if (_miastaDict == null)
+                return new List<Miasto>();
+
+            return _miastaDict.Values
+                .SelectMany(lista => lista)
+                .ToList();
         }
 
         /// <summary>
@@ -244,152 +216,49 @@ namespace AddressLibrary.Services.AddressSearch
         }
 
         /// <summary>
-        /// 🆕 Zwraca oryginalną nazwę ulicy (z cechą, jeśli istnieje)
-        /// Używane do wyświetlania nieznormalizowanych nazw w komunikatach
+        /// Zwraca oryginalną nazwę ulicy (z cechą, dla wyświetlania)
         /// </summary>
         public string GetOriginalStreetName(UlicaCached ulica)
         {
-            return $"{ulica.Cecha} {ulica.Nazwa2} {ulica.Nazwa1}".Replace("  ", " ").Trim();
+            return ulica.GetDisplayName();
         }
 
         /// <summary>
         /// 🆕 Znajduje ulicę globalnie we WSZYSTKICH miastach (dla diagnostyki)
         /// Zwraca listę lokalizacji, gdzie dana ulica istnieje
-        /// OBSŁUGUJE także częściowe dopasowanie (skróty jak "Boh." → "Bohaterów")
         /// </summary>
-        public List<(string MiastoNazwa, string UlicaNazwa)> FindStreetGlobally(string normalizedStreetName)
+        public List<(string MiastoNazwa, string UlicaNazwa)> FindStreetGlobally(string streetName)
         {
             var locations = new List<(string MiastoNazwa, string UlicaNazwa)>();
 
-            if (_uliceDict == null || string.IsNullOrWhiteSpace(normalizedStreetName))
+            if (_uliceDict == null || string.IsNullOrWhiteSpace(streetName))
                 return locations;
+
+            var normalized = TextNormalizer.Normalize(streetName);
 
             // Przeszukaj wszystkie miasta
             foreach (var (miastoId, ulice) in _uliceDict)
             {
                 foreach (var ulica in ulice)
                 {
-                    bool isMatch = false;
-
-                    // ✅ 1. DOKŁADNE dopasowanie
-                    if (ulica.NormalizedNazwa1 == normalizedStreetName ||
-                        ulica.NormalizedCombined == normalizedStreetName)
+                    // Sprawdź czy pełna nazwa znormalizowana zawiera wyszukiwaną fragment
+                    var fullNormalized = ulica.GetFullNormalized();
+                    
+                    // Dopasowanie:
+                    // 1. Pełna nazwa zawiera fragment
+                    // 2. Nazwisko pasuje (dla dokładniejszych wyników)
+                    if (fullNormalized.Contains(normalized) || 
+                        (ulica.Nazwisko != null && ulica.Nazwisko.Contains(normalized)))
                     {
-                        isMatch = true;
-                    }
-
-                    // ✅ 2. CZĘŚCIOWE dopasowanie (dla skrótów)
-                    if (!isMatch && normalizedStreetName.Length >= 3)
-                    {
-                        if (ulica.NormalizedCombined != null)
-                        {
-                            var searchWords = normalizedStreetName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                            var streetWords = ulica.NormalizedCombined.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                            if (searchWords.Length > 0 && streetWords.Length >= searchWords.Length)
-                            {
-                                bool allWordsMatch = true;
-                                for (int i = 0; i < searchWords.Length; i++)
-                                {
-                                    if (!streetWords[i].StartsWith(searchWords[i]) &&
-                                        !searchWords[i].StartsWith(streetWords[i]))
-                                    {
-                                        allWordsMatch = false;
-                                        break;
-                                    }
-                                }
-
-                                if (allWordsMatch)
-                                {
-                                    isMatch = true;
-                                }
-                            }
-                        }
-                    }
-
-                    if (isMatch)
-                    {
-                        var miastoNazwa = ulica.Miasto?.Nazwa ?? "?";
-                        var ulicaNazwa = GetOriginalStreetName(ulica);
-
+                        var miastoNazwa = ulica.Miasto?.Nazwa ?? "Nieznane miasto";
+                        var ulicaNazwa = ulica.GetDisplayName();
+                        
                         locations.Add((miastoNazwa, ulicaNazwa));
                     }
                 }
             }
 
-            return locations.Distinct().Take(10).ToList();
+            return locations;
         }
-
-        /// <summary>
-        /// 🆕 Znajduje miasta po znormalizowanej nazwie
-        /// </summary>
-        public List<Miasto> FindCitiesByName(string normalizedCityName)
-        {
-            if (_miastaDict == null || string.IsNullOrWhiteSpace(normalizedCityName))
-                return new List<Miasto>();
-
-            if (_miastaDict.TryGetValue(normalizedCityName, out var miasta))
-            {
-                return miasta;
-            }
-
-            return new List<Miasto>();
-        }
-
-        /// <summary>
-        /// 🆕 Zwraca wszystkie miejscowości z cache (dla fuzzy matching)
-        /// Każda miejscowość ma dodane pole NormalizedNazwa
-        /// </summary>
-        public List<MiastoCached> GetAllCities()
-        {
-            if (_miastaDict == null)
-                return new List<MiastoCached>();
-
-            // Przekształć słownik miast na listę z znormalizowanymi nazwami
-            var allCities = new List<MiastoCached>();
-
-            foreach (var (normalizedName, cities) in _miastaDict)
-            {
-                foreach (var city in cities)
-                {
-                    allCities.Add(new MiastoCached
-                    {
-                        Miasto = city,
-                        NormalizedNazwa = normalizedName
-                    });
-                }
-            }
-
-            return allCities;
-        }
-    }
-
-    /// <summary>
-    /// 🚀 Cached wersja Ulica z pre-znormalizowanymi nazwami
-    /// </summary>
-    public class UlicaCached
-    {
-        public int Id { get; set; }
-        public int MiastoId { get; set; }
-        public string Cecha { get; set; } = string.Empty;
-        public string Nazwa1 { get; set; } = string.Empty;
-        public string? Nazwa2 { get; set; }
-        public Miasto Miasto { get; set; } = null!;
-        public string Dzielnica { get; set; } = null!;
-
-        // 🚀 Pre-znormalizowane nazwy
-        public string NormalizedNazwa1 { get; set; } = string.Empty;
-
-        // ✅ TYLKO kombinacja Nazwa2 + " " + Nazwa1
-        public string? NormalizedCombined { get; set; }
-    }
-
-    /// <summary>
-    /// 🚀 Cached wersja Miasto z znormalizowaną nazwą
-    /// </summary>
-    public class MiastoCached
-    {
-        public Miasto Miasto { get; set; } = null!;
-        public string NormalizedNazwa { get; set; } = string.Empty;
     }
 }

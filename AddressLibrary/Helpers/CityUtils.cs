@@ -9,7 +9,7 @@ namespace AddressLibrary.Helpers
         public static List<Miasto>? FindAllMiasta(
             AddressSearchCache _cache,
             string miastoName,
-            string? postalCode, // 🆕 DODANE
+            string? postalCode,
             SearchLogger? searchLogger,
             out string? method)
         {
@@ -23,7 +23,7 @@ namespace AddressLibrary.Helpers
                 // ✅ Jeśli jest więcej niż 1 miasto, spróbuj wybrać najbardziej pasujące
                 if (miasta.Count > 1)
                 {
-                    var bestCity = SelectBestCity(_cache, miasta, miastoName, postalCode, searchLogger); // 🆕 DODANE postalCode
+                    var bestCity = SelectBestCity(_cache, miasta, miastoName, postalCode, searchLogger);
                     if (bestCity != null)
                     {
                         searchLogger?.Log($"  ✓ Wybrano najlepiej pasującą miejscowość: '{bestCity.Nazwa}'");
@@ -42,7 +42,7 @@ namespace AddressLibrary.Helpers
             searchLogger?.Log($"  🔍 Szukam podobnej miejscowości (fuzzy matching)...");
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var similarCity = FindSimilarCity(_cache, miastoNorm, postalCode, searchLogger); // 🆕 DODANE postalCode
+            var similarCity = FindSimilarCity(_cache, miastoNorm, postalCode, searchLogger);
             stopwatch.Stop();
             searchLogger?.Log($"  ⏱ Czas wykonania FindSimilarCity: {stopwatch.ElapsedMilliseconds} ms");
 
@@ -65,7 +65,7 @@ namespace AddressLibrary.Helpers
         public static Miasto? FindSimilarCity(
             AddressSearchCache _cache,
             string normalizedCityName,
-            string? postalCode, // 🆕 DODANE
+            string? postalCode,
             GeneralLogger? searchLogger)
         {
             var allCities = _cache.GetAllCities();
@@ -94,7 +94,7 @@ namespace AddressLibrary.Helpers
             }
 
             // 🚀 OPTYMALIZACJA: Przefiltruj miasta PRZED główną pętlą
-            List<MiastoCached> candidateCities = allCities;
+            List<Miasto> candidateCities = allCities;
 
             int DlugoscKodu = 3;
 
@@ -103,11 +103,11 @@ namespace AddressLibrary.Helpers
                 string requiredPrefix = normalizedPostalCode.Substring(0, DlugoscKodu);
                 searchLogger?.Log($"    🔍 Filtrowanie miast po prefiksie kodu: '{requiredPrefix}'");
 
-                var filteredCities = new List<MiastoCached>();
+                var filteredCities = new List<Miasto>();
 
-                foreach (var cityCache in allCities)
+                foreach (var miasto in allCities)
                 {
-                    if (_cache.TryGetKodyPocztoweMiasta(cityCache.Miasto.Id, out var cityCodes))
+                    if (_cache.TryGetKodyPocztoweMiasta(miasto.Id, out var cityCodes))
                     {
                         bool hasMatchingCode = cityCodes.Any(k =>
                             !string.IsNullOrEmpty(k.Kod) &&
@@ -116,7 +116,7 @@ namespace AddressLibrary.Helpers
 
                         if (hasMatchingCode)
                         {
-                            filteredCities.Add(cityCache);
+                            filteredCities.Add(miasto);
                         }
                     }
                 }
@@ -131,7 +131,7 @@ namespace AddressLibrary.Helpers
                 }
             }
 
-            MiastoCached? bestMatch = null;
+            Miasto? bestMatch = null;
             int bestScore = int.MinValue;
             const int minScore = 20;
 
@@ -140,68 +140,32 @@ namespace AddressLibrary.Helpers
             int LiczbaMiast = 0;
 
             // 🚀 Iteruj tylko po przefiltrowanych miastach
-            foreach (var cityCache in candidateCities)
+            foreach (var miasto in candidateCities)
             {
                 int score = 0;
                 LiczbaMiast++;
 
+                var normalizedMiastoNazwa = TextNormalizer.Normalize(miasto.Nazwa);
+
                 // ✅ METODA 1: Dokładne dopasowanie
-                if (cityCache.NormalizedNazwa == normalizedCityName)
+                if (normalizedMiastoNazwa == normalizedCityName)
                 {
                     score = 100;
                 }
                 // ✅ METODA 2: Odległość Levenshteina
                 else
                 {
-                    var distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedCityName, cityCache.NormalizedNazwa);
+                    var distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedCityName, normalizedMiastoNazwa);
                     if (distance <= 2)
                     {
                         score = 50 - (distance * 10);
                     }
                 }
 
-                //// ✅ METODA 3: Partial matching z tokenizacją
-                //if (searchTokens.Length > 0)
-                //{
-                //    var cityTokens = cityCache.NormalizedNazwa.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                //    int tokenScore = 0;
-
-                //    for (int i = 0; i < searchTokens.Length && i < cityTokens.Length; i++)
-                //    {
-                //        if (cityTokens[i] == searchTokens[i])
-                //        {
-                //            tokenScore += 15;
-                //        }
-                //        else if (cityTokens[i].StartsWith(searchTokens[i]))
-                //        {
-                //            tokenScore += 10;
-                //        }
-                //        else if (searchTokens[i].StartsWith(cityTokens[i]))
-                //        {
-                //            tokenScore += 8;
-                //        }
-                //        else
-                //        {
-                //            var tokenDist = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(searchTokens[i], cityTokens[i]);
-                //            if (tokenDist <= 2)
-                //            {
-                //                tokenScore += Math.Max(0, 7 - (tokenDist * 2));
-                //            }
-                //        }
-                //    }
-
-                //    if (searchTokens.Length > 0 && tokenScore >= searchTokens.Length * 5)
-                //    {
-                //        tokenScore += 10;
-                //    }
-
-                //    score = Math.Max(score, tokenScore);
-                //}
-
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    bestMatch = cityCache;
+                    bestMatch = miasto;
                 }
             }
 
@@ -209,8 +173,8 @@ namespace AddressLibrary.Helpers
 
             if (bestMatch != null && bestScore >= minScore)
             {
-                searchLogger?.Log($"    Najlepsze dopasowanie zamiast {normalizedCityName}: '{bestMatch.Miasto.Nazwa}' (score: {bestScore})");
-                return bestMatch.Miasto;
+                searchLogger?.Log($"    Najlepsze dopasowanie zamiast {normalizedCityName}: '{bestMatch.Nazwa}' (score: {bestScore})");
+                return bestMatch;
             }
 
             searchLogger?.Log($"    Brak dopasowania (najlepszy score: {bestScore}, wymagany: {minScore})");
