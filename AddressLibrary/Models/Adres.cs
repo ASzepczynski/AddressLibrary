@@ -18,46 +18,46 @@ namespace AddressLibrary.Models
         /// <summary>
         /// Kraj (np. "Polska")
         /// </summary>
-        public string? Kraj { get; set; }
+        public string Kraj { get; set; } = string.Empty;
 
         /// <summary>
         /// Kod pocztowy (format: XX-XXX)
         /// </summary>
-        public string? Kod { get; set; }
+        public string Kod { get; set; } = string.Empty;
 
         /// <summary>
         /// Nazwa miasta/miejscowoœci
         /// </summary>
-        public string? Miasto { get; set; }
+        public string Miasto { get; set; } = string.Empty;
 
         /// <summary>
         /// Nazwa ulicy
         /// </summary>
-        public string? Ulica { get; set; }
+        public string Ulica { get; set; } = string.Empty;
 
         /// <summary>
         /// Numer domu
         /// </summary>
-        public string? NrDomu { get; set; }
+        public string NrDomu { get; set; } = string.Empty;
 
         /// <summary>
         /// Numer lokalu/mieszkania
         /// </summary>
-        public string? NrLokalu { get; set; }
+        public string NrLokalu { get; set; } = string.Empty;
 
         /// <summary>
         /// Województwo
         /// </summary>
-        public string? Wojewodztwo { get; set; }
+        public string Wojewodztwo { get; set; } = string.Empty;
 
         /// <summary>
         /// Powiat
         /// </summary>
-        public string? Powiat { get; set; }
+        public string Powiat { get; set; } = string.Empty;
 
         /// <summary>
         /// Gmina
         /// </summary>
-        public string? Gmina { get; set; }
+        public string Gmina { get; set; } = string.Empty;
     }
 }

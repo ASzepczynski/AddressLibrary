@@ -32,9 +32,9 @@ namespace AddressLibrary.Helpers
             var normalized = MakeCorrections(text);
             normalized = normalized.ToLowerInvariant().Trim();
             normalized = UliceUtils.RemoveDiacritics(normalized);
-            normalized = TitleManager.RemoveTitles(normalized);
-            normalized = RemoveNamePrefixes(normalized);
-            normalized = RemoveInitialsPrefix(normalized);
+//            normalized = TitleManager.RemoveTitles(normalized);
+//            normalized = RemoveNamePrefixes(normalized);
+//            normalized = RemoveInitialsPrefix(normalized);
             return normalized;
         }
 

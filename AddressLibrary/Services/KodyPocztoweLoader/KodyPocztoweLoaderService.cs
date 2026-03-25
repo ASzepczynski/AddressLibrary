@@ -161,12 +161,26 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var uliceDict = await dictionaryBuilder.BuildUliceDictionaryAsync();
 
             // ✅ POPRAWKA: Utwórz i zainicjalizuj StreetParser
+            _logger.LogInfo("=== Inicjalizacja StreetParser ===");
+
             var streetParser = new AddressLibrary.Services.AddressSearch.StreetParser(_context);
-            await streetParser.InitializeAsync();
+
+            try
+            {
+                await streetParser.InitializeAsync();
+                _logger.LogInfo($"✓ StreetParser zainicjalizowany");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Błąd inicjalizacji StreetParser: {ex.Message}");
+                throw;
+            }
 
             // Przekaż error logger do matcherów
             var miastoMatcher = new MiastoMatcher(gminyDict, miastaDict, _logger, _fuzzyLogger, _errorLogger);
-            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger, _fuzzyLogger, _errorLogger, streetParser); // ✅ DODANO: streetParser
+            var ulicaMatcher = new UlicaMatcher(uliceDict, _logger, _fuzzyLogger, _errorLogger, streetParser);
+
+            _logger.LogInfo($"✓ UlicaMatcher utworzony z StreetParser");
 
             progressInfo.CurrentOperation = "Przetwarzanie kodów pocztowych...";
             progress?.Report(progressInfo);

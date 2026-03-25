@@ -12,18 +12,18 @@ namespace AddressLibrary.Services.AddressSearch
         public int MiastoId { get; set; }
         public string Cecha { get; set; } = string.Empty;
         public Miasto Miasto { get; set; } = null!;
-        public string? Dzielnica { get; set; }
+        public string Dzielnica { get; set; } = string.Empty;
         public int? TypUlicyId { get; set; }
 
         // 🚀 Pre-znormalizowane komponenty z TypUlicy
-        public string? Prefiks { get; set; }        // np. "im", "imienia"
-        public string? Tytul { get; set; }          // np. "generala", "biskupa", "doktora"
-        public string? Imie { get; set; }           // np. "tadeusza"
-        public string? Imie2 { get; set; }          // np. "kamila"
-        public string? Nazwisko { get; set; }       // np. "ploskiego", "fieldorfa"
-        public string? Nazwisko2 { get; set; }      // np. "reymonta"
-        public string? Pseudonim { get; set; }      // np. "nila", "zapory"
-        public string? Postfiks { get; set; }       // np. "agawy", "sloneczna" (dla ulic nie-osobowych)
+        public string Prefiks { get; set; } = string.Empty;        // np. "im", "imienia"
+        public string Tytul { get; set; } = string.Empty;         // np. "generala", "biskupa", "doktora"
+        public string Imie { get; set; } = string.Empty;          // np. "tadeusza"
+        public string Imie2 { get; set; } = string.Empty;         // np. "kamila"
+        public string Nazwisko { get; set; } = string.Empty;      // np. "ploskiego", "fieldorfa"
+        public string Nazwisko2 { get; set; } = string.Empty;     // np. "reymonta"
+        public string Pseudonim { get; set; } = string.Empty;     // np. "nila", "zapory"
+        public string Postfiks { get; set; } = string.Empty;      // np. "agawy", "sloneczna" (dla ulic nie-osobowych)
 
         /// <summary>
         /// Zwraca pełną znormalizowaną nazwę (wszystkie komponenty bez cechy)

@@ -15,7 +15,7 @@ namespace AddressLibrary.Models
         /// <summary>
         /// Prefiks (np. "p³k.", "gen.", "ks.", "im.", "imienia")
         /// </summary>
-        public string? Prefiks { get; set; }
+        public string Prefiks { get; set; } = string.Empty;
 
         /// <summary>
         /// Klucz obcy do tabeli TytulyStopnie (np. "dr.", "prof.", "p³k.")
@@ -33,37 +33,37 @@ namespace AddressLibrary.Models
         /// Computed property zwracaj¹ce skrót tytu³u dla zachowania kompatybilnoœci wstecznej
         /// </summary>
         [NotMapped]
-        public string? Tytul => TytulStopien?.Skrot;
+        public string? Tytul => TytulStopien?.Skrot == null ? string.Empty : TytulStopien.Skrot;
 
         /// <summary>
         /// Pierwsze imiê (np. "Stanis³awa")
         /// </summary>
-        public string? Imie { get; set; }
+        public string Imie { get; set; } = string.Empty;
 
         /// <summary>
         /// Drugie imiê (np. "Kamila" w "Krzysztofa Kamila Baczyñskiego")
         /// </summary>
-        public string? Imie2 { get; set; }
+        public string Imie2 { get; set; } = string.Empty;
 
         /// <summary>
         /// Pierwsze nazwisko (np. "Mickiewicza")
         /// </summary>
-        public string? Nazwisko { get; set; }
+        public string Nazwisko { get; set; } = string.Empty;
 
         /// <summary>
         /// Drugie nazwisko (np. "Reymonta" w "W³adys³awa Stanis³awa Reymonta")
         /// </summary>
-        public string? Nazwisko2 { get; set; }
+        public string Nazwisko2 { get; set; } = string.Empty;
 
         /// <summary>
         /// Pseudonim (np. "Zapory", "Zoœki", "Nila")
         /// </summary>
-        public string? Pseudonim { get; set; }
+        public string Pseudonim { get; set; } = string.Empty;
 
         /// <summary>
         /// Postfiks/przydomek (np. dodatkowe informacje po pseudonimie)
         /// </summary>
-        public string? Postfiks { get; set; }
-       
+        public string Postfiks { get; set; } = string.Empty;
+
     }
 }

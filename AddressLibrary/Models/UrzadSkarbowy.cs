@@ -26,25 +26,25 @@ namespace AddressLibrary.Models
         /// Kod pocztowy
         /// </summary>
         [MaxLength(10)]
-        public string? Kod { get; set; }
+        public string Kod { get; set; } = string.Empty;
 
         /// <summary>
         /// Nazwa miasta
         /// </summary>
         [MaxLength(100)]
-        public string? Miasto { get; set; }
+        public string Miasto { get; set; } = string.Empty;
 
         /// <summary>
         /// Nazwa ulicy
         /// </summary>
         [MaxLength(200)]
-        public string? Ulica { get; set; }
+        public string Ulica { get; set; } = string.Empty;
 
         /// <summary>
         /// Numer domu
         /// </summary>
         [MaxLength(20)]
-        public string? NrDomu { get; set; }
+        public string NrDomu { get; set; }= string.Empty;
 
         /// <summary>
         /// Klucz obcy do Ulicy (wype³niany automatycznie podczas importu)
@@ -61,12 +61,12 @@ namespace AddressLibrary.Models
         /// Adres email
         /// </summary>
         [MaxLength(100)]
-        public string? Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Strona WWW
         /// </summary>
         [MaxLength(200)]
-        public string? Www { get; set; }
+        public string Www { get; set; } = string.Empty;
     }
 }

@@ -17,15 +17,15 @@ namespace AddressLibrary.Migrations
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false, collation: "Polish_CS_AS"),
                     Komentarz = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
-                    Kraj = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Kod = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Miasto = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Ulica = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    NrDomu = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    NrLokalu = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Wojewodztwo = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Powiat = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Gmina = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS")
+                    Kraj = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Kod = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Miasto = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Ulica = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    NrDomu = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    NrLokalu = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Wojewodztwo = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Powiat = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Gmina = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS")
                 },
                 constraints: table =>
                 {
@@ -229,14 +229,14 @@ namespace AddressLibrary.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Prefiks = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
+                    Prefiks = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
                     TytulStopienId = table.Column<int>(type: "int", nullable: false),
-                    Imie = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Imie2 = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Nazwisko = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Nazwisko2 = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Pseudonim = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS"),
-                    Postfiks = table.Column<string>(type: "nvarchar(max)", nullable: true, collation: "Polish_CS_AS")
+                    Imie = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Imie2 = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Nazwisko = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Nazwisko2 = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Pseudonim = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS"),
+                    Postfiks = table.Column<string>(type: "nvarchar(max)", nullable: false, collation: "Polish_CS_AS")
                 },
                 constraints: table =>
                 {
@@ -334,7 +334,7 @@ namespace AddressLibrary.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Symbol = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false, collation: "Polish_CS_AS"),
                     Cecha = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true, collation: "Polish_CS_AS"),
-                    Dzielnica = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true, collation: "Polish_CS_AS"),
+                    Dzielnica = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, collation: "Polish_CS_AS"),
                     MiastoId = table.Column<int>(type: "int", nullable: false),
                     TypUlicyId = table.Column<int>(type: "int", nullable: true)
                 },
@@ -389,13 +389,13 @@ namespace AddressLibrary.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Nazwa = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, collation: "Polish_CS_AS"),
-                    Kod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true, collation: "Polish_CS_AS"),
-                    Miasto = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true, collation: "Polish_CS_AS"),
-                    Ulica = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true, collation: "Polish_CS_AS"),
-                    NrDomu = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true, collation: "Polish_CS_AS"),
+                    Kod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false, collation: "Polish_CS_AS"),
+                    Miasto = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false, collation: "Polish_CS_AS"),
+                    Ulica = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, collation: "Polish_CS_AS"),
+                    NrDomu = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, collation: "Polish_CS_AS"),
                     UlicaId = table.Column<int>(type: "int", nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true, collation: "Polish_CS_AS"),
-                    Www = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true, collation: "Polish_CS_AS")
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false, collation: "Polish_CS_AS"),
+                    Www = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, collation: "Polish_CS_AS")
                 },
                 constraints: table =>
                 {

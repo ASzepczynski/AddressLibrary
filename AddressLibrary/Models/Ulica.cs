@@ -86,7 +86,7 @@ namespace AddressLibrary.Models
 
         // ✅ DODANO: Pole dzielnica
         [MaxLength(200)]
-        public string? Dzielnica { get; set; }
+        public string Dzielnica { get; set; } = string.Empty;
 
         // Klucz obcy do miejscowości
         [Required]

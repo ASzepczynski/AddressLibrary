@@ -34,29 +34,45 @@ namespace AddressLibrary.Services.AddressSearch
             if (_isInitialized)
                 return;
 
+            Console.WriteLine($"[StreetParser] === Inicjalizacja słowników ===");
+
             // 1. Załaduj cechy ulic (ul., al., pl., ...)
             _cechy = (await _context.CechyUlic
                 .AsNoTracking()
+                .Where(c => c.Id != -1) // ✅ Pomiń sentinel
                 .Select(c => c.Skrot)
                 .ToListAsync())
                 .Select(s => TextNormalizer.Normalize(s))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+            Console.WriteLine($"[StreetParser] Załadowano {_cechy.Count} cech ulic");
+
             // 2. Załaduj tytuły (przez TitleManager)
-            TitleManager.Initialize(await _context.TytulyStopnie.AsNoTracking().ToListAsync());
+            TitleManager.Initialize(await _context.TytulyStopnie
+                .AsNoTracking()
+                .Where(t => t.Id != -1) // ✅ Pomiń sentinel
+                .ToListAsync());
+            
             _tytuly = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var tytul in await _context.TytulyStopnie.AsNoTracking().ToListAsync())
+            foreach (var tytul in await _context.TytulyStopnie
+                .AsNoTracking()
+                .Where(t => t.Id != -1)
+                .ToListAsync())
             {
                 if (!string.IsNullOrEmpty(tytul.Dopelniacz))
                     _tytuly.Add(TextNormalizer.Normalize(tytul.Dopelniacz));
+                // Dodajemy skróty ale bez kropki
                 if (!string.IsNullOrEmpty(tytul.Skrot))
-                    _tytuly.Add(TextNormalizer.Normalize(tytul.Skrot));
+                    _tytuly.Add(TextNormalizer.Normalize(tytul.Skrot).Replace(".",""));
             }
+
+            Console.WriteLine($"[StreetParser] Załadowano {_tytuly.Count} tytułów");
 
             // 3. Załaduj imiona, nazwiska, pseudonimy z TypyUlic
             var typyUlic = await _context.TypyUlic
                 .AsNoTracking()
+                .Where(t => t.Id != -1)
                 .ToListAsync();
 
             _imiona = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -79,6 +95,28 @@ namespace AddressLibrary.Services.AddressSearch
                     _pseudonimy.Add(TextNormalizer.Normalize(typ.Pseudonim));
             }
 
+            // ✅ WALIDACJA: Sprawdź czy słowniki nie są puste
+            if (_nazwiska.Count == 0)
+            {
+                throw new InvalidOperationException($"StreetParser: Słownik _nazwiska jest PUSTY! TypyUlic ma {typyUlic.Count} rekordów.");
+            }
+
+            // ✅ TEST: Czy "chrobrego" jest w słowniku
+            var chrobrego = TextNormalizer.Normalize("Chrobrego");
+            if (!_nazwiska.Contains(chrobrego))
+            {
+                // Znajdź rekordy z "Chrobrego" w nazwiskach
+                var chrobregoRecords = typyUlic
+                    .Where(t => !string.IsNullOrEmpty(t.Nazwisko) && 
+                               t.Nazwisko.Contains("Chrobrego", StringComparison.OrdinalIgnoreCase))
+                    .Select(t => $"ID={t.Id}, Nazwisko='{t.Nazwisko}'")
+                    .ToList();
+
+                throw new InvalidOperationException(
+                    $"StreetParser: 'chrobrego' NIE JEST w słowniku _nazwiska!\n" +
+                    $"Znaleziono {chrobregoRecords.Count} rekordów z 'Chrobrego': {string.Join(", ", chrobregoRecords)}");
+            }
+
             _isInitialized = true;
         }
 
@@ -90,6 +128,11 @@ namespace AddressLibrary.Services.AddressSearch
         {
             if (!_isInitialized)
                 throw new InvalidOperationException("StreetParser nie został zainicjalizowany. Wywołaj InitializeAsync().");
+
+            if (streetName.Contains("robrego"))
+            {
+                int y = 1;
+            }
 
             var result = new ParsedStreet();
 
@@ -133,19 +176,20 @@ namespace AddressLibrary.Services.AddressSearch
                 bool czyImie = _imiona!.Contains(word);
                 bool czyNazwisko = _nazwiska!.Contains(word);
 
+
                 if (czyImie && string.IsNullOrEmpty(result.Imie))
                 {
                     result.Imie = word;
                     continue;
                 }
-                if (czyImie && string.IsNullOrEmpty(result.Imie2))
-                {
-                    result.Imie2 = word;
-                    continue;
-                }
                 if (czyNazwisko && string.IsNullOrEmpty(result.Nazwisko))
                 {
                     result.Nazwisko = word;
+                    continue;
+                }
+                if (czyImie && string.IsNullOrEmpty(result.Imie2))
+                {
+                    result.Imie2 = word;
                     continue;
                 }
                 if (czyNazwisko && string.IsNullOrEmpty(result.Nazwisko2))
@@ -175,15 +219,15 @@ namespace AddressLibrary.Services.AddressSearch
     /// </summary>
     public class ParsedStreet
     {
-        public string? Cecha { get; set; }
-        public string? Prefiks { get; set; }
-        public string? Tytul { get; set; }
-        public string? Imie { get; set; }
-        public string? Imie2 { get; set; }
-        public string? Nazwisko { get; set; }
-        public string? Nazwisko2 { get; set; }
-        public string? Pseudonim { get; set; }
-        public string? Postfiks { get; set; }
+        public string Cecha { get; set; } = String.Empty;
+        public string Prefiks { get; set; } = String.Empty;
+        public string Tytul { get; set; } = String.Empty;
+        public string Imie { get; set; } = String.Empty;
+        public string Imie2 { get; set; } = String.Empty;
+        public string Nazwisko { get; set; } = String.Empty;
+        public string Nazwisko2 { get; set; } = String.Empty;
+        public string Pseudonim { get; set; } = String.Empty;
+        public string Postfiks { get; set; } = String.Empty;
 
         /// <summary>
         /// Zwraca pełną nazwę (bez cechy)

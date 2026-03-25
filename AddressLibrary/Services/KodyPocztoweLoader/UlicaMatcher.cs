@@ -72,36 +72,36 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                             // 🚀 Pre-normalizuj komponenty z TypUlicy
                             // ✅ POPRAWKA: Sprawdzaj TypUlicyId != -1 zamiast null
                             Prefiks = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Prefiks)
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.Prefiks),
                             
                             // ✅ POPRAWKA: Sprawdzaj TytulStopienId != -1
                             Tytul = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || ulica.TypUlicy.TytulStopienId == -1 || ulica.TypUlicy.TytulStopien == null
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.TytulStopien.Dopelniacz ?? ulica.TypUlicy.TytulStopien.Skrot ?? ""),
                             
                             Imie = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Imie)
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.Imie),
                             
                             Imie2 = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Imie2)
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.Imie2),
                             
                             Nazwisko = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Nazwisko)
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.Nazwisko),
                             
                             Nazwisko2 = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Nazwisko2)
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.Nazwisko2),
                             
                             Pseudonim = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Pseudonim)
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.Pseudonim),
                             
                             Postfiks = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Postfiks)
-                                ? null
+                                ? string.Empty
                                 : TextNormalizer.Normalize(ulica.TypUlicy.Postfiks)
                         };
                         cachedList.Add(cached);
@@ -177,24 +177,36 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 if (allWithScores.Count > 0 && allWithScores[0].parsed != null)
                 {
                     var p = allWithScores[0].parsed;
-                    _errorLogger.LogError($"[DIAGNOSTYKA] Parsed search: Cecha='{p.Cecha ?? "null"}', Prefiks='{p.Prefiks ?? "null"}', Tytul='{p.Tytul ?? "null"}', Imie='{p.Imie ?? "null"}', Nazwisko='{p.Nazwisko ?? "null"}', Pseudonim='{p.Pseudonim ?? "null"}'");
+                    _errorLogger.LogError($"[DIAGNOSTYKA] Parsed search: " +
+                        $"C='{p.Cecha ?? "n"}', " +
+                        $"Pr='{p.Prefiks ?? "n"}', " +
+                        $"Tyt='{p.Tytul ?? "n"}', " +
+                        $"I='{p.Imie ?? "n"}', " +
+                        $"I2='{p.Imie2 ?? "n"}', " +
+                        $"N='{p.Nazwisko ?? "n"}', " +
+                        $"N2='{p.Nazwisko2 ?? "n"}', " +
+                        $"Ps='{p.Pseudonim ?? "n"}'");
                 }
                 
-                _errorLogger.LogError($"[DIAGNOSTYKA] TOP 20 najbliższych dopasowań:");
+                //_errorLogger.LogError($"[DIAGNOSTYKA] TOP 3 najbliższych dopasowań:");
                 
-                foreach (var (u, score, reason, parsed) in allWithScores.Take(20))
-                {
-                    var displayName = u.GetDisplayName();
-                    var fullNorm = u.GetFullNormalized();
+                //foreach (var (u, score, reason, parsed) in allWithScores.Take(3))
+                //{
+                //    var displayName = u.GetDisplayName();
+                //    var fullNorm = u.GetFullNormalized();
                     
-                    _errorLogger.LogError($"  [{score:000}] ID:{u.Id} | '{displayName}' | norm:'{fullNorm}' | {reason}");
-                    _errorLogger.LogError($"        Ulica: Imie='{u.Imie ?? "null"}', Nazwisko='{u.Nazwisko ?? "null"}', Tytul='{u.Tytul ?? "null"}', Pseudonim='{u.Pseudonim ?? "null"}', Postfiks='{u.Postfiks ?? "null"}'");
-                    
-                    if (parsed != null)
-                    {
-                        _errorLogger.LogError($"        Search: Imie='{parsed.Imie ?? "null"}', Nazwisko='{parsed.Nazwisko ?? "null"}', Tytul='{parsed.Tytul ?? "null"}', Pseudonim='{parsed.Pseudonim ?? "null"}'");
-                    }
-                }
+                //    _errorLogger.LogError($"  [{score:000}] ID:{u.Id} | '{displayName}' | norm:'{fullNorm}' | {reason}");
+                //    _errorLogger.LogError($"Ulica: " +
+                //        $"C='{u.Cecha ?? "n"}', " +
+                //        $"Pr='{u.Prefiks ?? "n"}', " +
+                //        $"Tyt='{u.Tytul ?? "n"}', " +
+                //        $"I='{u.Imie ?? "n"}', " +
+                //        $"I2='{u.Imie2 ?? "n"}', " +
+                //        $"N='{u.Nazwisko ?? "n"}', " +
+                //        $"N2='{u.Nazwisko2 ?? "n"}', " +
+                //        $"Ps='{u.Pseudonim ?? "n"}'");
+
+                //}
 
                 return (null, currentUlica);
             }

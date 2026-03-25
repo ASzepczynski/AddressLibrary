@@ -118,8 +118,8 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<TypUlicy>(
                 context,
                 "TypyUlic",
-                new[] { "TytulStopienId", "Postfiks" },
-                new[] { "-1", "'brak'" },
+                new[] { "Prefiks", "TytulStopienId", "Imie", "Imie2", "Nazwisko", "Nazwisko2", "Pseudonim", "Postfiks" },
+                new[] { "''", "-1", "''", "''", "''", "''", "''", "'brak'" },
                 logger
             );
         }
@@ -216,8 +216,8 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<Ulica>(
                 context,
                 "Ulice",
-                new[] { "Symbol", "MiastoId", "TypUlicyId" },
-                new[] { "'0000000'", "-1", "-1" },
+                new[] { "Symbol", "Dzielnica", "MiastoId", "TypUlicyId" },
+                new[] { "'0000000'", "''", "-1", "-1" },
                 logger
             );
         }

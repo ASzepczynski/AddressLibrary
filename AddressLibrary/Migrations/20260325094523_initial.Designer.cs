@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    [Migration("20260324064322_initial")]
+    [Migration("20260325094523_initial")]
     partial class initial
     {
         /// <inheritdoc />
@@ -32,10 +32,12 @@ namespace AddressLibrary.Migrations
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Gmina")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Kod")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
@@ -45,30 +47,37 @@ namespace AddressLibrary.Migrations
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Kraj")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Miasto")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("NrDomu")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("NrLokalu")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Powiat")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Ulica")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Wojewodztwo")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
@@ -599,30 +608,37 @@ namespace AddressLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Imie")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Imie2")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwisko")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Nazwisko2")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Postfiks")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Prefiks")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Pseudonim")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .UseCollation("Polish_CS_AS");
 
@@ -682,6 +698,7 @@ namespace AddressLibrary.Migrations
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Dzielnica")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)")
                         .UseCollation("Polish_CS_AS");
@@ -716,16 +733,19 @@ namespace AddressLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Kod")
+                        .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Miasto")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .UseCollation("Polish_CS_AS");
@@ -737,11 +757,13 @@ namespace AddressLibrary.Migrations
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("NrDomu")
+                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
                         .UseCollation("Polish_CS_AS");
 
                     b.Property<string>("Ulica")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)")
                         .UseCollation("Polish_CS_AS");
@@ -750,6 +772,7 @@ namespace AddressLibrary.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Www")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)")
                         .UseCollation("Polish_CS_AS");

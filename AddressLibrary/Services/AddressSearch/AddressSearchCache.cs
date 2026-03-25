@@ -67,44 +67,42 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 Id = u.Id,
                 MiastoId = u.MiastoId,
-                Cecha = u.Cecha ?? "",
+                Cecha = u.Cecha ?? string.Empty,
                 Miasto = u.Miasto,
-                Dzielnica = u.Dzielnica,
+                Dzielnica = u.Dzielnica ?? string.Empty,
                 TypUlicyId = u.TypUlicyId,
 
-                // 🚀 Pre-normalizuj komponenty z TypUlicy
-                // ✅ POPRAWKA: Sprawdzaj TypUlicyId != -1 zamiast null
+                // 🚀 Pre-normalizuj komponenty z TypUlicy (zawsze string.Empty, NIGDY null)
                 Prefiks = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Prefiks)
-                    ? null
+                    ? string.Empty
                     : TextNormalizer.Normalize(u.TypUlicy.Prefiks),
                 
-                // ✅ POPRAWKA: Sprawdzaj TytulStopienId != -1 zamiast TytulStopien == null
                 Tytul = u.TypUlicyId == -1 || u.TypUlicy == null || u.TypUlicy.TytulStopienId == -1 || u.TypUlicy.TytulStopien == null
-                    ? null
-                    : TextNormalizer.Normalize(u.TypUlicy.TytulStopien.Dopelniacz ?? u.TypUlicy.TytulStopien.Skrot ?? ""),
+                    ? string.Empty
+                    : TextNormalizer.Normalize(u.TypUlicy.TytulStopien.Dopelniacz ?? u.TypUlicy.TytulStopien.Skrot ?? string.Empty),
                 
                 Imie = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Imie)
-                    ? null
+                    ? string.Empty
                     : TextNormalizer.Normalize(u.TypUlicy.Imie),
                 
                 Imie2 = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Imie2)
-                    ? null
+                    ? string.Empty
                     : TextNormalizer.Normalize(u.TypUlicy.Imie2),
                 
                 Nazwisko = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Nazwisko)
-                    ? null
+                    ? string.Empty
                     : TextNormalizer.Normalize(u.TypUlicy.Nazwisko),
                 
                 Nazwisko2 = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Nazwisko2)
-                    ? null
+                    ? string.Empty
                     : TextNormalizer.Normalize(u.TypUlicy.Nazwisko2),
                 
                 Pseudonim = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Pseudonim)
-                    ? null
+                    ? string.Empty
                     : TextNormalizer.Normalize(u.TypUlicy.Pseudonim),
                 
                 Postfiks = u.TypUlicyId == -1 || u.TypUlicy == null || string.IsNullOrWhiteSpace(u.TypUlicy.Postfiks)
-                    ? null
+                    ? string.Empty
                     : TextNormalizer.Normalize(u.TypUlicy.Postfiks)
 
             }).ToList();

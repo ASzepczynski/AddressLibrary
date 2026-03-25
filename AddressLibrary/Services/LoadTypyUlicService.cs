@@ -43,6 +43,16 @@ namespace AddressLibrary.Services
 
             _logger.LogInfo("=== Rozpoczęcie ładowania TypyUlic ===");
 
+            // ✅ KROK 0: Utwórz domyślne rekordy z ID = -1 (KOLEJNOŚĆ MA ZNACZENIE!)
+            _logger.LogInfo("KROK 0: Tworzenie domyślnych rekordów z ID = -1...");
+            progress?.Report(new ValidatorProgress { CurrentOperation = "Tworzenie domyślnych rekordów..." });
+
+            // WAŻNE: Najpierw TytulyStopnie (tabela nadrzędna)
+            await DefaultRecordHelper.EnsureTytulStopienDefaultAsync(_context, _logger);
+            
+            // Dopiero potem TypyUlic (tabela zależna z kluczem obcym do TytulyStopnie)
+            await DefaultRecordHelper.EnsureTypUlicyDefaultAsync(_context, _logger);
+
             // ✅ KROK 1: Załaduj słownik CechyUlic z Excel
             _logger.LogInfo("KROK 1: Ładowanie słownika CechyUlic z Excel...");
             progress?.Report(new ValidatorProgress { CurrentOperation = "Ładowanie słownika CechyUlic..." });
