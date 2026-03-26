@@ -270,9 +270,21 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     // 2. Znajdź ulicę (jeśli jest)
                     string? sUlica = pna.Ulica.Replace("-go", "");
 
+                    if (sUlica.Contains("olonia"))
+                    {
+                        int z = 1;
+                    }
+
                     (string sPrefix, sUlica) = UliceUtils.SplitStreetPrefix(sUlica);
-                    sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix, sUlica);
-                    (bool zmiana,sPrefix,sUlica) = PrefixModification.ModifyPrefix(sPrefix, sUlica, miasto.Nazwa);
+                    (string sPrefix2, string sUlica2) = UliceUtils.SplitStreetPrefix(sUlica);
+                    if (sPrefix2 != "")
+                    {
+                        // przypadek 'ul. Plac' ma dać 'pl.'
+                        sPrefix = sPrefix2;
+                        sUlica = sUlica2;
+                    }
+                    //                    sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix, sUlica);
+                    //(bool zmiana,sPrefix,sUlica) = PrefixModification.ModifyPrefix(sPrefix, sUlica, miasto.Nazwa);
 
                     (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
 

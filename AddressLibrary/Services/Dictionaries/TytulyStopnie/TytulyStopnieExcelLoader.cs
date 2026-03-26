@@ -36,7 +36,7 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
             await _logger.InitializeAsync();
 
             var result = new LoadResult();
-            var excelPath = GetExcelFilePath();
+            var excelPath = Directories.GetExcelFilePath("TytulyStopnie.xlsx");
 
             _logger.LogInfo("=== Rozpoczęcie ładowania TytulyStopnie ===");
 
@@ -240,16 +240,6 @@ namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
             return value;
         }
 
-        /// <summary>
-        /// Znajduje ścieżkę do pliku Excel w AddressLibrary/AppData/Dictionaries/
-        /// </summary>
-        private string GetExcelFilePath()
-        {
-            var projectRoot = Helpers.Configuration.GetAddressLibraryFilePath();
-            // Ścieżka do pliku Excel w AddressLibrary/AppData/Dictionaries/
-            var excelPath = Path.Combine(projectRoot, "AppData", "Dictionaries", "TytulyStopnie.xlsx");
-
-            return excelPath;
-        }
+  
     }
 }

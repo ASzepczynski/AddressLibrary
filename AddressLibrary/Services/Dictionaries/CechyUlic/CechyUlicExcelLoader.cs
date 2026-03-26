@@ -36,7 +36,7 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
             var result = new LoadResult();
             
             // ✅ POPRAWKA: Szukaj pliku w AddressLibrary/AppData/Dictionaries/
-            var excelPath = GetExcelFilePath();
+            var excelPath = Directories.GetExcelFilePath("CechyUlic.xlsx");
 
             _logger.LogInfo("=== Rozpoczęcie ładowania CechyUlic ===");
             _logger.LogInfo($"Ścieżka do pliku Excel: {excelPath}");
@@ -189,18 +189,6 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
             }
         }
 
-        /// <summary>
-        /// Znajduje ścieżkę do pliku Excel w AddressLibrary/AppData/Dictionaries/
-        /// </summary>
-        private string GetExcelFilePath()
-        {
-            var projectRoot = Helpers.Configuration.GetAddressLibraryFilePath();
-
-            // Ścieżka do pliku Excel w AddressLibrary/AppData/Dictionaries/
-            var excelPath = Path.Combine(projectRoot, "AppData", "Dictionaries", "CechyUlic.xlsx");
-
-            return excelPath;
-        }
 
         private async Task EnsureDefaultRecordExistsAsync()
         {

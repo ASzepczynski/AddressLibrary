@@ -35,7 +35,7 @@ namespace AddressLibrary.Services
             await _logger.InitializeAsync();
 
             var result = new LoadResult();
-            var excelPath = Path.Combine(_appDataPath, "AppData", "Dictionaries", "CechyUlic.xlsx");
+            var excelPath = Directories.GetExcelFilePath("CechyUlic.xlsx");
 
             _logger.LogInfo("=== Rozpoczêcie ³adowania CechyUlic ===");
 

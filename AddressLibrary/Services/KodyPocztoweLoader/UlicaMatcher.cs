@@ -199,8 +199,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             var message = "";
 
-            message = $" Próbowano korekty: '{sKorekcja}'";
-            message += $" Nie znaleziono ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
+            //message = $" Próbowano korekty: '{sKorekcja}'";
+            message += $" Brak ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
 
             return message;
         }

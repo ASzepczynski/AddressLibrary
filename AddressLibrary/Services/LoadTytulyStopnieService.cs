@@ -36,7 +36,7 @@ namespace AddressLibrary.Services
             await _logger.InitializeAsync();
 
             var result = new LoadResult();
-            var excelPath = Path.Combine(_appDataPath, "AppData", "Dictionaries", "TytulyStopnie.xlsx");
+            var excelPath = Directories.GetExcelFilePath("TytulyStopnie.xlsx");
 
             _logger.LogInfo("=== Rozpoczęcie ładowania TytulyStopnie ===");
 
