@@ -36,7 +36,7 @@ namespace AddressLibrary.Helpers
                     var dopelniaczNorm = TextNormalizer.Normalize(tytul.Dopelniacz.Trim());
                     if (!_titleMap.ContainsKey(dopelniaczNorm))
                         _titleMap[dopelniaczNorm] = tytul;
-                    _titlesSet.Add(dopelniaczNorm.Replace(".", ""));
+                    _titlesSet.Add(dopelniaczNorm);
                 }
 
                 // Dodaj skrót (np. "św." → "sw")
@@ -45,7 +45,7 @@ namespace AddressLibrary.Helpers
                     var skrotNorm = TextNormalizer.Normalize(tytul.Skrot.Trim());
                     if (!_titleMap.ContainsKey(skrotNorm))
                         _titleMap[skrotNorm] = tytul;
-                    _titlesSet.Add(skrotNorm.Replace(".", ""));
+                    _titlesSet.Add(skrotNorm);
                 }
             }
         }
@@ -67,7 +67,7 @@ namespace AddressLibrary.Helpers
 
             var filtered = words.Where(w =>
             {
-                var normalized = UliceUtils.RemoveDiacritics(w.Replace(".", "").ToLowerInvariant());
+                var normalized = UliceUtils.RemoveDiacritics(w.ToLowerInvariant());
                 return !_titlesSet.Contains(normalized);
             }).ToList();
 
@@ -95,7 +95,7 @@ namespace AddressLibrary.Helpers
                 var word = words[currentIndex];
 
                 // Normalizuj słowo (usuń kropkę, polskie znaki, lowercase)
-                var normalizedWord = UliceUtils.RemoveDiacritics(word.Replace(".", "").ToLowerInvariant());
+                var normalizedWord = UliceUtils.RemoveDiacritics(word.ToLowerInvariant());
 
                 // Sprawdź czy to tytuł
                 if (_titlesSet.Contains(normalizedWord) || _titlesSet.Contains(word))

@@ -219,12 +219,12 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 {
                     diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
 
-                    var ulica = _streetMatcher.FindStreet(ulice, normalizedStreet);
+                    var ulica = _streetMatcher.FindStreet(ulice, normalizedStreet,out bool isFuzzy);
+                    wasFuzzy = isFuzzy;
                     if (ulica != null)
                     {
                         diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę (fuzzy): ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
                         matchingStreets.Add((ulica, miasto));
-                        wasFuzzy = true;
                     }
                 }
             }
@@ -586,7 +586,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (_cache.TryGetUlice(miasto.Id, out var ulice))
                 {
                     // ✅ POPRAWKA: Użyj FindStreet (która robi fuzzy matching z wagami)
-                    var similar = _streetMatcher.FindStreet(ulice, request.Ulica);
+                    var similar = _streetMatcher.FindStreet(ulice, request.Ulica,out bool wasFuzzy);
                     if (similar != null)
                     {
                         // ✅ POPRAWKA: Użyj GetDisplayName() zamiast Nazwa1

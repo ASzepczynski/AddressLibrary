@@ -48,49 +48,30 @@ namespace AddressLibrary.Services.AddressSearch
         /// 🚀 Strukturalne dopasowywanie komponentów ulicy
         /// Znajduje ulicę w liście UlicaCached na podstawie nazwy (fuzzy matching)
         /// </summary>
-        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName)
+        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName,out bool wasFuzzy)
         {
+            wasFuzzy = false;
             if (string.IsNullOrWhiteSpace(streetName))
                 return null;
 
+      
             var normalizedSearch = TextNormalizer.Normalize(streetName);
 
-            // ✅ KROK 1: Znajdź ulice nie-osobowe (proste nazwy)
-            foreach (var ulica in ulice)
-            {
-                if (ulica.IsEmpty())
-                {
-                    var normalizedFull = ulica.GetFullNormalized();
 
-                    // Dokładne dopasowanie
-                    if (normalizedFull == normalizedSearch)
-                        return ulica;
-                }
-            }
+            // Najpierw sprawdzamy wprost - po nazwie
 
-            // ✅ KROK 2: Parsuj nazwę dla ulic osobowych
-            var parsed = _parser.Parse(streetName);
-
-            // ✅ KROK 3: Dopasuj do ulic osobowych
             UlicaCached? bestMatch = null;
             int bestScore = 0;
-
             foreach (var ulica in ulice)
             {
-                // Pomiń ulice nie-osobowe (już sprawdzone w KROK 1)
-                if (ulica.IsEmpty())
-                    continue;
-
-                // Sprawdź dopasowanie cechy
-                if (!string.IsNullOrEmpty(parsed.Cecha) &&
-                    !string.IsNullOrEmpty(ulica.Cecha) &&
-                    TextNormalizer.Normalize(ulica.Cecha) != parsed.Cecha)
-                {
-                    continue; // Cecha się nie zgadza - pomiń
-                }
-
+                var parsed = _parser.Parse(streetName);
+                var normalizedFull = ulica.GetFullNormalized();
+                // Zwykłe porównanie nazw
+                if (normalizedFull == normalizedSearch)
+                    return ulica;
                 // Oblicz score dopasowania komponentów
-                var score = CalculateMatchScore(parsed, ulica);
+                int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.Cecha) ? 0 : -20;
+                var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
 
                 if (score > bestScore)
                 {
@@ -98,112 +79,37 @@ namespace AddressLibrary.Services.AddressSearch
                     bestMatch = ulica;
                 }
             }
+            if (bestMatch != null && bestScore > 70) return bestMatch;
 
-            // ✅ KROK 4: Fuzzy matching dla ulic nie-osobowych (jeśli nie znaleziono osobowej)
-            if (bestMatch == null || bestScore < 70)
+            // Fuzzy matching dla ulic nie-osobowych (jeśli nie znaleziono osobowej)
+            foreach (var ulica in ulice)
             {
-                foreach (var ulica in ulice)
+                var normalizedFull = ulica.GetFullNormalized();
+                // Częściowe dopasowanie (contains)
+                if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
                 {
-                    if (ulica.IsEmpty())
+                    int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
+                    if (distance <= 2)
                     {
-                        var normalizedFull = ulica.GetFullNormalized();
-
-                        // Częściowe dopasowanie (contains)
-                        if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
-                        {
-                            int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
-                            if (distance <= 2)
-                            {
-                                return ulica;
-                            }
-                        }
+                        wasFuzzy = true;
+                        return ulica;
                     }
                 }
             }
 
-            // Wymagamy minimum 70% dopasowania dla ulic osobowych
-            return bestScore >= 70 ? bestMatch : null;
+            return null;
         }
 
-        /// <summary>
-        /// 🔍 DIAGNOSTYKA: Znajduje wszystkie ulice z ich score'ami (do debugowania)
-        /// </summary>
-        public List<(UlicaCached ulica, int score, string reason, ParsedStreet? parsed)> FindAllWithScores(List<UlicaCached> ulice, string streetName)
+        bool CzyCechaPasuje(string cechaSearch, string cechaCached)
         {
-            var results = new List<(UlicaCached ulica, int score, string reason, ParsedStreet? parsed)>();
-
-            if (string.IsNullOrWhiteSpace(streetName))
-                return results;
-
-            var normalizedSearch = TextNormalizer.Normalize(streetName);
-
-            Oddrukuj(ulice);
-
-            // KROK 1: Ulice nie-osobowe (proste nazwy)
-            foreach (var ulica in ulice)
-            {
-                if (ulica.IsEmpty())
-                {
-                    var normalizedFull = ulica.GetFullNormalized();
-
-                    if (normalizedFull == normalizedSearch)
-                    {
-                        results.Add((ulica, 100, "Dokładne dopasowanie nie-osobowej", null));
-                    }
-                    else if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
-                    {
-                        int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
-                        if (distance <= 2)
-                        {
-                            results.Add((ulica, 50 - (distance * 10), $"Fuzzy nie-osobowej (dist={distance})", null));
-                        }
-                    }
-                }
-            }
-
-            // KROK 2: Ulice osobowe - parsuj i oblicz score
-            var parsed = _parser.Parse(streetName);
-
-
-
-            foreach (var ulica in ulice)
-            {
-
-
-
-                if (ulica.IsEmpty())
-                    continue; // Już sprawdzone w KROK 1
-
-
-
-                // Sprawdź cechę
-                if (!string.IsNullOrEmpty(parsed.Cecha) &&
-                    !string.IsNullOrEmpty(ulica.Cecha) &&
-                    TextNormalizer.Normalize(ulica.Cecha) != parsed.Cecha)
-                {
-                    results.Add((ulica, 0, "Cecha się nie zgadza", parsed));
-                    continue;
-                }
-
-                var score = CalculateMatchScore(parsed, ulica);
-
-                string reason = score switch
-                {
-                    100 => "Dokładne dopasowanie komponentów",
-                    >= 70 => $"Częściowe dopasowanie komponentów (score={score})",
-                    > 0 => $"Słabe dopasowanie komponentów (score={score})",
-                    _ => "Brak dopasowania komponentów (score=0)"
-                };
-
-                results.Add((ulica, score, reason, parsed));
-            }
-
-            return results.OrderByDescending(r => r.score).ToList();
+            // Sprawdź dopasowanie cechy
+            if (cechaSearch == "") return true;
+            if (cechaCached == "") return true;
+            return cechaSearch == cechaCached;
         }
 
         /// <summary>
         /// Oblicza score dopasowania (0-100) porównując komponenty
-        /// ⚠️ UWAGA: Jeśli ulica nie ma nazwiska, zwraca 0 (nie jest osobowa)
         /// </summary>
         private int CalculateMatchScore(ParsedStreet search, UlicaCached ulica)
         {
@@ -217,13 +123,14 @@ namespace AddressLibrary.Services.AddressSearch
             const int PSEUDONIM_WEIGHT = 10;
             const int IMIE2_WEIGHT = 5;
 
+// Dla nieosobowych zwróć zero
+            if (ulica.IsEmpty()) return 0;
 
             // 0. Dla królowej Jadwigi
 
-
             if (string.IsNullOrEmpty(search.Nazwisko) && !string.IsNullOrEmpty(search.Imie))
             {
-                if (ulica.Imie == "kingi" && search.Imie=="kingi")
+                if (ulica.Imie == "kingi" && search.Imie == "kingi")
                 {
                     int y = 1;
                 }

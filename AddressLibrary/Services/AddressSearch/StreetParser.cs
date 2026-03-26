@@ -64,7 +64,7 @@ namespace AddressLibrary.Services.AddressSearch
                     _tytuly.Add(TextNormalizer.Normalize(tytul.Dopelniacz));
                 // Dodajemy skróty ale bez kropki
                 if (!string.IsNullOrEmpty(tytul.Skrot))
-                    _tytuly.Add(TextNormalizer.Normalize(tytul.Skrot).Replace(".",""));
+                    _tytuly.Add(TextNormalizer.Normalize(tytul.Skrot));
             }
 
             Console.WriteLine($"[StreetParser] Załadowano {_tytuly.Count} tytułów");
@@ -138,7 +138,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             // Normalizuj wejściowy string
             var normalized = TextNormalizer.Normalize(streetName);
-            var words = normalized.Split(new[] { ' ', '.', '-' }, StringSplitOptions.RemoveEmptyEntries);
+            var words = normalized.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
 
             int index = 0;
 
@@ -156,7 +156,7 @@ namespace AddressLibrary.Services.AddressSearch
                 index++;
             }
 
-            // KROK 3: Wydziel tytuły (gen, bp, plk, dr, prof, ...)
+            // KROK 3: Wydziel tytuły (gen., bp, plk, dr, prof, ...)
             var tytuly = new List<string>();
             while (index < words.Length && _tytuly!.Contains(words[index]))
             {
@@ -172,6 +172,16 @@ namespace AddressLibrary.Services.AddressSearch
             result.Postfiks = "";
             foreach (var word in remainingWords)
             {
+// Czy to jest Skłodowskiej-Curie?
+                var nazwiska = word.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
+                if (nazwiska.Length == 2)
+                {
+                    if (_nazwiska!.Contains(nazwiska[0]) && _nazwiska!.Contains(nazwiska[1]))
+                    result.Nazwisko = nazwiska[0];
+                    result.Nazwisko2 = nazwiska[1];
+                    continue;
+                }
+
                 bool czyPseudo = _pseudonimy!.Contains(word);
                 bool czyImie = _imiona!.Contains(word);
                 bool czyNazwisko = _nazwiska!.Contains(word);

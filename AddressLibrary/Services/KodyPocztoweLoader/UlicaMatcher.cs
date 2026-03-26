@@ -142,7 +142,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             }
             (currentUlica, currentDzielnica) = UliceUtils.ZielonaGora(miasto, currentUlica, currentDzielnica);
 
-            currentUlica = TitleManager.RemoveTitles(currentUlica);
+//            currentUlica = TitleManager.RemoveTitles(currentUlica);
 
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (!_uliceCachedDict.TryGetValue(miasto.Id, out var uliceCachedList))
@@ -161,53 +161,10 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             }
 
             // Deleguj wyszukiwanie do StreetMatcher.FindStreet
-            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, currentUlica);
+            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, currentUlica, out bool wasFuzzy);
 
             if (ulicaCached == null)
             {
-                // ✅ POPRAWKA: Zdefiniuj normalizedSearch
-                var normalizedSearch = TextNormalizer.Normalize(currentUlica);
-                
-                // ✅ DIAGNOSTYKA: Wypisz TOP 20 najbliższych dopasowań z score'ami
-                var allWithScores = _streetMatcher.FindAllWithScores(filteredUlice, currentUlica);
-                
-                _errorLogger.LogError($"[DIAGNOSTYKA] Nie znaleziono ulicy '{currentUlica}' w {miasto.Nazwa}");
-                _errorLogger.LogError($"[DIAGNOSTYKA] Normalized search: '{normalizedSearch}'");
-                
-                if (allWithScores.Count > 0 && allWithScores[0].parsed != null)
-                {
-                    var p = allWithScores[0].parsed;
-                    _errorLogger.LogError($"[DIAGNOSTYKA] Parsed search: " +
-                        $"C='{p.Cecha ?? "n"}', " +
-                        $"Pr='{p.Prefiks ?? "n"}', " +
-                        $"Tyt='{p.Tytul ?? "n"}', " +
-                        $"I='{p.Imie ?? "n"}', " +
-                        $"I2='{p.Imie2 ?? "n"}', " +
-                        $"N='{p.Nazwisko ?? "n"}', " +
-                        $"N2='{p.Nazwisko2 ?? "n"}', " +
-                        $"Ps='{p.Pseudonim ?? "n"}'");
-                }
-                
-                //_errorLogger.LogError($"[DIAGNOSTYKA] TOP 3 najbliższych dopasowań:");
-                
-                //foreach (var (u, score, reason, parsed) in allWithScores.Take(3))
-                //{
-                //    var displayName = u.GetDisplayName();
-                //    var fullNorm = u.GetFullNormalized();
-                    
-                //    _errorLogger.LogError($"  [{score:000}] ID:{u.Id} | '{displayName}' | norm:'{fullNorm}' | {reason}");
-                //    _errorLogger.LogError($"Ulica: " +
-                //        $"C='{u.Cecha ?? "n"}', " +
-                //        $"Pr='{u.Prefiks ?? "n"}', " +
-                //        $"Tyt='{u.Tytul ?? "n"}', " +
-                //        $"I='{u.Imie ?? "n"}', " +
-                //        $"I2='{u.Imie2 ?? "n"}', " +
-                //        $"N='{u.Nazwisko ?? "n"}', " +
-                //        $"N2='{u.Nazwisko2 ?? "n"}', " +
-                //        $"Ps='{u.Pseudonim ?? "n"}'");
-
-                //}
-
                 return (null, currentUlica);
             }
 
@@ -224,8 +181,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             // Loguj matching
             var matchMessage = $"[UlicaMatcher] ✓ MATCHED: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{ulicaCached.GetDisplayName()}'";
             
-            _PostalCodesLogger.LogInfo(matchMessage);
-            _fuzzyLogger.LogInfo(matchMessage);
+            if(!wasFuzzy)_PostalCodesLogger.LogInfo(matchMessage);
+            else _fuzzyLogger.LogInfo(matchMessage);
 
             return (ulica, currentUlica);
         }

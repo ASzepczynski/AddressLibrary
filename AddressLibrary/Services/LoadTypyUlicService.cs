@@ -354,7 +354,7 @@ namespace AddressLibrary.Services
     /// <summary>
     /// Comparer do porównywania TypUlicy pod kątem unikalności (bez Id)
     /// </summary>
-    internal class TypUlicyEqualityComparer : IEqualityComparer<TypUlicy>
+    public class TypUlicyEqualityComparer : IEqualityComparer<TypUlicy>
     {
         public bool Equals(TypUlicy? x, TypUlicy? y)
         {
