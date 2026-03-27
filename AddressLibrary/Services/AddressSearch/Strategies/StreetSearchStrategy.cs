@@ -96,7 +96,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 Id = foundUlica.Id,
                 MiastoId = foundUlica.MiastoId,
-                Cecha = foundUlica.Cecha,
+                CechaUlicy = foundUlica.CechaUlicy,
                 Miasto = foundUlica.Miasto
             };
 
@@ -275,12 +275,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 {
                     Id = m.street.Id,
                     MiastoId = m.street.MiastoId,
-                    Cecha = m.street.Cecha,
+                    CechaUlicy = m.street.CechaUlicy,
                     Miasto = m.street.Miasto,
-                    // ✅ Dodaj kody pocztowe dla tej ulicy
-                    KodyPocztowe = kodyPocztowe
-                        .Where(k => k.UlicaId == m.street.Id)
-                        .ToList()
                 })
                 .ToList();
 
@@ -395,7 +391,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 {
                     Id = suggestedStreet.Id,
                     MiastoId = suggestedStreet.MiastoId,
-                    Cecha = suggestedStreet.Cecha,
+                    CechaUlicy = suggestedStreet.CechaUlicy,
                     Miasto = suggestedStreet.Miasto
                 };
 

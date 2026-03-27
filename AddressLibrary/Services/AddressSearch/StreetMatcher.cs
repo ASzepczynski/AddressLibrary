@@ -70,7 +70,11 @@ namespace AddressLibrary.Services.AddressSearch
                 if (normalizedFull == normalizedSearch)
                     return ulica;
                 // Oblicz score dopasowania komponentów
-                int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.Cecha) ? 0 : -20;
+                if (ulica == null || ulica.CechaUlicy == null)
+                {
+                    int vv = 1;
+                }
+                int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.CechaUlicy.Nazwa) ? 0 : -20;
                 var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
 
                 if (score > bestScore)
@@ -248,7 +252,7 @@ namespace AddressLibrary.Services.AddressSearch
                 {
                     debugLines.AppendLine($"" +
                         $"{u.Id}|" +
-                        $"{u.Cecha}|" +
+                        $"{u.CechaUlicy.Skrot}|" +
                         $"{u.Prefiks}|" +
                         $"{u.Tytul}|" +
                         $"{u.Imie}|" +

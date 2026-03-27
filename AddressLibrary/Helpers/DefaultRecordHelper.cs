@@ -216,8 +216,8 @@ namespace AddressLibrary.Helpers
             return EnsureDefaultRecordAsync<Ulica>(
                 context,
                 "Ulice",
-                new[] { "Symbol", "Dzielnica", "MiastoId", "TypUlicyId" },
-                new[] { "'0000000'", "''", "-1", "-1" },
+                new[] { "Symbol", "Dzielnica", "MiastoId", "TypUlicyId","CechaUlicyId" },
+                new[] { "'0000000'", "''", "-1", "-1", "-1" },
                 logger
             );
         }

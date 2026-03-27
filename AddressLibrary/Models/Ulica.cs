@@ -13,8 +13,14 @@ namespace AddressLibrary.Models
         [MaxLength(10)]
         public string Symbol { get; set; } = string.Empty;
 
-        [MaxLength(20)]
-        public string? Cecha { get; set; }
+        // ✅ ZMIENIONO: Cecha jest teraz kluczem obcym do CechyUlic
+        [ForeignKey(nameof(CechaUlicy))]
+        public int? CechaUlicyId { get; set; }
+        public CechaUlicy? CechaUlicy { get; set; }
+
+        //// ✅ DODANO: Computed property dla zgodności wstecznej
+        //[NotMapped]
+        //public string? Cecha => CechaUlicy?.Skrot;
 
         // ✅ ZMIENIONO: Nazwa1 i Nazwa2 są teraz computed properties (nie mapowane do bazy)
         [NotMapped]
@@ -103,3 +109,5 @@ namespace AddressLibrary.Models
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
     }
 }
+
+

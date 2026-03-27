@@ -67,13 +67,14 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         /// ⚠️ WYJĄTEK: 
         /// NIE dodawaj klucza tylko Nazwa1, aby uniknąć kolizji z krótszymi nazwami.
         /// 
-        /// ✅ EAGER LOADING: Ładuje relację KodyPocztowe, TypUlicy i TytulStopien
+        /// ✅ EAGER LOADING: Ładuje relację KodyPocztowe, TypUlicy, TytulStopien i CechaUlicy
         /// </summary>
         public async Task<Dictionary<int, Dictionary<string, List<Ulica>>>> BuildUliceDictionaryAsync()
         {
-            // ✅ POPRAWKA: Dodano .Include(u => u.TypUlicy).ThenInclude(t => t.TytulStopien)
+            // ✅ POPRAWKA: Dodano .Include(u => u.CechaUlicy)
             var uliceAllList = await _context.Ulice
                 .Include(u => u.KodyPocztowe)
+                .Include(u => u.CechaUlicy)  // ✅ DODANE
                 .Include(u => u.TypUlicy)
                     .ThenInclude(t => t.TytulStopien)
                 .ToListAsync();
@@ -95,7 +96,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 // KROK 1: Dodaj wpis dla Nazwa1 TYLKO jeśli NIE ma specjalnego prefiksu
                 if (!hasSpecialPrefix)
                 {
-                    var nazwa1Lower = ulica.Nazwa1.ToLowerInvariant();
+                    string nazwa1Lower = ulica.Nazwa1.ToLowerInvariant();
                     if (!string.IsNullOrWhiteSpace(nazwa1Lower))
                     {
                         if (!ulice.ContainsKey(nazwa1Lower))

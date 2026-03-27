@@ -10,7 +10,7 @@ namespace AddressLibrary.Services.AddressSearch
     {
         public int Id { get; set; }
         public int MiastoId { get; set; }
-        public string Cecha { get; set; } = string.Empty;
+        public CechaUlicy CechaUlicy { get; set; } = null!;
         public Miasto Miasto { get; set; } = null!;
         public string Dzielnica { get; set; } = string.Empty;
         public int? TypUlicyId { get; set; }
@@ -49,12 +49,12 @@ namespace AddressLibrary.Services.AddressSearch
         {
             var name = GetFullNormalized();
             
-            if (string.IsNullOrEmpty(Cecha))
+            if (string.IsNullOrEmpty(CechaUlicy.Skrot))
                 return name;
             
             return string.IsNullOrEmpty(name) 
-                ? Cecha 
-                : $"{Cecha} {name}";
+                ? CechaUlicy.Skrot
+                : $"{CechaUlicy.Skrot} {name}";
         }
 
         /// <summary>

@@ -34,7 +34,7 @@ namespace AddressLibrary.Helpers
                          .Distinct()
                          .OrderBy(k => k))
                      : "brak";
-                var line = $"{ulica.Cecha}|{ulica.Nazwa2}|{ulica.Nazwa1}|{ulica.Dzielnica ?? ""}|{kody}".Trim();
+                var line = $"{ulica.CechaUlicy.Skrot}|{ulica.Nazwa2}|{ulica.Nazwa1}|{ulica.Dzielnica ?? ""}|{kody}".Trim();
                 _PostalCodesLogger?.LogInfo($"[ResolveAmbiguity] Kandydat: {line}");
             }
 
@@ -60,7 +60,7 @@ namespace AddressLibrary.Helpers
             // Porównanie po prefiksie
             foreach (var ulica in candidates)
             {
-                if (ulica.Cecha == sPrefiks || ulica.Cecha == sPrefiks)
+                if (ulica.CechaUlicy.Skrot == sPrefiks || ulica.CechaUlicy.Skrot == sPrefiks)
                 {
                     Pasujace.Add(ulica);
                 }
@@ -111,14 +111,14 @@ namespace AddressLibrary.Helpers
             {
                 // ✅ POPRAWKA: Porównanie case-insensitive
                 var matches = candidates
-                    .Where(u => u.Cecha.Equals(cecha, StringComparison.OrdinalIgnoreCase))
+                    .Where(u => u.CechaUlicy.Skrot.Equals(cecha, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 if (matches.Count == 1)
                 {
                     var pominieteCechy = candidates
-                        .Where(u => !u.Cecha.Equals(cecha, StringComparison.OrdinalIgnoreCase))
-                        .Select(x => x.Cecha)
+                        .Where(u => !u.CechaUlicy.Skrot.Equals(cecha, StringComparison.OrdinalIgnoreCase))
+                        .Select(x => x.CechaUlicy.Skrot)
                         .Distinct()
                         .ToList();
 

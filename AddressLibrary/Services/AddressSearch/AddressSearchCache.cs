@@ -54,20 +54,52 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(m => TextNormalizer.Normalize(m.Nazwa))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // ✅ POPRAWKA: Załaduj TypUlicy z TytulStopien dla computed properties
+            // ✅ POPRAWKA: Załaduj TypUlicy z TytulStopien oraz CechaUlicy
+            Console.WriteLine("=== AddressSearchCache: Ładowanie ulic z bazy ===");
+
             var ulice = await _context.Ulice
                 .Include(u => u.Miasto)
+                .Include(u => u.CechaUlicy)  // ✅ DODANE: Załaduj CechaUlicy
                 .Include(u => u.TypUlicy)
                     .ThenInclude(t => t.TytulStopien)
                 .Where(u => u.Id != -1)
                 .ToListAsync();
+
+            Console.WriteLine($"=== AddressSearchCache: Załadowano {ulice.Count} ulic z bazy ===");
+
+            // 🐛 DEBUG: Sprawdź pierwsze 10 ulic
+            int checkedCount = 0;
+            int nullCount = 0;
+            int validCount = 0;
+
+            foreach (var u in ulice.Take(10))
+            {
+                checkedCount++;
+                if (u.CechaUlicy == null)
+                {
+                    nullCount++;
+                    Console.WriteLine($"⚠️ Ulica Id={u.Id}, Symbol={u.Symbol}, CechaUlicyId={u.CechaUlicyId ?? -999} => CechaUlicy jest NULL!");
+                }
+                else
+                {
+                    validCount++;
+                    Console.WriteLine($"✓ Ulica Id={u.Id}, Symbol={u.Symbol}, CechaUlicyId={u.CechaUlicyId}, CechaSkrot='{u.CechaUlicy.Skrot}'");
+                }
+            }
+
+            Console.WriteLine($"=== DEBUG PODSUMOWANIE: Sprawdzono {checkedCount} ulic, {validCount} OK, {nullCount} NULL ===");
+
+            // Sprawdź statystyki dla wszystkich ulic
+            int totalNull = ulice.Count(u => u.CechaUlicy == null);
+            int totalValid = ulice.Count(u => u.CechaUlicy != null);
+            Console.WriteLine($"=== WSZYSTKIE ULICE: Total={ulice.Count}, Valid={totalValid}, NULL={totalNull} ===");
 
             // ✅ Konwertuj na UlicaCached z pre-znormalizowanymi komponentami
             var uliceCached = ulice.Select(u => new UlicaCached
             {
                 Id = u.Id,
                 MiastoId = u.MiastoId,
-                Cecha = u.Cecha ?? string.Empty,
+                CechaUlicy = u.CechaUlicy,
                 Miasto = u.Miasto,
                 Dzielnica = u.Dzielnica ?? string.Empty,
                 TypUlicyId = u.TypUlicyId,

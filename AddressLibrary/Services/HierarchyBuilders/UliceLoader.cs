@@ -1,12 +1,10 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Helpers;
-using AddressLibrary.Utils;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
-using AddressLibrary.Services.AddressSearch;
 using AddressLibrary.Services.Dictionaries;
+using AddressLibrary.Services.Dictionaries.CechyUlic;
 using AddressLibrary.Structures;
-using Azure.Core;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -19,6 +17,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
         private readonly PrefixChangeLogger _prefixLogger;
         private readonly TytulyStopnieDictionaryService _tytulyService;
         private readonly TypyUlicDictionaryService _typyUlicService;
+        private readonly CechyUlicDictionary _cechyUlicDict;
 
         public UliceLoader(AddressDbContext context, string? appDataPath = null)
         {
@@ -27,7 +26,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _prefixLogger = new PrefixChangeLogger(appDataPath);
             _tytulyService = new TytulyStopnieDictionaryService(context);
             _typyUlicService = new TypyUlicDictionaryService(context);
-
+            _cechyUlicDict = new CechyUlicDictionary(context);
         }
 
         private NameCorrectionHelper _corrections;
@@ -58,13 +57,19 @@ namespace AddressLibrary.Services.HierarchyBuilders
             await _tytulyService.GetDopelniaczToIdMappingAsync();
             _logger.LogInfo("Słownik TytulyStopnie został zainicjalizowany");
 
+            // ✅ DODANO: Zainicjalizuj słownik CechyUlic
+            _logger.LogInfo("Wczytywanie słownika CechyUlic...");
+            var cechyUlicMapping = await _cechyUlicDict.GetSkrotToIdMappingAsync();
+            _logger.LogInfo($"Załadowano {cechyUlicMapping.Count} wpisów ze słownika CechyUlic");
+
             int przetworzono = 0;
             int brakujacych = 0;
             int cityWithRightsProcessed = 0;
             int regularProcessed = 0;
             int convertedFromExcel = 0;
             int prefixChanges = 0;
-            int typUlicyAssigned = 0; // ✅ DODANO: Licznik przypisanych typów ulic
+            int typUlicyAssigned = 0;
+            int cechyUlicAssigned = 0;
 
             // Dla miast na prawach powiatu - załaduj raz na początku
             _logger.LogInfo("Przygotowuję mapowanie miast na prawach powiatu...");
@@ -184,7 +189,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 }
 
                 string? dzielnica = null;
-                string? tempNazwa1 = ulic.Ulica.Nazwa1; // Tymczasowa zmienna dla obliczeń
+                string? tempNazwa1 = ulic.Ulica.Nazwa1;
                 string? tempNazwa2 = ulic.Ulica.Nazwa2;
                 string? Cecha = ulic.Ulica.Cecha;
 
@@ -195,7 +200,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     (var tempNazwa3, dzielnica) = UliceUtils.ZielonaGora(miasto, tempNazwa1, dzielnica);
                 }
 
-
                 // ✅ ZMIENIONO: Używamy tempNazwa1 i tempNazwa2 do wyszukiwania w słowniku
                 var originalParts = new List<string>();
                 if (!string.IsNullOrWhiteSpace(Cecha))
@@ -205,22 +209,48 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 if (!string.IsNullOrWhiteSpace(tempNazwa1))
                     originalParts.Add(tempNazwa1.Trim());
 
-
                 var original = string.Join(" ", originalParts);
+
+                // ✅ ZMIENIONO: Użyj CechyUlicDictionary do znalezienia cechy
+                var cechaUlicy = await _cechyUlicDict.FindBySkrotAsync(Cecha);
+                int cechaUlicyId = -1;
+                if (cechaUlicy == null)
+                {
+                    cechaUlicyId = -1;
+                    cechyUlicAssigned++;
+                    if(Cecha!="inne")_logger.LogError($"Brak cechy ulicy [{Cecha}]");
+                }
+                else
+                {
+                    cechaUlicyId = cechaUlicy.Id;
+                }
 
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
-                    Cecha = Cecha,
+                    CechaUlicyId = cechaUlicyId,
                     MiastoId = miasto.Id,
                     Dzielnica = dzielnica,
-                    TypUlicyId = null // Domyślnie null
+                    TypUlicyId = null
                 };
 
                 if (terytUlicPoprawkiDict.TryGetValue(original, out var terytUlicPoprawka))
                 {
-                    // Cecha z poprawek staje się cechą ulicy
-                    ulica.Cecha = terytUlicPoprawka.Cecha;
+                    // ✅ ZMIENIONO: Użyj CechyUlicDictionary dla cechy z poprawek
+                    string sCecha = terytUlicPoprawka.Cecha;
+                    if (!string.IsNullOrWhiteSpace(sCecha))
+                    {
+                        ulica.CechaUlicyId = -1;
+                        var cUlicy = await _cechyUlicDict.FindBySkrotAsync(sCecha);
+                        if (cUlicy == null)
+                        {
+                            if (Cecha != "inne") _logger.LogError($"Brak cechy ulicy w TerytUlicPoprawka [{sCecha}]");
+                        }
+                        else
+                        {
+                            ulica.CechaUlicyId = cUlicy.Id;
+                        }
+                    }
 
                     // ✅ Użyj serwisu do mapowania tytułu
                     int tytulStopienId = _tytulyService.MapDopelniaczToId(terytUlicPoprawka.Tytul);
@@ -247,12 +277,14 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 allUlice.Add(ulica);
             }
 
-            foreach (var elem in brakujace.Distinct()) {
+            foreach (var elem in brakujace.Distinct())
+            {
                 _logger.LogError($"Brak stopnia '{elem}'");
             }
 
             _logger.LogInfo($"Zebrano {allUlice.Count} ulic");
             _logger.LogInfo($"Przypisano TypUlicyId dla {typUlicyAssigned} ulic");
+            _logger.LogInfo($"Przypisano CechaUlicyId dla {cechyUlicAssigned} ulic");
             _logger.LogInfo("Usuwam duplikaty (Symbol + Dzielnica + MiastoId)...");
 
             // Usuń duplikaty
@@ -277,7 +309,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _logger.LogInfo($"  - Dla miast na prawach powiatu: {cityWithRightsProcessed}");
             _logger.LogInfo($"  - Dla zwykłych miejscowości: {regularProcessed}");
             _logger.LogInfo($"  - Skonwertowano z Excel: {convertedFromExcel}");
-            _logger.LogInfo($"  - Zmieniono prefiksy: {prefixChanges}"); // 🆕 DODANE
+            _logger.LogInfo($"  - Zmieniono prefiksy: {prefixChanges}");
+            _logger.LogInfo($"  - Przypisano CechaUlicyId: {cechyUlicAssigned}");
             _logger.LogInfo($"Pominięto (brak miejscowości): {brakujacych}");
             _logger.LogInfo($"Pominięto (duplikaty): {duplikaty}");
         }

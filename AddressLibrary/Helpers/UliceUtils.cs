@@ -140,6 +140,7 @@ namespace AddressLibrary.Helpers
             { "estakada",    new List<string> { "estakada" } },
             { "grobla",    new List<string> { "grobla" } },
             { "kładka",    new List<string> { "kładka" } },
+            { "kolonia",    new List<string> { "kolonia" } },
             { "kopiec",    new List<string> { "kopiec" } },
             { "most",    new List<string> { "most" } },
             { "nabrzeże bulwar",    new List<string> { "nab. bulw.", "nab bulw", "nabrzeże bulwar" } },
@@ -324,7 +325,7 @@ namespace AddressLibrary.Helpers
         public static string GetPelnaNazwaZPrefiksem(Ulica ulica)
         {
             var x = GetPelnaNazwa(ulica);
-            return $"{ulica.Cecha} {x}".Trim();
+            return $"{ulica.CechaUlicy.Skrot} {x}".Trim();
         }
         public static List<string> GetAllStreetPrefixes()
         {

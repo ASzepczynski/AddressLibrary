@@ -64,7 +64,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         {
                             Id = ulica.Id,
                             MiastoId = ulica.MiastoId,
-                            Cecha = ulica.Cecha ?? "",
+                            CechaUlicy = ulica.CechaUlicy,
                             Miasto = ulica.Miasto,
                             Dzielnica = ulica.Dzielnica,
                             TypUlicyId = ulica.TypUlicyId,
@@ -173,7 +173,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             {
                 Id = ulicaCached.Id,
                 MiastoId = ulicaCached.MiastoId,
-                Cecha = ulicaCached.Cecha,
+                CechaUlicy = ulicaCached.CechaUlicy,
                 Miasto = ulicaCached.Miasto,
                 Dzielnica = ulicaCached.Dzielnica
             };
