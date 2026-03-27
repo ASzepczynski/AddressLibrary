@@ -5,48 +5,42 @@
     /// </summary>
     public static class CechyUlicUtils
     {
-        public static readonly Dictionary<string, List<string>> StreetPrefixes = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly Dictionary<string, List<string>> StreetPrefixes = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Dodaje nową cechę ulicy do słownika StreetPrefixes
+        /// </summary>
+        /// <param name="Cecha">Klucz - pełna nazwa cechy (np. "aleja", "ulica", "plac")</param>
+        /// <param name="Lista">Lista wariantów tej cechy (np. ["al.", "al", "aleja"]). 
+        /// UWAGA: Pierwszy element listy powinien być preferowanym skrótem (np. "al.")</param>
+        /// <example>
+        /// CechyUlicUtils.Add("aleja", new List&lt;string&gt; { "al.", "al", "aleja" });
+        /// // Dodaje do słownika: ["aleja"] -> ["al.", "al", "aleja"]
+        /// // gdzie "al." jest preferowanym skrótem (używanym przez GetStreetAbbreviation)
+        /// </example>
+        public static void Add(string Cecha, List<string> Lista)
         {
-            { "aleja",    new List<string> { "al.", "al", "aleja" } },
-            { "aleje",    new List<string> { "al.", "al", "aleje"} },
-            { "alejka",    new List<string> { "al.", "al", "alejka"} },
-            { "bulwar",   new List<string> { "bulw.", "bulw", "bulwar"} },
-            { "bulwary",   new List<string> { "bulw.", "bulw", "bulwary"} },
-            { "droga",    new List<string> { "droga" } },
-            { "deptak",    new List<string> { "deptak" } },
-            { "dreptak",    new List<string> { "dreptak" } },
-            { "estakada",    new List<string> { "estakada" } },
-            { "grobla",    new List<string> { "grobla" } },
-            { "kładka",    new List<string> { "kładka" } },
-            { "kolonia",    new List<string> { "kolonia" } },
-            { "kopiec",    new List<string> { "kopiec" } },
-            { "most",    new List<string> { "most" } },
-            { "nabrzeże bulwar",    new List<string> { "nab. bulw.", "nab bulw", "nabrzeże bulwar" } },
-            { "nabrzeże",    new List<string> { "nab.", "nab", "nabrzeże" } },
-            { "ogród",    new List<string> { "ogród"}},
-            { "osiedle",    new List<string> { "os.", "os", "oś.", "oś","osiedle" } },
-            { "park",     new List<string> { "park" } },
-            { "pasaż",    new List<string> { "pasaż"}},
-            { "plac",     new List<string> { "pl.", "pl", "plac" } },
-            { "planty",     new List<string> { "planty"} },
-            { "promenada", new List<string> { "prom.","promenada" } },
-            { "rondo",    new List<string> { "rondo" } },
-            { "rynek",    new List<string> { "rynek"}},
-            { "skwer",    new List<string> { "skw.", "skw", "skwer"} },
-            { "szlak",    new List<string> { "szlak"} },
-            { "szosa",    new List<string> { "szosa" } },
-            { "ścieżka",  new List<string> { "ścieżka"} },
-            { "trasa",    new List<string> { "trasa"} },
-            { "trakt",    new List<string> { "trakt"} },
-            { "tunel",    new List<string> { "tunel"} },
-            { "ulica",    new List<string> { "ul.", "ul", "ulica" } },
-            { "węzeł",    new List<string> { "węzeł"} },
-            { "wiadukt",    new List<string> { "wiad.","wiadukt"} },
-            { "wiadukty",    new List<string> { "wiad.","wiadukty"} },
-            { "wybrzeże",    new List<string> { "wyb.", "wyb", "wybrzeże" } },
-            { "wzgórze",    new List<string> { "wzg.", "wzg", "wzgórze" } },
-            { "zaułek",    new List<string> { "zaułek" } }
-        };
+            // Walidacja - sprawdź czy parametry nie są puste
+            if (string.IsNullOrWhiteSpace(Cecha) || Lista == null || Lista.Count == 0)
+            {
+                throw new ArgumentException("Cecha i Lista nie mogą być puste");
+            }
+
+            // Sprawdź czy klucz już istnieje w słowniku
+            if (StreetPrefixes.ContainsKey(Cecha))
+            {
+                // Jeśli istnieje, zaktualizuj listę wariantów
+                StreetPrefixes[Cecha] = Lista;
+            }
+            else
+            {
+                // Jeśli nie istnieje, dodaj nowy wpis do słownika
+                // Dictionary.Add(klucz, wartość) - dodaje parę klucz-wartość
+                // klucz: pełna nazwa cechy (np. "aleja")
+                // wartość: lista wszystkich wariantów (np. ["al.", "al", "aleja"])
+                StreetPrefixes.Add(Cecha, Lista);
+            }
+        }
 
         /// <summary>
         /// Zwraca preferowany skrót dla typu ulicy (np. "aleja" → "al.", "plac" → "pl.")

@@ -127,5 +127,70 @@ namespace AddressLibrary.Dictionaries.CechyUlic
             _skrotToIdDict = null;
             _allCechy = null;
         }
+
+        /// <summary>
+        /// £aduje dane z bazy danych do statycznej tablicy StreetPrefixes w CechyUlicUtils
+        /// Tworzy listê wariantów na podstawie Nazwa i Skrot z ka¿dej CechaUlicy
+        /// </summary>
+        /// <remarks>
+        /// Ta metoda synchronizuje dane z bazy danych do statycznej tablicy StreetPrefixes.
+        /// Tworzy warianty:
+        /// 1. Skrót (np. "ul.")
+        /// 2. Skrót bez kropki (np. "ul")
+        /// 3. Pe³na nazwa (np. "ulica")
+        /// 
+        /// PRZYK£AD:
+        /// Dla rekordu: Nazwa="ulica", Skrot="ul."
+        /// Zostanie utworzony wpis: StreetPrefixes["ulica"] = ["ul.", "ul", "ulica"]
+        /// </remarks>
+        public async Task LoadIntoStreetPrefixesAsync()
+        {
+            // Pobierz wszystkie cechy z bazy
+            var cechy = await GetAllAsync();
+
+            // Wyczyœæ istniej¹c¹ tablicê
+            CechyUlicUtils.StreetPrefixes.Clear();
+
+            // Dodaj ka¿d¹ cechê do s³ownika
+            foreach (var cecha in cechy)
+            {
+                // Utwórz listê wariantów:
+                var warianty = new List<string>();
+
+                // 1. Dodaj skrót (np. "ul.")
+                if (!string.IsNullOrWhiteSpace(cecha.Skrot))
+                {
+                    warianty.Add(cecha.Skrot);
+
+                    // 2. Jeœli skrót koñczy siê kropk¹, dodaj wersjê bez kropki (np. "ul")
+                    if (cecha.Skrot.EndsWith("."))
+                    {
+                        var bezKropki = cecha.Skrot.TrimEnd('.');
+                        if (!string.IsNullOrWhiteSpace(bezKropki))
+                        {
+                            warianty.Add(bezKropki);
+                        }
+                    }
+                }
+
+                // 3. Dodaj pe³n¹ nazwê (np. "ulica")
+                if (!string.IsNullOrWhiteSpace(cecha.Nazwa))
+                {
+                    warianty.Add(cecha.Nazwa);
+                }
+
+                // Usuñ duplikaty (case-insensitive)
+                warianty = warianty.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+                // Dodaj do s³ownika StreetPrefixes u¿ywaj¹c metody Add()
+                // Dictionary.Add() dodaje parê klucz-wartoœæ:
+                // - klucz: pe³na nazwa cechy (np. "aleja")
+                // - wartoœæ: lista wszystkich wariantów (np. ["al.", "al", "aleja"])
+                if (warianty.Count > 0)
+                {
+                    CechyUlicUtils.Add(cecha.Nazwa, warianty);
+                }
+            }
+        }
     }
 }
