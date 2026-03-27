@@ -2,7 +2,7 @@ using AddressLibrary.Data;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace AddressLibrary.Services.Dictionaries
+namespace AddressLibrary.Dictionaries
 {
     /// <summary>
     /// Centralny serwis do ³adowania i cache'owania s³ownika TypyUlic

@@ -1,11 +1,13 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Models;
 using AddressLibrary.Logging;
+using AddressLibrary.Dictionaries.CechyUlic;
 using Microsoft.EntityFrameworkCore;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Text.RegularExpressions;
 using AddressLibrary.Helpers;
+
 
 namespace AddressLibrary.Services
 {
@@ -157,7 +159,7 @@ namespace AddressLibrary.Services
         private (string ulica_teryt,string ulica_excel) CompareAndLog(TerytUlicPoprawka TerytUlicPoprawka, string original)
         {
 
-            (var prefiks, var reszta) = UliceUtils.RozdzielPrefiksTeryt(original);
+            (var prefiks, var reszta) = CechyUlicUtils.RozdzielPrefiksTeryt(original);
             var poprawiona = $"{prefiks} {reszta}".Trim();
 
             var osoba = TerytUlicPoprawka.Tytul;

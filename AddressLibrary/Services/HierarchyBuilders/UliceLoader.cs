@@ -1,9 +1,9 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Dictionaries;
+using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
-using AddressLibrary.Services.Dictionaries;
-using AddressLibrary.Services.Dictionaries.CechyUlic;
 using AddressLibrary.Structures;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;

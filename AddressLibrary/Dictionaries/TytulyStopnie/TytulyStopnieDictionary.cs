@@ -3,7 +3,7 @@ using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace AddressLibrary.Services.Dictionaries.TytulyStopnie
+namespace AddressLibrary.Dictionaries.TytulyStopnie
 {
     /// <summary>
     /// Centralny s³ownik dla TytulyStopnie - zarz¹dzanie cache i dostêp do danych

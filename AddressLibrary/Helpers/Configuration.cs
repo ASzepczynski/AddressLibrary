@@ -1,4 +1,4 @@
-﻿using AddressLibrary.Services.Dictionaries.CechyUlic;
+﻿using AddressLibrary.Dictionaries.CechyUlic;
 using System;
 using System.Collections.Generic;
 using System.Linq;

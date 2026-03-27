@@ -3,6 +3,7 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
+using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Services.AddressSearch.Filters;
 using AddressLibrary.Utils;
 using Azure.Core;
@@ -47,9 +48,9 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
 
             // Wyodrębnij prefiks z ulicy
-            (var Prefix, var normalizedStreet) = UliceUtils.SplitStreetPrefix(request.Ulica);
+            (var Prefix, var normalizedStreet) = CechyUlicUtils.SplitStreetPrefix(request.Ulica);
 
-            (var Prefix2, var normalizedStreet2) = UliceUtils.SplitStreetPrefix(normalizedStreet);
+            (var Prefix2, var normalizedStreet2) = CechyUlicUtils.SplitStreetPrefix(normalizedStreet);
             if (Prefix2 != "")
             {
                 // Tu chcemy zlikwidować konflikt prefiksów typu ul. Szosa
@@ -280,7 +281,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 })
                 .ToList();
 
-            (string? sPrefiks, string? sStreet) = UliceUtils.SplitStreetPrefix(request.Ulica);
+            (string? sPrefiks, string? sStreet) = CechyUlicUtils.SplitStreetPrefix(request.Ulica);
 
             // Użyj ResolveAmbiguity
             var resolvedStreet = ResolveAmbiguity.ResolveStreetAmbiguity(

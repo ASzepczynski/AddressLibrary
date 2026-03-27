@@ -4,6 +4,7 @@ using AddressLibrary.Data;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
+using AddressLibrary.Dictionaries.CechyUlic;
 using System.Text;
 
 namespace AddressLibrary.Services
@@ -183,7 +184,7 @@ namespace AddressLibrary.Services
             normalized = normalized.ToLowerInvariant();
 
             // Usuñ przedrostki ulic
-            normalized = UliceUtils.RemoveStreetPrefixes(normalized);
+            normalized = CechyUlicUtils.RemoveStreetPrefixes(normalized);
 
             // Usuñ zbêdne bia³e znaki
             normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();

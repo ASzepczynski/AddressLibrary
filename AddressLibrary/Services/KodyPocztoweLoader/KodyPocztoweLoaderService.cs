@@ -2,7 +2,7 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
-using AddressLibrary.Utils;
+using AddressLibrary.Dictionaries.CechyUlic;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -275,8 +275,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         int z = 1;
                     }
 
-                    (string sPrefix, sUlica) = UliceUtils.SplitStreetPrefix(sUlica);
-                    (string sPrefix2, string sUlica2) = UliceUtils.SplitStreetPrefix(sUlica);
+                    (string sPrefix, sUlica) = CechyUlicUtils.SplitStreetPrefix(sUlica);
+                    (string sPrefix2, string sUlica2) = CechyUlicUtils.SplitStreetPrefix(sUlica);
                     if (sPrefix2 != "")
                     {
                         // przypadek 'ul. Plac' ma dać 'pl.'

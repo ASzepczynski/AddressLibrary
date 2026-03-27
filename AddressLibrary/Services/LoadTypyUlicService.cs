@@ -1,10 +1,12 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Dictionaries.CechyUlic;
+using AddressLibrary.Dictionaries.TytulyStopnie;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
-using AddressLibrary.Services.Dictionaries;
-using AddressLibrary.Services.Dictionaries.CechyUlic;
-using AddressLibrary.Services.Dictionaries.TytulyStopnie;
+using AddressLibrary.Dictionaries;
+using AddressLibrary.Dictionaries.CechyUlic;
+using AddressLibrary.Dictionaries.TytulyStopnie;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;

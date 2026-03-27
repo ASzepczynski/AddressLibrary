@@ -1,9 +1,9 @@
 using AddressLibrary.Data;
+using AddressLibrary.Dictionaries.TytulyStopnie;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
-using AddressLibrary.Services.Dictionaries.TytulyStopnie;
 
-namespace AddressLibrary.Services.Dictionaries
+namespace AddressLibrary.Dictionaries
 {
     /// <summary>
     /// Fasada dla TytulyStopnieDictionary - dla kompatybilnoœci wstecznej

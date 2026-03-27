@@ -3,6 +3,7 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using Microsoft.IdentityModel.Tokens;
+using AddressLibrary.Dictionaries.CechyUlic;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -107,7 +108,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
 
             // Usuñ popularne prefiksy
-            var prefixes = UliceUtils.GetAllStreetPrefixes();
+            var prefixes = CechyUlicUtils.GetAllStreetPrefixes();
             var normalized = name.ToLowerInvariant().Trim();
             // Usuwa -go z nazwy ulicy
             normalized = UliceUtils.NormalizeOrdinalNumber(normalized);

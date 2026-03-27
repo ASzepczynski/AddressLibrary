@@ -2,7 +2,7 @@ using AddressLibrary.Data;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace AddressLibrary.Services.Dictionaries.CechyUlic
+namespace AddressLibrary.Dictionaries.CechyUlic
 {
     /// <summary>
     /// Centralny s³ownik dla CechyUlic - zarz¹dzanie cache i dostêp do danych

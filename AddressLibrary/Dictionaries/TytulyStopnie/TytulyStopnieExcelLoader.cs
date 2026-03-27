@@ -5,45 +5,44 @@ using AddressLibrary.Helpers;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
+using AddressLibrary.Services;
 
-namespace AddressLibrary.Services.Dictionaries.CechyUlic
+namespace AddressLibrary.Dictionaries.TytulyStopnie
 {
     /// <summary>
-    /// Serwis do ładowania słownika CechyUlic z pliku Excel do bazy danych
+    /// Serwis do ładowania słownika TytulyStopnie z pliku Excel do bazy danych
     /// </summary>
-    public class CechyUlicExcelLoader
+    public class TytulyStopnieExcelLoader
     {
         private readonly AddressDbContext _context;
+        private readonly string _appDataPath;
         private readonly GeneralLogger _logger;
 
-        public CechyUlicExcelLoader(AddressDbContext context, string appDataPath)
+        public TytulyStopnieExcelLoader(AddressDbContext context, string appDataPath)
         {
             _context = context;
-            _logger = new GeneralLogger(appDataPath, "LoadCechyUlic.txt", "Log CechyUlic");
+            _appDataPath = appDataPath;
+            _logger = new GeneralLogger(appDataPath, "LoadTytulyStopnie.txt", "Log TytulyStopnie");
         }
 
         /// <summary>
-        /// Ładuje dane z pliku Excel CechyUlic.xlsx do tabeli CechyUlic
-        /// Plik Excel znajduje się w AddressLibrary/AppData/Dictionaries/
+        /// Ładuje dane z pliku Excel TytulyStopnie.xlsx do tabeli TytulyStopnie
         /// Struktura kolumn:
-        /// A = Nazwa (pełna nazwa, np. "ulica")
-        /// B = Skrot (skrót, np. "ul.")
+        /// A = Nazwa (pełna nazwa, np. "generał")
+        /// B = Dopelniacz (forma dopełniacza, np. "generała")
+        /// C = Skrot (skrót, np. "gen.")
         /// </summary>
         public async Task<LoadResult> LoadFromExcelAsync(IProgress<LoadProgress>? progress = null)
         {
             await _logger.InitializeAsync();
 
             var result = new LoadResult();
-            
-            // ✅ POPRAWKA: Szukaj pliku w AddressLibrary/AppData/Dictionaries/
-            var excelPath = Directories.GetExcelFilePath("CechyUlic.xlsx");
+            var excelPath = Directories.GetExcelFilePath("TytulyStopnie.xlsx");
 
-            _logger.LogInfo("=== Rozpoczęcie ładowania CechyUlic ===");
-            _logger.LogInfo($"Ścieżka do pliku Excel: {excelPath}");
+            _logger.LogInfo("=== Rozpoczęcie ładowania TytulyStopnie ===");
 
             try
             {
-                // Upewnij się, że rekord z ID = -1 istnieje
                 await EnsureDefaultRecordExistsAsync();
             }
             catch (Exception ex)
@@ -55,8 +54,8 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
             {
                 // Usuń wszystkie rekordy oprócz Id = -1
                 _logger.LogInfo("Usuwanie istniejących rekordów (oprócz Id = -1)...");
-                var deletedCount = await _context.CechyUlic
-                    .Where(c => c.Id != -1)
+                var deletedCount = await _context.TytulyStopnie
+                    .Where(t => t.Id != -1)
                     .ExecuteDeleteAsync();
                 _logger.LogInfo($"Usunięto {deletedCount} rekordów");
 
@@ -83,7 +82,7 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
             {
                 progress?.Report(new LoadProgress { CurrentOperation = "Odczyt pliku Excel..." });
 
-                var cechyFromExcel = new List<CechaUlicy>();
+                var tytulyFromExcel = new List<TytulStopien>();
                 int rowNumber = 0;
 
                 using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(excelPath, false))
@@ -125,17 +124,19 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
                         var cellValues = GetRowCellsDictionary(row, sharedStrings);
 
                         var nazwa = cellValues.GetValueOrDefault("A")?.Trim();
-                        var skrot = cellValues.GetValueOrDefault("B")?.Trim();
+                        var dopelniacz = cellValues.GetValueOrDefault("B")?.Trim();
+                        var skrot = cellValues.GetValueOrDefault("C")?.Trim();
 
                         // Logowanie wczytanych wartości
-                        _logger.LogInfo($"Wiersz {rowNumber}: A(Nazwa)='{nazwa}', B(Skrot)='{skrot}'");
+                        _logger.LogInfo($"Wiersz {rowNumber}: A(Nazwa)='{nazwa}', B(Dopelniacz)='{dopelniacz}', C(Skrot)='{skrot}'");
 
-                        if (!string.IsNullOrWhiteSpace(nazwa) && !string.IsNullOrWhiteSpace(skrot))
+                        if (!string.IsNullOrWhiteSpace(nazwa) && !string.IsNullOrWhiteSpace(skrot) && !string.IsNullOrWhiteSpace(dopelniacz))
                         {
-                            cechyFromExcel.Add(new CechaUlicy
+                            tytulyFromExcel.Add(new TytulStopien
                             {
                                 Nazwa = nazwa,
-                                Skrot = skrot
+                                Skrot = skrot,
+                                Dopelniacz = dopelniacz
                             });
                         }
                         else
@@ -145,14 +146,14 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
                     }
                 }
 
-                result.TotalCount = cechyFromExcel.Count;
+                result.TotalCount = tytulyFromExcel.Count;
                 _logger.LogInfo($"Wczytano {result.TotalCount} wpisów z Excel");
 
                 // Wyświetl wszystkie wczytane rekordy
-                _logger.LogInfo("=== Lista wczytanych cech ulic ===");
-                foreach (var c in cechyFromExcel)
+                _logger.LogInfo("=== Lista wczytanych tytułów ===");
+                foreach (var t in tytulyFromExcel)
                 {
-                    _logger.LogInfo($"  Nazwa='{c.Nazwa}', Skrot='{c.Skrot}'");
+                    _logger.LogInfo($"  Nazwa='{t.Nazwa}', Dopelniacz='{t.Dopelniacz}', Skrot='{t.Skrot}'");
                 }
 
                 progress?.Report(new LoadProgress
@@ -162,11 +163,11 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
                 });
 
                 // Dodaj nowe rekordy do bazy
-                await _context.CechyUlic.AddRangeAsync(cechyFromExcel);
+                await _context.TytulyStopnie.AddRangeAsync(tytulyFromExcel);
                 await _context.SaveChangesAsync();
 
-                result.InsertedCount = cechyFromExcel.Count;
-                result.ProcessedCount = cechyFromExcel.Count;
+                result.InsertedCount = tytulyFromExcel.Count;
+                result.ProcessedCount = tytulyFromExcel.Count;
 
                 _logger.LogInfo($"Zakończono: Dodano: {result.InsertedCount} nowych rekordów");
 
@@ -189,10 +190,9 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
             }
         }
 
-
         private async Task EnsureDefaultRecordExistsAsync()
         {
-            await DefaultRecordHelper.EnsureCechaUlicyDefaultAsync(_context, _logger);
+            await DefaultRecordHelper.EnsureTytulStopienDefaultAsync(_context, _logger);
         }
 
         private static Dictionary<string, string> GetRowCellsDictionary(Row row, string[] sharedStrings)
@@ -240,5 +240,7 @@ namespace AddressLibrary.Services.Dictionaries.CechyUlic
 
             return value;
         }
+
+  
     }
 }
