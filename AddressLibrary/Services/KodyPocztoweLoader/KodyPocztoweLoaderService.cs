@@ -39,81 +39,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
         }
 
-        /// <summary>
-        /// ✅ NOWE: Ładuje listę ulic osobowych z pliku Excel (skopiowane z AddressSearchCache)
-        /// </summary>
-        private HashSet<string> LoadPersonalStreets(string? appDataPath)
-        {
-            var personalStreets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            
-            if (string.IsNullOrEmpty(appDataPath))
-                return personalStreets;
-
-            var excelPath = Path.Combine(appDataPath, "AppData", "Updates", "UliceOsobowe.xlsx");
-
-            if (!File.Exists(excelPath))
-            {
-                Console.WriteLine($"⚠️ Plik {excelPath} nie istnieje");
-                return personalStreets;
-            }
-
-            try
-            {
-                using (var spreadsheet = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(excelPath, false))
-                {
-                    var workbookPart = spreadsheet.WorkbookPart;
-                    if (workbookPart == null)
-                        return personalStreets;
-
-                    var worksheetPart = workbookPart.WorksheetParts.First();
-                    var sheetData = worksheetPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().First();
-
-                    foreach (var row in sheetData.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>().Skip(1)) // Pomiń nagłówek
-                    {
-                        var cells = row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().ToList();
-                        
-                        if (cells.Count >= 5)
-                        {
-                            string? streetName = GetCellValue(workbookPart, cells[4]);
-                            if (!string.IsNullOrWhiteSpace(streetName))
-                            {
-                                var normalized = TextNormalizer.Normalize(streetName);
-                                personalStreets.Add(normalized);
-                            }
-                        }
-                    }
-                }
-                
-                Console.WriteLine($"✓ Załadowano {personalStreets.Count} ulic osobowych z {excelPath}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ Błąd ładowania ulic osobowych: {ex.Message}");
-            }
-
-            return personalStreets;
-        }
-
-        private static string GetCellValue(DocumentFormat.OpenXml.Packaging.WorkbookPart workbookPart, 
-                                      DocumentFormat.OpenXml.Spreadsheet.Cell cell)
-        {
-            if (cell.CellValue == null)
-                return string.Empty;
-
-            string value = cell.CellValue.InnerText;
-
-            if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
-            {
-                var stringTable = workbookPart.GetPartsOfType<DocumentFormat.OpenXml.Packaging.SharedStringTablePart>().FirstOrDefault();
-                if (stringTable != null)
-                {
-                    return stringTable.SharedStringTable.ElementAt(int.Parse(value)).InnerText;
-                }
-            }
-
-            return value;
-        }
-
         public async Task LoadAsync(
             List<Pna> pnaData,
             IProgress<LoadProgressInfo>? progress = null)
@@ -126,6 +51,23 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             await _fuzzyLogger.InitializeAsync();
             await _errorLogger.InitializeAsync(); // ✅ NOWE
             Console.WriteLine($"[KodyPocztoweLoaderService] ✓ _logger.InitializeAsync() zakończone");
+
+            // ✅ NOWE: Załaduj słownik StreetPrefixes z bazy danych CechyUlic
+            Console.WriteLine($"[KodyPocztoweLoaderService] Ładowanie słownika StreetPrefixes...");
+            _logger.LogInfo("=== Ładowanie słownika StreetPrefixes z bazy CechyUlic ===");
+            
+            var cechyDict = new CechyUlicDictionary(_context);
+            await cechyDict.LoadIntoStreetPrefixesAsync();
+            
+            _logger.LogInfo($"✓ Załadowano {CechyUlicUtils.StreetPrefixes.Count} cech ulic do StreetPrefixes");
+            Console.WriteLine($"[KodyPocztoweLoaderService] ✓ StreetPrefixes załadowany: {CechyUlicUtils.StreetPrefixes.Count} pozycji");
+            
+            // Loguj pierwsze kilka elementów dla diagnostyki
+            var pierwszePozycje = CechyUlicUtils.StreetPrefixes.Take(5);
+            foreach (var entry in pierwszePozycje)
+            {
+                _logger.LogInfo($"  '{entry.Key}' -> [{string.Join(", ", entry.Value)}]");
+            }
 
             // DODANO: Wyczyść tabelę KodyPocztowe przed rozpoczęciem ładowania
             var progressInfo = new LoadProgressInfo
