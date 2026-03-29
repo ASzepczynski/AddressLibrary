@@ -132,10 +132,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (string.IsNullOrEmpty(search.Nazwisko) && !string.IsNullOrEmpty(search.Imie))
             {
-                if (ulica.Imie == "kingi" && search.Imie == "kingi")
-                {
-                    int y = 1;
-                }
+       
                 int score = 0;
 
                 if (ulica.Imie == search.Imie)
@@ -163,7 +160,7 @@ namespace AddressLibrary.Services.AddressSearch
                 }
                 else if (ulica.Nazwisko2 == search.Nazwisko)
                 {
-                    matchedWeight += NAZWISKO_WEIGHT / 2;
+                    matchedWeight += NAZWISKO_WEIGHT;
                 }
                 else
                 {

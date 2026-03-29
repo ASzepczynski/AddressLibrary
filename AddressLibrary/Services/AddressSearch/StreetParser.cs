@@ -2,6 +2,7 @@
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
+using UglyToad.PdfPig.Content;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -129,11 +130,6 @@ namespace AddressLibrary.Services.AddressSearch
             if (!_isInitialized)
                 throw new InvalidOperationException("StreetParser nie został zainicjalizowany. Wywołaj InitializeAsync().");
 
-            if (streetName.Contains("robrego"))
-            {
-                int y = 1;
-            }
-
             var result = new ParsedStreet();
 
             // Normalizuj wejściowy string
@@ -176,16 +172,39 @@ namespace AddressLibrary.Services.AddressSearch
                 var nazwiska = word.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
                 if (nazwiska.Length == 2)
                 {
+                    if (_pseudonimy!.Contains(nazwiska[0]) && _nazwiska!.Contains(nazwiska[1]))
+                    {
+                        // Grota-Roweckiego
+                        result.Pseudonim = nazwiska[0];
+                        result.Nazwisko = nazwiska[1];
+                        continue;
+                    }
+                    if (_pseudonimy!.Contains(nazwiska[1]) && _nazwiska!.Contains(nazwiska[0]))
+                    {
+                        // Roweckiego-Grota
+                        result.Pseudonim = nazwiska[1];
+                        result.Nazwisko = nazwiska[0];
+                        continue;
+                    }
+
                     if (_nazwiska!.Contains(nazwiska[0]) && _nazwiska!.Contains(nazwiska[1]))
-                    result.Nazwisko = nazwiska[0];
-                    result.Nazwisko2 = nazwiska[1];
-                    continue;
+                    {
+                        // Skłodowskiej-Curie
+                        result.Nazwisko = nazwiska[0];
+                        result.Nazwisko2 = nazwiska[1];
+                        continue;
+                    }
                 }
 
                 bool czyPseudo = _pseudonimy!.Contains(word);
                 bool czyImie = _imiona!.Contains(word);
                 bool czyNazwisko = _nazwiska!.Contains(word);
-
+          
+                if (czyPseudo && string.IsNullOrEmpty(result.Pseudonim))
+                {
+                    result.Pseudonim = word;
+                    continue;
+                }
 
                 if (czyImie && string.IsNullOrEmpty(result.Imie))
                 {
@@ -207,15 +226,12 @@ namespace AddressLibrary.Services.AddressSearch
                     result.Nazwisko2 = word;
                     continue;
                 }
-                if (czyPseudo && string.IsNullOrEmpty(result.Pseudonim))
-                {
-                    result.Pseudonim = word;
-                    continue;
-                }
+                
                 result.Postfiks += " "+word;
             }
             result.Postfiks=result.Postfiks.Trim();
-            return result;
+
+             return result;
         }
 
         private bool IsPrefiks(string word)
