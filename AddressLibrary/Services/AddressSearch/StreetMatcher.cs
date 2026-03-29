@@ -56,24 +56,22 @@ namespace AddressLibrary.Services.AddressSearch
 
       
             var normalizedSearch = TextNormalizer.Normalize(streetName);
-
+            var parsed = _parser.Parse(streetName);
 
             // Najpierw sprawdzamy wprost - po nazwie
-
-            UlicaCached? bestMatch = null;
-            int bestScore = 0;
             foreach (var ulica in ulice)
             {
-                var parsed = _parser.Parse(streetName);
                 var normalizedFull = ulica.GetFullNormalized();
                 // Zwykłe porównanie nazw
                 if (normalizedFull == normalizedSearch)
                     return ulica;
-                // Oblicz score dopasowania komponentów
-                if (ulica == null || ulica.CechaUlicy == null)
-                {
-                    int vv = 1;
-                }
+            }
+
+            // Teraz z wyceną
+            UlicaCached? bestMatch = null;
+            int bestScore = 0;
+            foreach (var ulica in ulice)
+            {
                 int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.CechaUlicy.Nazwa) ? 0 : -20;
                 var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
 
