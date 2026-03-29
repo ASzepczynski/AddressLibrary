@@ -1,4 +1,5 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
@@ -38,8 +39,8 @@ namespace AddressLibrary.Services
             _logger.LogInfo("KROK 1: Ładowanie słownika CechyUlic...");
             progress?.Report(new LoadProgress { CurrentOperation = "Ładowanie słownika CechyUlic..." });
 
-            var cechyLoader = new LoadCechyUlicService(_context, _appDataPath);
-            var cechyResult = await cechyLoader.LoadAsync(null);
+            var cechyLoader = new CechyUlicExcelLoader(_context, _appDataPath);
+            var cechyResult = await cechyLoader.LoadFromExcelAsync(null);
             
             if (!string.IsNullOrEmpty(cechyResult.ErrorMessage))
             {
@@ -175,9 +176,4 @@ namespace AddressLibrary.Services
             _logger?.Dispose();
         }
     }
-
-    /// <summary>
-    /// Wynik ładowania
-    /// </summary>
-   
 }

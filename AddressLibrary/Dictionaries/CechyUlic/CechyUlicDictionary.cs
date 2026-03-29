@@ -118,6 +118,22 @@ namespace AddressLibrary.Dictionaries.CechyUlic
         }
 
         /// <summary>
+        /// Znajduje cechê na podstawie pe³nej nazwy
+        /// </summary>
+        public async Task<CechaUlicy?> FindByNazwaAsync(string? nazwa)
+        {
+            if (string.IsNullOrWhiteSpace(nazwa))
+                return null;
+
+            var dict = await GetByNazwaAsync();
+            
+            if (dict.TryGetValue(nazwa.Trim(), out var cecha))
+                return cecha;
+
+            return null;
+        }
+
+        /// <summary>
         /// Czyœci cache
         /// </summary>
         public void ClearCache()

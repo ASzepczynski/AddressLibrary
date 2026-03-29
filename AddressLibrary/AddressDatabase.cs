@@ -110,14 +110,19 @@ namespace AddressLibrary
         /// <summary>
         /// Buduje strukturę hierarchiczną na podstawie danych TERYT (BEZ kodów pocztowych)
         /// </summary>
-        public async Task BuildHierarchicalStructureAsync()
+        /// <param name="progress">Opcjonalny obiekt do raportowania postępu budowania hierarchii</param>
+        public async Task BuildHierarchicalStructureAsync(IProgress<BuildProgressInfo>? progress = null)
         {
+            progress?.Report(new BuildProgressInfo(0, 9, "Czyszczenie istniejących danych..."));
+            
             // KROK 1: Wyczyść istniejące dane hierarchiczne (oprócz kodów pocztowych)
             await ClearHierarchicalDataAsync();
 
             // WAŻNE: Wyczyść ChangeTracker po operacji DELETE
             _context.ChangeTracker.Clear();
 
+            progress?.Report(new BuildProgressInfo(1, 9, "Seedowanie domyślnych rekordów..."));
+            
             // KROK 1.5: SEED domyślnych rekordów "Brak" dla wszystkich tabel
             var seeder = new DefaultRecordSeeder(_context);
             await seeder.SeedDefaultRecordsAsync();
@@ -125,15 +130,21 @@ namespace AddressLibrary
             // Wyczyść ChangeTracker ponownie po seedowaniu
             _context.ChangeTracker.Clear();
 
+            progress?.Report(new BuildProgressInfo(2, 9, "Ładowanie słowników (rodzaje gmin)..."));
+            
             // KROK 2: Załaduj słowniki referencyjne
             // 2a. Załaduj rodzaje gmin (seed data)
             var rodzajeGminLoader = new RodzajeGminLoader(_context);
             await rodzajeGminLoader.LoadAsync();
 
+            progress?.Report(new BuildProgressInfo(3, 9, "Ładowanie słowników (rodzaje miejscowości)..."));
+            
             // 2b. Załaduj rodzaje miejscowości z TerytWmRodz
             var rodzajeMiastaLoader = new RodzajeMiastLoader(_context);
             await rodzajeMiastaLoader.LoadAsync();
 
+            progress?.Report(new BuildProgressInfo(4, 9, "Wczytywanie danych TERYT..."));
+            
             // KROK 3: Załaduj dane z tabel TERYT
             var tercData = await _context.TerytTerc.ToListAsync();
             var simcData = await _context.TerytSimc.ToListAsync();
@@ -143,28 +154,40 @@ namespace AddressLibrary
             var rodzajeGmin = await _context.RodzajeGmin.ToDictionaryAsync(r => r.Kod, r => r);
             var rodzajeMiasta = await _context.RodzajeMiast.ToDictionaryAsync(r => r.Kod, r => r);
 
+            progress?.Report(new BuildProgressInfo(5, 9, "Tworzenie województw..."));
+            
             // KROK 5: Utwórz województwa (bez seedowania - już zrobione w kroku 1.5)
             var wojewodztwaLoader = new WojewodztwaLoader(_context);
             var wojewodztwaDict = await wojewodztwaLoader.LoadAsync(tercData);
 
+            progress?.Report(new BuildProgressInfo(6, 9, "Tworzenie powiatów..."));
+            
             // KROK 6: Utwórz powiaty
             var powiatyLoader = new PowiatyLoader(_context);
             var powiatyDict = await powiatyLoader.LoadAsync(tercData, wojewodztwaDict);
 
+            progress?.Report(new BuildProgressInfo(7, 9, "Tworzenie gmin..."));
+            
             // KROK 7: Utwórz gminy
             var gminyLoader = new GminyLoader(_context, _appDataPath);
             var gminyDict = await gminyLoader.LoadAsync(tercData, powiatyDict, rodzajeGmin);
 
+            progress?.Report(new BuildProgressInfo(8, 9, "Tworzenie miejscowości..."));
+            
             // KROK 8: Utwórz miejscowości
             var miastaLoader = new MiastaLoader(_context, _appDataPath);
             var miastaDict = await miastaLoader.LoadAsync(simcData, gminyDict, rodzajeMiasta);
             miastaLoader.Dispose();
 
+            progress?.Report(new BuildProgressInfo(9, 9, "Tworzenie ulic..."));
+            
             // KROK 9: Utwórz ulice
             var uliceLoader = new UliceLoader(_context, _appDataPath);
             
             await uliceLoader.LoadAsync(ulicData, miastaDict, _appDataPath);
             uliceLoader.Dispose();
+            
+            progress?.Report(new BuildProgressInfo(9, 9, "✅ Budowanie hierarchii zakończone!"));
         }
 
         /// <summary>

@@ -381,21 +381,9 @@ namespace AddressLibrary.Helpers
         /// </summary>
         public static string RemoveQuote(string text)
         {
-            if (string.IsNullOrWhiteSpace(text))
-                return text ?? string.Empty;
+      
+            return text.Replace("\"", "");
 
-            var result = text.Trim();
-
-            // 1. Usuń zewnętrzne cudzysłowy (początkowy i końcowy)
-            if (result.StartsWith("\"") && result.EndsWith("\""))
-            {
-                result = result.Substring(1, result.Length - 2);
-            }
-
-            // 2. Zamień podwójne cudzysłowy ("") na pojedyncze (")
-            result = result.Replace("\"\"", "\"");
-
-            return result;
         }
     }
 }

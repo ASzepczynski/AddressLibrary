@@ -54,16 +54,40 @@ namespace AddressLibrary.Dictionaries.CechyUlic
 
             try
             {
-                // Usuń wszystkie rekordy oprócz Id = -1
-                _logger.LogInfo("Usuwanie istniejących rekordów (oprócz Id = -1)...");
-                var deletedCount = await _context.CechyUlic
-                    .Where(c => c.Id != -1)
+                // KROK 1: Usuń KodyPocztowe (najwyższy poziom w hierarchii FK)
+                _logger.LogInfo("Usuwanie rekordów z tabeli KodyPocztowe (oprócz Id = -1)...");
+                var deletedKodyPocztowe = await _context.KodyPocztowe
+                    .Where(k => k.Id != -1)
                     .ExecuteDeleteAsync();
-                _logger.LogInfo($"Usunięto {deletedCount} rekordów");
+                _logger.LogInfo($"Usunięto {deletedKodyPocztowe} rekordów z KodyPocztowe");
 
                 progress?.Report(new LoadProgress
                 {
-                    CurrentOperation = $"Usunięto {deletedCount} starych rekordów"
+                    CurrentOperation = $"Usunięto {deletedKodyPocztowe} kodów pocztowych"
+                });
+
+                // KROK 2: Usuń Ulice (mają FK do CechyUlic)
+                _logger.LogInfo("Usuwanie rekordów z tabeli Ulice (oprócz Id = -1)...");
+                var deletedUlice = await _context.Ulice
+                    .Where(u => u.Id != -1)
+                    .ExecuteDeleteAsync();
+                _logger.LogInfo($"Usunięto {deletedUlice} rekordów z Ulice");
+
+                progress?.Report(new LoadProgress
+                {
+                    CurrentOperation = $"Usunięto {deletedUlice} ulic"
+                });
+
+                // KROK 3: Teraz można bezpiecznie usunąć CechyUlic
+                _logger.LogInfo("Usuwanie istniejących rekordów z CechyUlic (oprócz Id = -1)...");
+                var deletedCechy = await _context.CechyUlic
+                    .Where(c => c.Id != -1)
+                    .ExecuteDeleteAsync();
+                _logger.LogInfo($"Usunięto {deletedCechy} rekordów z CechyUlic");
+
+                progress?.Report(new LoadProgress
+                {
+                    CurrentOperation = $"Usunięto {deletedCechy} starych rekordów CechyUlic"
                 });
             }
             catch (Exception ex)
@@ -170,6 +194,7 @@ namespace AddressLibrary.Dictionaries.CechyUlic
                 result.ProcessedCount = cechyFromExcel.Count;
 
                 _logger.LogInfo($"Zakończono: Dodano: {result.InsertedCount} nowych rekordów");
+                _logger.LogInfo("=== Zakończenie ładowania CechyUlic ===");
 
                 progress?.Report(new LoadProgress
                 {

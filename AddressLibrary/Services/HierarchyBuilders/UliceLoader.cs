@@ -210,25 +210,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     originalParts.Add(tempNazwa1.Trim());
 
                 var original = string.Join(" ", originalParts);
-
-                // ✅ ZMIENIONO: Użyj CechyUlicDictionary do znalezienia cechy
-                var cechaUlicy = await _cechyUlicDict.FindBySkrotAsync(Cecha);
-                int cechaUlicyId = -1;
-                if (cechaUlicy == null)
-                {
-                    cechaUlicyId = -1;
-                    cechyUlicAssigned++;
-                    if(Cecha!="inne")_logger.LogError($"Brak cechy ulicy [{Cecha}]");
-                }
-                else
-                {
-                    cechaUlicyId = cechaUlicy.Id;
-                }
-
+              
+                 
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
-                    CechaUlicyId = cechaUlicyId,
+                    CechaUlicyId = -1,
                     MiastoId = miasto.Id,
                     Dzielnica = dzielnica,
                     TypUlicyId = null
@@ -240,11 +227,10 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     string sCecha = terytUlicPoprawka.Cecha;
                     if (!string.IsNullOrWhiteSpace(sCecha))
                     {
-                        ulica.CechaUlicyId = -1;
-                        var cUlicy = await _cechyUlicDict.FindBySkrotAsync(sCecha);
+                        var cUlicy = await _cechyUlicDict.FindByNazwaAsync(sCecha);
                         if (cUlicy == null)
                         {
-                            if (Cecha != "inne") _logger.LogError($"Brak cechy ulicy w TerytUlicPoprawka [{sCecha}]");
+                            if (sCecha != "inne") _logger.LogError($"Brak cechy ulicy w TerytUlicPoprawka [{sCecha}]");
                         }
                         else
                         {

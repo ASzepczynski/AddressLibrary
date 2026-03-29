@@ -191,7 +191,11 @@ namespace AddressLibrary.Helpers
                 throw new Exception($"Liczba poprawek przekroczyła 5 - przupuszczalnie nieskończona pętla '{oldName}/{result}'");
             }
 
+            result = ReplaceWordIgnoreCase(result, "\"", "");
+
             newName = result;
+
+            
 
             // Zwróć true tylko jeśli nazwa faktycznie się zmieniła
             return !string.Equals(oldName, newName, StringComparison.Ordinal);
