@@ -133,8 +133,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-            // foreach (var pna_raw in pnaData.Where(x=>x.Ulica.Contains("\"Kampinos")))
-             foreach (var pna_raw in pnaData)
+             foreach (var pna_raw in pnaData.Where(x=>x.Ulica.Contains("Leopolda Lisa-Kuli")))
+            // foreach (var pna_raw in pnaData)
             {
                 try
                 {
@@ -168,10 +168,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     }
 
                     // 1a. Znajdź miasto
-                    if (pna.Miasto == "Aleksandrów Kujawski")
-                    {
-                        int y = 1;
-                    }
+           
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
                     var miasto = matchResult.miasto;
 
