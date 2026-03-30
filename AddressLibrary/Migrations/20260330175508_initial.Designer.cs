@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AddressLibrary.Migrations
 {
     [DbContext(typeof(AddressDbContext))]
-    [Migration("20260330103441_initial")]
+    [Migration("20260330175508_initial")]
     partial class initial
     {
         /// <inheritdoc />
