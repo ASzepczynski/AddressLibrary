@@ -5,8 +5,6 @@ using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Dictionaries;
-using AddressLibrary.Dictionaries.CechyUlic;
-using AddressLibrary.Dictionaries.TytulyStopnie;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
@@ -71,7 +69,7 @@ namespace AddressLibrary.Services
                 _logger.LogInfo($"✓ Załadowano CechyUlic: Dodano={cechyResult.InsertedCount}, Zaktualizowano={cechyResult.UpdatedCount}");
             }
 
-            // Wyczyść cache słownika CechyUlic po ładowaniu
+            // Wyczyść cache słownika CechyUlic (aby wymusić odczyt świeżych danych z bazy)
             _cechyDict.ClearCache();
 
             // ✅ KROK 2: Załaduj słownik TytulyStopnie z Excel
@@ -90,7 +88,7 @@ namespace AddressLibrary.Services
                 _logger.LogInfo($"✓ Załadowano TytulyStopnie: Dodano={tytulyResult.InsertedCount}, Zaktualizowano={tytulyResult.UpdatedCount}");
             }
 
-            // Wyczyść cache i załaduj ponownie do pamięci
+            // Wyczyść cache słownika TytulyStopnie (aby wymusić odczyt świeżych danych z bazy)
             _tytulyDict.ClearCache();
 
             // ✅ KROK 3: Załaduj słownik tytułów do pamięci i zainicjalizuj TitleManager
@@ -224,6 +222,12 @@ namespace AddressLibrary.Services
                 {
                     // ✅ Użyj słownika do mapowania tytułu
                     int tytulStopienId = _tytulyDict.MapDopelniaczToId(item.Tytul);
+
+                    if (tytulStopienId == -2)
+                    {
+                        _logger.LogError($"Brak tytułu [{item.Tytul}]");
+                        tytulStopienId = -1;
+                    }
                     
                     var typUlicy = new TypUlicy
                     {

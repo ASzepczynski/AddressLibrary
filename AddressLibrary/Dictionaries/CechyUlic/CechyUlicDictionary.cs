@@ -1,6 +1,6 @@
-using AddressLibrary.Data;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
+using AddressLibrary.Data;
 
 namespace AddressLibrary.Dictionaries.CechyUlic
 {
@@ -11,13 +11,24 @@ namespace AddressLibrary.Dictionaries.CechyUlic
     {
         private readonly AddressDbContext _context;
         private Dictionary<string, CechaUlicy>? _nazwaDict;
-        private Dictionary<string, CechaUlicy>? _skrotDict;
-        private Dictionary<string, int>? _skrotToIdDict;
+        private Dictionary<string, List<CechaUlicy>>? _skrotDict;
+        private Dictionary<string, List<int>>? _skrotToIdDict;
         private List<CechaUlicy>? _allCechy;
 
         public CechyUlicDictionary(AddressDbContext context)
         {
             _context = context;
+        }
+
+        /// <summary>
+        /// Czyœci wszystkie cache'owane s³owniki (wymusza ponowne za³adowanie z bazy danych)
+        /// </summary>
+        public void ClearCache()
+        {
+            _nazwaDict = null;
+            _skrotDict = null;
+            _skrotToIdDict = null;
+            _allCechy = null;
         }
 
         /// <summary>
@@ -52,41 +63,73 @@ namespace AddressLibrary.Dictionaries.CechyUlic
         }
 
         /// <summary>
-        /// Pobiera s³ownik Skrot -> CechaUlicy
+        /// Pobiera s³ownik Skrot -> Lista CechaUlicy (jeden skrót mo¿e mieæ wiele cech)
         /// </summary>
-        public async Task<Dictionary<string, CechaUlicy>> GetBySkrotAsync()
+        public async Task<Dictionary<string, List<CechaUlicy>>> GetBySkrotAsync()
         {
             if (_skrotDict == null)
             {
                 var cechy = await GetAllAsync();
-                _skrotDict = cechy.ToDictionary(
-                    c => c.Skrot,
-                    c => c,
-                    StringComparer.OrdinalIgnoreCase
-                );
+                _skrotDict = cechy
+                    .GroupBy(c => c.Skrot, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.ToList(),
+                        StringComparer.OrdinalIgnoreCase
+                    );
             }
             return _skrotDict;
         }
 
         /// <summary>
-        /// Pobiera s³ownik Skrot -> Id (dla szybkiego mapowania)
+        /// Pobiera s³ownik Skrot -> Lista Id (dla szybkiego mapowania, jeden skrót mo¿e mieæ wiele ID)
         /// </summary>
-        public async Task<Dictionary<string, int>> GetSkrotToIdMappingAsync()
+        public async Task<Dictionary<string, List<int>>> GetSkrotToIdMappingAsync()
         {
             if (_skrotToIdDict == null)
             {
                 var cechy = await GetAllAsync();
-                _skrotToIdDict = cechy.ToDictionary(
-                    c => c.Skrot,
-                    c => c.Id,
-                    StringComparer.OrdinalIgnoreCase
-                );
+                _skrotToIdDict = cechy
+                    .GroupBy(c => c.Skrot, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(c => c.Id).ToList(),
+                        StringComparer.OrdinalIgnoreCase
+                    );
             }
             return _skrotToIdDict;
         }
 
         /// <summary>
-        /// Znajduje Id cechy na podstawie skrótu
+        /// £aduje cechy ulic z bazy do statycznego s³ownika CechyUlicUtils.StreetPrefixes
+        /// </summary>
+        public async Task LoadIntoStreetPrefixesAsync()
+        {
+            var cechy = await GetAllAsync();
+            
+            // Wyczyœæ istniej¹cy s³ownik
+            CechyUlicUtils.StreetPrefixes.Clear();
+            
+            // Za³aduj dane z bazy do statycznego s³ownika
+            // Grupuj po Nazwa (pe³na nazwa cechy), zbierz wszystkie skróty
+            var grouped = cechy
+                .GroupBy(c => c.Nazwa, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(c => c.Skrot).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                    StringComparer.OrdinalIgnoreCase
+                );
+            
+            foreach (var entry in grouped)
+            {
+                // Dodaj warianty: [skrót, pe³na nazwa]
+                var variants = new List<string>(entry.Value) { entry.Key };
+                CechyUlicUtils.Add(entry.Key, variants);
+            }
+        }
+
+        /// <summary>
+        /// Znajduje pierwsze Id cechy na podstawie skrótu (jeœli jest wiele, zwraca pierwsze)
         /// </summary>
         public async Task<int> FindIdBySkrotAsync(string? skrot)
         {
@@ -95,14 +138,46 @@ namespace AddressLibrary.Dictionaries.CechyUlic
 
             var dict = await GetSkrotToIdMappingAsync();
             
-            if (dict.TryGetValue(skrot.Trim(), out int id))
-                return id;
+            if (dict.TryGetValue(skrot.Trim(), out var ids) && ids.Count > 0)
+                return ids[0]; // Zwróæ pierwsze ID
 
             return -1;
         }
 
         /// <summary>
-        /// Znajduje cechê na podstawie skrótu
+        /// Znajduje wszystkie Id cech na podstawie skrótu
+        /// </summary>
+        public async Task<List<int>> FindAllIdsBySkrotAsync(string? skrot)
+        {
+            if (string.IsNullOrWhiteSpace(skrot))
+                return new List<int>();
+
+            var dict = await GetSkrotToIdMappingAsync();
+            
+            if (dict.TryGetValue(skrot.Trim(), out var ids))
+                return ids;
+
+            return new List<int>();
+        }
+
+        /// <summary>
+        /// Znajduje Id cechy na podstawie pe³nej nazwy (unikalny klucz)
+        /// </summary>
+        public async Task<int> FindIdByNazwaAsync(string? nazwa)
+        {
+            if (string.IsNullOrWhiteSpace(nazwa))
+                return -1;
+
+            var dict = await GetByNazwaAsync();
+            
+            if (dict.TryGetValue(nazwa.Trim(), out var cecha))
+                return cecha.Id;
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Znajduje pierwsz¹ cechê na podstawie skrótu
         /// </summary>
         public async Task<CechaUlicy?> FindBySkrotAsync(string? skrot)
         {
@@ -111,14 +186,14 @@ namespace AddressLibrary.Dictionaries.CechyUlic
 
             var dict = await GetBySkrotAsync();
             
-            if (dict.TryGetValue(skrot.Trim(), out var cecha))
-                return cecha;
+            if (dict.TryGetValue(skrot.Trim(), out var cechy) && cechy.Count > 0)
+                return cechy[0];
 
             return null;
         }
 
         /// <summary>
-        /// Znajduje cechê na podstawie pe³nej nazwy
+        /// Znajduje cechê na podstawie pe³nej nazwy (unikalny klucz)
         /// </summary>
         public async Task<CechaUlicy?> FindByNazwaAsync(string? nazwa)
         {
@@ -131,82 +206,6 @@ namespace AddressLibrary.Dictionaries.CechyUlic
                 return cecha;
 
             return null;
-        }
-
-        /// <summary>
-        /// Czyœci cache
-        /// </summary>
-        public void ClearCache()
-        {
-            _nazwaDict = null;
-            _skrotDict = null;
-            _skrotToIdDict = null;
-            _allCechy = null;
-        }
-
-        /// <summary>
-        /// £aduje dane z bazy danych do statycznej tablicy StreetPrefixes w CechyUlicUtils
-        /// Tworzy listê wariantów na podstawie Nazwa i Skrot z ka¿dej CechaUlicy
-        /// </summary>
-        /// <remarks>
-        /// Ta metoda synchronizuje dane z bazy danych do statycznej tablicy StreetPrefixes.
-        /// Tworzy warianty:
-        /// 1. Skrót (np. "ul.")
-        /// 2. Skrót bez kropki (np. "ul")
-        /// 3. Pe³na nazwa (np. "ulica")
-        /// 
-        /// PRZYK£AD:
-        /// Dla rekordu: Nazwa="ulica", Skrot="ul."
-        /// Zostanie utworzony wpis: StreetPrefixes["ulica"] = ["ul.", "ul", "ulica"]
-        /// </remarks>
-        public async Task LoadIntoStreetPrefixesAsync()
-        {
-            // Pobierz wszystkie cechy z bazy
-            var cechy = await GetAllAsync();
-
-            // Wyczyœæ istniej¹c¹ tablicê
-            CechyUlicUtils.StreetPrefixes.Clear();
-
-            // Dodaj ka¿d¹ cechê do s³ownika
-            foreach (var cecha in cechy)
-            {
-                // Utwórz listê wariantów:
-                var warianty = new List<string>();
-
-                // 1. Dodaj skrót (np. "ul.")
-                if (!string.IsNullOrWhiteSpace(cecha.Skrot))
-                {
-                    warianty.Add(cecha.Skrot);
-
-                    // 2. Jeœli skrót koñczy siê kropk¹, dodaj wersjê bez kropki (np. "ul")
-                    if (cecha.Skrot.EndsWith("."))
-                    {
-                        var bezKropki = cecha.Skrot.TrimEnd('.');
-                        if (!string.IsNullOrWhiteSpace(bezKropki))
-                        {
-                            warianty.Add(bezKropki);
-                        }
-                    }
-                }
-
-                // 3. Dodaj pe³n¹ nazwê (np. "ulica")
-                if (!string.IsNullOrWhiteSpace(cecha.Nazwa))
-                {
-                    warianty.Add(cecha.Nazwa);
-                }
-
-                // Usuñ duplikaty (case-insensitive)
-                warianty = warianty.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-
-                // Dodaj do s³ownika StreetPrefixes u¿ywaj¹c metody Add()
-                // Dictionary.Add() dodaje parê klucz-wartoœæ:
-                // - klucz: pe³na nazwa cechy (np. "aleja")
-                // - wartoœæ: lista wszystkich wariantów (np. ["al.", "al", "aleja"])
-                if (warianty.Count > 0)
-                {
-                    CechyUlicUtils.Add(cecha.Nazwa, warianty);
-                }
-            }
         }
     }
 }

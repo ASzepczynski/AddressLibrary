@@ -222,15 +222,15 @@ namespace AddressLibrary.Dictionaries.TytulyStopnie
             if (_dopelniaczToIdDict.TryGetValue(dopelniacz.Trim(), out int id))
                 return id;
 
-            // Podziel na czêœci dla z³o¿onych tytu³ów
-            var parts = dopelniacz.Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var part in parts)
-            {
-                if (_dopelniaczToIdDict.TryGetValue(part.Trim(), out id))
-                    return id;
-            }
+            //// Podziel na czêœci dla z³o¿onych tytu³ów
+            //var parts = dopelniacz.Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            //foreach (var part in parts)
+            //{
+            //    if (_dopelniaczToIdDict.TryGetValue(part.Trim(), out id))
+            //        return id;
+            //}
 
-            return -1;
+            return -2;
         }
 
         /// <summary>

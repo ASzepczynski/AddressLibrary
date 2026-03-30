@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AddressLibrary.Migrations
 {
     /// <inheritdoc />
-    public partial class INITIAL : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -333,7 +333,7 @@ namespace AddressLibrary.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Symbol = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false, collation: "Polish_CS_AS"),
-                    Cecha = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true, collation: "Polish_CS_AS"),
+                    CechaUlicyId = table.Column<int>(type: "int", nullable: true),
                     Dzielnica = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, collation: "Polish_CS_AS"),
                     MiastoId = table.Column<int>(type: "int", nullable: false),
                     TypUlicyId = table.Column<int>(type: "int", nullable: true)
@@ -341,6 +341,11 @@ namespace AddressLibrary.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Ulice", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Ulice_CechyUlic_CechaUlicyId",
+                        column: x => x.CechaUlicyId,
+                        principalTable: "CechyUlic",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Ulice_Miasta_MiastoId",
                         column: x => x.MiastoId,
@@ -458,6 +463,11 @@ namespace AddressLibrary.Migrations
                 column: "TytulStopienId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Ulice_CechaUlicyId",
+                table: "Ulice",
+                column: "CechaUlicyId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Ulice_MiastoId",
                 table: "Ulice",
                 column: "MiastoId");
@@ -478,9 +488,6 @@ namespace AddressLibrary.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Adresy");
-
-            migrationBuilder.DropTable(
-                name: "CechyUlic");
 
             migrationBuilder.DropTable(
                 name: "KodyPocztowe");
@@ -508,6 +515,9 @@ namespace AddressLibrary.Migrations
 
             migrationBuilder.DropTable(
                 name: "Ulice");
+
+            migrationBuilder.DropTable(
+                name: "CechyUlic");
 
             migrationBuilder.DropTable(
                 name: "Miasta");

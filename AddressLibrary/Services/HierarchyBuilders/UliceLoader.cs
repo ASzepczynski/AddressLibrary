@@ -139,7 +139,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 Miasto = miaDict.GetValueOrDefault(u.Symbol)
             }).ToList();
 
-            var brakujace = new List<string>();
+            var brakujaceTytuly = new List<string>();
 
             foreach (var ulic in resultList)
             {
@@ -241,6 +241,13 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     // ✅ Użyj serwisu do mapowania tytułu
                     int tytulStopienId = _tytulyService.MapDopelniaczToId(terytUlicPoprawka.Tytul);
 
+                    if (tytulStopienId == -2)
+                    {
+                        tytulStopienId = -1;
+                        brakujaceTytuly.Add(terytUlicPoprawka.Tytul);
+
+                    }
+
                     // ✅ Użyj serwisu do znalezienia TypUlicyId
                     var typUlicyId = await _typyUlicService.FindTypUlicyIdAsync(
                         terytUlicPoprawka.Prefiks,
@@ -263,9 +270,10 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 allUlice.Add(ulica);
             }
 
-            foreach (var elem in brakujace.Distinct())
+
+            foreach (var elem in brakujaceTytuly.Distinct())
             {
-                _logger.LogError($"Brak stopnia '{elem}'");
+                _logger.LogError($"Brak stopnia/tytułu '{elem}'");
             }
 
             _logger.LogInfo($"Zebrano {allUlice.Count} ulic");
