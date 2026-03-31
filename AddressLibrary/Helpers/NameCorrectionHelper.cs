@@ -146,7 +146,7 @@ namespace AddressLibrary.Helpers
         /// <summary>
         /// Próbuje zastosować korekty nazwy - iteruje przez wszystkie korekty danego typu
         /// i wykonuje Replace dla każdej. Zwraca true jeśli nazwa się zmieniła.
-        /// ✅ POPRAWKA: Używa szybkiego word boundary checking bez regex
+        /// ✅ POPRAWKA: Obsługuje dwa tryby - dosłowny (z !) i word boundary (bez !)
         /// </summary>
         public bool TryCorrect(string type, string? oldName, out string newName)
         {
@@ -168,6 +168,11 @@ namespace AddressLibrary.Helpers
             var result = oldName;
             bool hasChanged;
 
+            if (oldName.Contains("Czarnkowa"))
+            {
+                int y = 1;
+            }
+
             // ✅ POPRAWKA: Iteruj dopóki następna iteracja wprowadza zmiany
             int LiczbaPoprawek = 0;
             do
@@ -177,89 +182,44 @@ namespace AddressLibrary.Helpers
                 // Iteruj przez wszystkie korekty danego typu
                 foreach (var (oldPattern, newPattern) in _correctionsByType[normalizedType])
                 {
-                    result = ReplaceWordIgnoreCase(result, oldPattern, newPattern);
+                    // ✅ NOWA LOGIKA: Sprawdź czy oldPattern zaczyna się od "!"
+                    if (oldPattern.StartsWith("!"))
+                    {
+                        // Tryb dosłowny - usuń "!" i zamień dokładnie
+                        var patternBezWykrzyknika = oldPattern.Substring(1);
+                        result = ReplaceMaster.ReplaceStringIgnoreCase(result, patternBezWykrzyknika, newPattern);
+                    }
+                    else
+                    {
+                        // Tryb word boundary - zamień tylko całe słowa
+                        result = ReplaceMaster.ReplaceWordIgnoreCase(result, oldPattern, newPattern);
+                    }
                 }
 
                 // ✅ POPRAWKA: hasChanged == true gdy stringi są RÓŻNE (była zmiana)
                 hasChanged = !string.Equals(przed, result, StringComparison.Ordinal);
                 LiczbaPoprawek++;
                 
-            } while (hasChanged && LiczbaPoprawek<5); // ✅ Kontynuuj gdy była zmiana (może być kolejna)
+            } while (hasChanged && LiczbaPoprawek < 5); // ✅ Kontynuuj gdy była zmiana (może być kolejna)
 
             if (LiczbaPoprawek >= 5)
             {
-                throw new Exception($"Liczba poprawek przekroczyła 5 - przupuszczalnie nieskończona pętla '{oldName}/{result}'");
+                throw new Exception($"Liczba poprawek przekroczyła 5 - przypuszczalnie nieskończona pętla '{oldName}/{result}'");
             }
 
-            result = ReplaceWordIgnoreCase(result, "\"", "");
+            result = ReplaceMaster.ReplaceStringIgnoreCase(result, "\"", "");
 
             newName = result;
-
-            
 
             // Zwróć true tylko jeśli nazwa faktycznie się zmieniła
             return !string.Equals(oldName, newName, StringComparison.Ordinal);
         }
 
-        /// <summary>
-        /// ✅ SZYBKA METODA: Zamienia wszystkie wystąpienia starego tekstu na nowy (case-insensitive)
-        /// TYLKO gdy stary tekst występuje jako całe słowo (z granicami słów)
-        /// Używa prostego porównywania znaków zamiast regex dla wydajności
-        /// </summary>
-        private static string ReplaceWordIgnoreCase(string text, string oldValue, string newValue)
-        {
-            if (string.IsNullOrEmpty(oldValue) || string.IsNullOrEmpty(text))
-                return text;
-
-            var result = new System.Text.StringBuilder(text.Length);
-            int textIndex = 0;
-
-            while (textIndex < text.Length)
-            {
-                // Znajdź następne wystąpienie wzorca (case-insensitive)
-                int matchIndex = text.IndexOf(oldValue, textIndex, StringComparison.OrdinalIgnoreCase);
-
-                if (matchIndex == -1)
-                {
-                    // Brak więcej dopasowań - skopiuj resztę tekstu
-                    result.Append(text.AsSpan(textIndex));
-                    break;
-                }
-
-                // Sprawdź granice słowa
-                bool isWordStart = matchIndex == 0 || !IsLetter(text[matchIndex - 1]);
-                bool isWordEnd = (matchIndex + oldValue.Length >= text.Length) || !IsLetter(text[matchIndex + oldValue.Length]);
-
-                // Skopiuj tekst przed dopasowaniem
-                result.Append(text.AsSpan(textIndex, matchIndex - textIndex));
-
-                if (isWordStart && isWordEnd)
-                {
-                    // To całe słowo - zamień
-                    result.Append(newValue);
-                    textIndex = matchIndex + oldValue.Length;
-                }
-                else
-                {
-                    // To nie całe słowo - skopiuj oryginał i przejdź dalej
-                    result.Append(text.AsSpan(matchIndex, oldValue.Length));
-                    textIndex = matchIndex + oldValue.Length;
-                }
-            }
-
-            return result.ToString();
-        }
 
         /// <summary>
-        /// Sprawdza czy znak jest literą (w tym polskie znaki)
+        /// Sprawdza czy znak jest granicą słowa (spacja, kropka, przecinek, myślnik, itp.)
         /// </summary>
-        private static bool IsLetter(char c)
-        {
-            return (c >= 'a' && c <= 'z') ||
-                   (c >= 'A' && c <= 'Z') ||
-                   c == 'ą' || c == 'ć' || c == 'ę' || c == 'ł' || c == 'ń' || c == 'ó' || c == 'ś' || c == 'ź' || c == 'ż' ||
-                   c == 'Ą' || c == 'Ć' || c == 'Ę' || c == 'Ł' || c == 'Ń' || c == 'Ó' || c == 'Ś' || c == 'Ź' || c == 'Ż';
-        }
+       
 
         public int Count => _correctionsByType.Values.Sum(list => list.Count);
 

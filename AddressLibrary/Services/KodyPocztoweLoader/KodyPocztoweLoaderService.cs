@@ -133,12 +133,14 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-             //foreach (var pna_raw in pnaData.Where(x=>x.Ulica.Contains("Leopolda Lisa-Kuli")))
-             foreach (var pna_raw in pnaData)
+             // foreach (var pna_raw in pnaData.Where(x=>x.Ulica.Contains("AK")))
+              foreach (var pna_raw in pnaData)
             {
                 try
                 {
                     var pna_src = pna_raw;
+                    // Odłączam, bo inaczej updatetuje bazę
+                    _context.Entry(pna_src).State = EntityState.Detached;
 
                     pna_src.Miasto = UliceUtils.RemoveQuote(pna_src.Miasto);
                     pna_src.Ulica = UliceUtils.RemoveQuote(pna_src.Ulica);
@@ -209,11 +211,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
                     // 2. Znajdź ulicę (jeśli jest)
                     string? sUlica = pna.Ulica.Replace("-go", "");
-
-                    if (sUlica.Contains("olonia"))
-                    {
-                        int z = 1;
-                    }
 
                     (string sPrefix, sUlica) = CechyUlicUtils.SplitStreetPrefix(sUlica);
                     (string sPrefix2, string sUlica2) = CechyUlicUtils.SplitStreetPrefix(sUlica);

@@ -29,11 +29,91 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// Tworzy bazę danych jeśli nie istnieje
+        /// Bezpieczna inicjalizacja bazy danych - NIGDY nie kasuje istniejącej bazy automatycznie
+        /// - Jeśli baza nie istnieje: tworzy ją
+        /// - Jeśli baza istnieje: nic nie robi (nawet jeśli struktura jest błędna)
+        /// </summary>
+        public async Task InitializeDatabaseAsync()
+        {
+            try
+            {
+                // Po prostu upewnij się że baza istnieje
+                // EnsureCreatedAsync NIE kasuje istniejącej bazy - tylko tworzy jeśli nie istnieje
+                await _context.Database.EnsureCreatedAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Błąd podczas inicjalizacji bazy: {ex.Message}");
+                throw; // Rzuć wyjątek dalej - nie ignoruj błędów
+            }
+        }
+
+        /// <summary>
+        /// RĘCZNE odtworzenie bazy danych - wymaga świadomej decyzji użytkownika
+        /// UWAGA: WSZYSTKIE DANE ZOSTANĄ UTRACONE!
+        /// Użyj tego TYLKO gdy chcesz wyczyścić bazę i zacząć od nowa
+        /// </summary>
+        public async Task ManualRecreateDatabaseAsync()
+        {
+            Console.WriteLine("⚠️⚠️⚠️ OSTRZEŻENIE: Usuwanie bazy danych...");
+            await _context.Database.EnsureDeletedAsync();
+            
+            Console.WriteLine("✓ Tworzenie bazy od nowa...");
+            await _context.Database.EnsureCreatedAsync();
+            
+            Console.WriteLine("✓ Baza danych została odtworzona");
+        }
+
+        /// <summary>
+        /// Sprawdza czy baza danych istnieje i można się z nią połączyć
+        /// </summary>
+        public async Task<bool> CanConnectToDatabaseAsync()
+        {
+            try
+            {
+                return await _context.Database.CanConnectAsync();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy tabela istnieje w bazie danych
+        /// </summary>
+        public async Task<bool> TableExistsAsync(string tableName)
+        {
+            try
+            {
+                var query = $"SELECT TOP 1 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @p0";
+                var result = await _context.Database
+                    .SqlQueryRaw<int>(query, tableName)
+                    .FirstOrDefaultAsync();
+                return result == 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tworzy bazę danych jeśli nie istnieje (automatycznie na podstawie modelu)
+        /// BEZPIECZNE - nie kasuje istniejącej bazy
         /// </summary>
         public async Task EnsureDatabaseCreatedAsync()
         {
             await _context.Database.EnsureCreatedAsync();
+        }
+
+        /// <summary>
+        /// PRZESTARZAŁE - użyj ManualRecreateDatabaseAsync()
+        /// </summary>
+        [Obsolete("Użyj ManualRecreateDatabaseAsync() aby wyraźnie zaznaczyć intencję")]
+        public async Task RecreateDatabaseAsync()
+        {
+            await ManualRecreateDatabaseAsync();
         }
 
         /// <summary>
@@ -61,14 +141,6 @@ namespace AddressLibrary
             _context.TerytWmRodz.RemoveRange(await _context.TerytWmRodz.ToListAsync());
 
             await _context.SaveChangesAsync();
-        }
-
-        /// <summary>
-        /// Wykonuje migracje
-        /// </summary>
-        public async Task MigrateDatabaseAsync()
-        {
-            await _context.Database.MigrateAsync();
         }
 
         /// <summary>

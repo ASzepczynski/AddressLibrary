@@ -61,6 +61,9 @@ namespace AddressLibrary.Services.AddressSearch
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
+
+               
+
                 var normalizedFull = ulica.GetFullNormalized();
                 // Zwykłe porównanie nazw
                 if (normalizedFull == normalizedSearch)
@@ -72,6 +75,11 @@ namespace AddressLibrary.Services.AddressSearch
             int bestScore = 0;
             foreach (var ulica in ulice)
             {
+
+                if (ulica.Nazwisko == "ii" && streetName.Contains("Jana Pawła"))
+                {
+                    int y = 1;
+                }
                 int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.CechaUlicy.Nazwa) ? 0 : -20;
                 var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
 
@@ -88,7 +96,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 var normalizedFull = ulica.GetFullNormalized();
                 // Częściowe dopasowanie (contains)
-                if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
+                if (true || normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
                 {
                     int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
                     if (distance <= 2)

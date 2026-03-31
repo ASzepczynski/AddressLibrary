@@ -211,14 +211,14 @@ namespace AddressLibrary.Services.AddressSearch
                     result.Imie = word;
                     continue;
                 }
-                if (czyNazwisko && string.IsNullOrEmpty(result.Nazwisko))
-                {
-                    result.Nazwisko = word;
-                    continue;
-                }
                 if (czyImie && string.IsNullOrEmpty(result.Imie2))
                 {
                     result.Imie2 = word;
+                    continue;
+                }
+                if (czyNazwisko && string.IsNullOrEmpty(result.Nazwisko))
+                {
+                    result.Nazwisko = word;
                     continue;
                 }
                 if (czyNazwisko && string.IsNullOrEmpty(result.Nazwisko2))
@@ -229,6 +229,8 @@ namespace AddressLibrary.Services.AddressSearch
                 
                 result.Postfiks += " "+word;
             }
+// Tutaj trzeba sprawdzić merytorycznie czy nie brakuje nazwiska i czy np. nie zastąpić nazwiska imieniem2
+
             result.Postfiks=result.Postfiks.Trim();
 
              return result;
