@@ -1,4 +1,5 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
@@ -8,15 +9,15 @@ namespace AddressLibrary.Services.AddressSearch
 {
     /// <summary>
     /// 🚀 Parser rozbijający string ulicy na komponenty (cecha, tytuł, imiona, nazwiska, pseudonim)
-    /// Używa słowników z bazy danych: CechyUlic, TytulyStopnie, imiona i nazwiska z TypyUlic
+    /// Używa słowników z bazy danych: CechyUlic (przez CechyUlicUtils), TytulyStopnie (przez TitleManager), imiona i nazwiska z TypyUlic
     /// </summary>
     public class StreetParser
     {
         private readonly AddressDbContext _context;
 
-        // Słowniki (cache)
-        private HashSet<string>? _cechy;                    // ul, al, pl, os, ...
-        private HashSet<string>? _tytuly;                   // gen, bp, plk, dr, prof, ...
+        // Słowniki (cache) - tylko dla danych NIE zarządzanych przez dedykowane managery
+        // ❌ USUNIĘTE: private HashSet<string>? _cechy;    // DUPLIKAT CechyUlicUtils.StreetPrefixes
+        // ❌ USUNIĘTE: private HashSet<string>? _tytuly;   // DUPLIKAT TitleManager._titlesSet
         private HashSet<string>? _imiona;                   // tadeusza, krzysztofa, ...
         private HashSet<string>? _nazwiska;                 // ploskiego, fieldorfa, mickiewicza, ...
         private HashSet<string>? _pseudonimy;               // nila, zapory, ...
@@ -37,38 +38,20 @@ namespace AddressLibrary.Services.AddressSearch
 
             Console.WriteLine($"[StreetParser] === Inicjalizacja słowników ===");
 
-            // 1. Załaduj cechy ulic (ul., al., pl., ...)
-            _cechy = (await _context.CechyUlic
-                .AsNoTracking()
-                .Where(c => c.Id != -1) // ✅ Pomiń sentinel
-                .Select(c => c.Skrot)
-                .ToListAsync())
-                .Select(s => TextNormalizer.Normalize(s))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            // 1. ✅ CechyUlicUtils jest już zainicjalizowany przez CechyUlicDictionaryService
+            //    Nie trzeba nic robić - używamy CechyUlicUtils.StreetPrefixes bezpośrednio
+            var cechyCount = CechyUlicUtils.StreetPrefixes.SelectMany(kv => kv.Value).Distinct().Count();
+            Console.WriteLine($"[StreetParser] CechyUlicUtils ma {cechyCount} cech ulic");
 
-            Console.WriteLine($"[StreetParser] Załadowano {_cechy.Count} cech ulic");
-
-            // 2. Załaduj tytuły (przez TitleManager)
-            TitleManager.Initialize(await _context.TytulyStopnie
-                .AsNoTracking()
-                .Where(t => t.Id != -1) // ✅ Pomiń sentinel
-                .ToListAsync());
-            
-            _tytuly = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var tytul in await _context.TytulyStopnie
-                .AsNoTracking()
-                .Where(t => t.Id != -1)
-                .ToListAsync())
+            // 2. ✅ Zainicjalizuj TitleManager (jeśli jeszcze nie był)
+            if (!TitleManager.IsInitialized)
             {
-                if (!string.IsNullOrEmpty(tytul.Dopelniacz))
-                    _tytuly.Add(TextNormalizer.Normalize(tytul.Dopelniacz));
-                // Dodajemy skróty ale bez kropki
-                if (!string.IsNullOrEmpty(tytul.Skrot))
-                    _tytuly.Add(TextNormalizer.Normalize(tytul.Skrot));
+                TitleManager.Initialize(await _context.TytulyStopnie
+                    .AsNoTracking()
+                    .Where(t => t.Id != -1) // ✅ Pomiń sentinel
+                    .ToListAsync());
             }
-
-            Console.WriteLine($"[StreetParser] Załadowano {_tytuly.Count} tytułów");
+            Console.WriteLine($"[StreetParser] TitleManager zainicjalizowany");
 
             // 3. Załaduj imiona, nazwiska, pseudonimy z TypyUlic
             var typyUlic = await _context.TypyUlic
@@ -118,6 +101,8 @@ namespace AddressLibrary.Services.AddressSearch
                     $"Znaleziono {chrobregoRecords.Count} rekordów z 'Chrobrego': {string.Join(", ", chrobregoRecords)}");
             }
 
+            Console.WriteLine($"[StreetParser] Załadowano {_imiona.Count} imion, {_nazwiska.Count} nazwisk, {_pseudonimy.Count} pseudonimów");
+
             _isInitialized = true;
         }
 
@@ -130,6 +115,9 @@ namespace AddressLibrary.Services.AddressSearch
             if (!_isInitialized)
                 throw new InvalidOperationException("StreetParser nie został zainicjalizowany. Wywołaj InitializeAsync().");
 
+            if (!TitleManager.IsInitialized)
+                throw new InvalidOperationException("TitleManager nie został zainicjalizowany.");
+
             var result = new ParsedStreet();
 
             // Normalizuj wejściowy string
@@ -138,8 +126,8 @@ namespace AddressLibrary.Services.AddressSearch
 
             int index = 0;
 
-            // KROK 1: Wydziel cechę (ul, al, pl, os, ...)
-            if (index < words.Length && _cechy!.Contains(words[index]))
+            // KROK 1: ✅ Wydziel cechę używając CechyUlicUtils zamiast _cechy
+            if (index < words.Length && IsCecha(words[index]))
             {
                 result.Cecha = words[index];
                 index++;
@@ -152,11 +140,11 @@ namespace AddressLibrary.Services.AddressSearch
                 index++;
             }
 
-            // KROK 3: Wydziel tytuły (gen., bp, plk, dr, prof, ...)
+            // KROK 3: ✅ Wydziel tytuły używając TitleManager
             var tytuly = new List<string>();
-            while (index < words.Length && _tytuly!.Contains(words[index]))
+            while (index < words.Length && IsTytul(words[index]))
             {
-                tytuly.Add(words[index]);
+                tytuly.Add(TitleManager.GetDopelniacz(words[index]));
                 index++;
             }
             if (tytuly.Count > 0)
@@ -168,7 +156,7 @@ namespace AddressLibrary.Services.AddressSearch
             result.Postfiks = "";
             foreach (var word in remainingWords)
             {
-// Czy to jest Skłodowskiej-Curie?
+                // Czy to jest Skłodowskiej-Curie?
                 var nazwiska = word.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
                 if (nazwiska.Length == 2)
                 {
@@ -199,23 +187,25 @@ namespace AddressLibrary.Services.AddressSearch
                 bool czyPseudo = _pseudonimy!.Contains(word);
                 bool czyImie = _imiona!.Contains(word);
                 bool czyNazwisko = _nazwiska!.Contains(word);
-          
-                if (czyPseudo && string.IsNullOrEmpty(result.Pseudonim))
-                {
-                    result.Pseudonim = word;
-                    continue;
-                }
 
                 if (czyImie && string.IsNullOrEmpty(result.Imie))
                 {
                     result.Imie = word;
                     continue;
                 }
+
                 if (czyImie && string.IsNullOrEmpty(result.Imie2))
                 {
                     result.Imie2 = word;
                     continue;
                 }
+
+                if (czyPseudo && string.IsNullOrEmpty(result.Pseudonim))
+                {
+                    result.Pseudonim = word;
+                    continue;
+                }
+
                 if (czyNazwisko && string.IsNullOrEmpty(result.Nazwisko))
                 {
                     result.Nazwisko = word;
@@ -229,16 +219,36 @@ namespace AddressLibrary.Services.AddressSearch
                 
                 result.Postfiks += " "+word;
             }
-// Tutaj trzeba sprawdzić merytorycznie czy nie brakuje nazwiska i czy np. nie zastąpić nazwiska imieniem2
+            // Tutaj trzeba sprawdzić merytorycznie czy nie brakuje nazwiska i czy np. nie zastąpić nazwiska imieniem2
 
             result.Postfiks=result.Postfiks.Trim();
 
-             return result;
+            return result;
         }
 
         private bool IsPrefiks(string word)
         {
             return word == "im" || word == "imienia";
+        }
+
+        /// <summary>
+        /// ✅ NOWA METODA: Sprawdza czy słowo jest cechą ulicy używając CechyUlicUtils
+        /// </summary>
+        private bool IsCecha(string word)
+        {
+            // Sprawdź we wszystkich wariantach wszystkich cech
+            return CechyUlicUtils.StreetPrefixes
+                .SelectMany(kv => kv.Value)
+                .Any(prefix => prefix.Equals(word, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// ✅ NOWA METODA: Sprawdza czy słowo jest tytułem używając TitleManager
+        /// </summary>
+        private bool IsTytul(string word)
+        {
+            // Deleguj sprawdzenie do TitleManager - używa już znormalizowanych danych
+            return TitleManager.IsInitialized && TitleManager.GetAbbreviation(word) != null;
         }
     }
 

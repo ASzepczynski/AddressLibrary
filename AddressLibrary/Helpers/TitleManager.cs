@@ -29,27 +29,33 @@ namespace AddressLibrary.Helpers
             foreach (var tytul in tytulyStopnie)
             {
                 // ✅ Dodaj wszystkie warianty ZNORMALIZOWANE (bez polskich znaków)
-                
+
                 // Dodaj dopełniacz (np. "świętego" → "swietego")
-                if (!string.IsNullOrWhiteSpace(tytul.Dopelniacz))
-                {
-                    var dopelniaczNorm = TextNormalizer.Normalize(tytul.Dopelniacz.Trim());
-                    if (!_titleMap.ContainsKey(dopelniaczNorm))
-                        _titleMap[dopelniaczNorm] = tytul;
-                    _titlesSet.Add(dopelniaczNorm);
-                }
+                DodajElement(tytul.Dopelniacz, tytul);
 
                 // Dodaj skrót (np. "św." → "sw")
-                if (!string.IsNullOrWhiteSpace(tytul.Skrot))
+                DodajElement(tytul.Skrot, tytul);
+
+                if (!tytul.Skrot.EndsWith(".") && !tytul.Skrot.Contains(" "))
                 {
-                    var skrotNorm = TextNormalizer.Normalize(tytul.Skrot.Trim());
-                    if (!_titleMap.ContainsKey(skrotNorm))
-                        _titleMap[skrotNorm] = tytul;
-                    _titlesSet.Add(skrotNorm);
+                    // Dla jednowyrazowych skrótów nie kończących się kropką
+                    // Dodaj nieprawidłowy skrót (np. "mjr" → "mjr.")
+                    DodajElement(tytul.Skrot + ".", tytul);
+                    // Dodaj nieprawidłowy skrót (np. "bp" → "bpa")
+                    DodajElement(tytul.Skrot + "a", tytul);
                 }
             }
         }
-
+        public static void DodajElement(string stopien, TytulStopien tytul)
+        {
+            if (!string.IsNullOrWhiteSpace(stopien))
+            {
+                var skrotNorm = TextNormalizer.Normalize(stopien);
+                if (!_titleMap.ContainsKey(skrotNorm))
+                    _titleMap[skrotNorm] = tytul;
+                _titlesSet.Add(skrotNorm);
+            }
+        }
         /// <summary>
         /// Sprawdza czy TitleManager został zainicjalizowany
         /// </summary>

@@ -33,9 +33,9 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             _errorLogger = new PostalCodesLogger(appDataPath, "PostalCodesLoader_Error.txt");
             _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty);
             _corrections = new NameCorrectionHelper(appDataPath);
-            
+
             // ✅ NOWE: Załaduj ulice osobowe
-            
+
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
         }
 
@@ -55,13 +55,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             // ✅ NOWE: Załaduj słownik StreetPrefixes z bazy danych CechyUlic
             Console.WriteLine($"[KodyPocztoweLoaderService] Ładowanie słownika StreetPrefixes...");
             _logger.LogInfo("=== Ładowanie słownika StreetPrefixes z bazy CechyUlic ===");
-            
+
             var cechyDict = new CechyUlicDictionary(_context);
             await cechyDict.LoadIntoStreetPrefixesAsync();
-            
+
             _logger.LogInfo($"✓ Załadowano {CechyUlicUtils.StreetPrefixes.Count} cech ulic do StreetPrefixes");
             Console.WriteLine($"[KodyPocztoweLoaderService] ✓ StreetPrefixes załadowany: {CechyUlicUtils.StreetPrefixes.Count} pozycji");
-            
+
             // Loguj pierwsze kilka elementów dla diagnostyki
             var pierwszePozycje = CechyUlicUtils.StreetPrefixes.Take(5);
             foreach (var entry in pierwszePozycje)
@@ -133,8 +133,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-             // foreach (var pna_raw in pnaData.Where(x=>x.Ulica.Contains("AK")))
-              foreach (var pna_raw in pnaData)
+//                 foreach (var pna_raw in pnaData.Where(x=>x.Ulica==("mjr. Hubala")))
+            foreach (var pna_raw in pnaData)
             {
                 try
                 {
@@ -156,7 +156,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         if (pnaCorrected.Kod != "???")
                         {
                             pna = pnaCorrected;
-                        } else
+                        }
+                        else
                         {
                             _logger.LogInfo($"{FormatPnaRecord(pna)}|Błąd w PNA, pozycja zignorowana");
                             continue;
@@ -170,7 +171,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     }
 
                     // 1a. Znajdź miasto
-           
+
                     var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
                     var miasto = matchResult.miasto;
 
@@ -309,18 +310,18 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 sb.AppendLine($"ERROR TYPE: {ex.GetType().FullName}");
                 sb.AppendLine($"ERROR MESSAGE: {ex.Message}");
                 sb.AppendLine($"\nSTACK TRACE:\n{ex.StackTrace}");
-                
+
                 var innerEx = ex.InnerException;
                 int level = 1;
                 while (innerEx != null)
                 {
-                    sb.AppendLine($"\n{'='*60}");
+                    sb.AppendLine($"\n{'=' * 60}");
                     sb.AppendLine($"INNER EXCEPTION LEVEL {level}");
-                    sb.AppendLine($"{'='*60}");
+                    sb.AppendLine($"{'=' * 60}");
                     sb.AppendLine($"Type: {innerEx.GetType().FullName}");
                     sb.AppendLine($"Message: {innerEx.Message}");
                     sb.AppendLine($"Stack Trace:\n{innerEx.StackTrace}");
-                    
+
                     if (innerEx is Microsoft.Data.SqlClient.SqlException sqlEx)
                     {
                         sb.AppendLine($"\nSQL ERROR DETAILS:");
@@ -329,7 +330,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         sb.AppendLine($"  Server: {sqlEx.Server}");
                         sb.AppendLine($"  Procedure: {sqlEx.Procedure}");
                         sb.AppendLine($"  Line Number: {sqlEx.LineNumber}");
-                        
+
                         foreach (Microsoft.Data.SqlClient.SqlError err in sqlEx.Errors)
                         {
                             sb.AppendLine($"\n  SQL Error:");
@@ -339,22 +340,22 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                             sb.AppendLine($"    Class: {err.Class}");
                         }
                     }
-                    
+
                     innerEx = innerEx.InnerException;
                     level++;
                 }
-                
-                sb.AppendLine($"\n{'='*60}");
+
+                sb.AppendLine($"\n{'=' * 60}");
                 sb.AppendLine($"SAMPLE RECORDS ({pendingRecords.Count} total):");
-                sb.AppendLine($"{'='*60}");
+                sb.AppendLine($"{'=' * 60}");
                 for (int i = 0; i < Math.Min(10, pendingRecords.Count); i++)
                 {
                     var rec = pendingRecords[i];
                     sb.AppendLine($"[{i}] Kod={rec.Kod}, MiastoId={rec.MiastoId}, UlicaId={rec.UlicaId}, Numery={rec.Numery?.Substring(0, Math.Min(100, rec.Numery.Length))}");
                 }
-                
+
                 File.WriteAllText(errorFile, sb.ToString());
-                
+
                 Console.WriteLine($"\n\n❌❌❌ CRITICAL ERROR ❌❌❌");
                 Console.WriteLine($"Error details saved to: {errorFile}");
                 Console.WriteLine($"Error: {ex.Message}");
@@ -363,7 +364,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     Console.WriteLine($"Inner: {ex.InnerException.Message}");
                 }
                 Console.WriteLine($"\n");
-                
+
                 throw;
             }
         }

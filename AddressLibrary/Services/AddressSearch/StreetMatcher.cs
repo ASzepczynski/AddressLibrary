@@ -46,7 +46,8 @@ namespace AddressLibrary.Services.AddressSearch
 
         /// <summary>
         /// 🚀 Strukturalne dopasowywanie komponentów ulicy
-        /// Znajduje ulicę w liście UlicaCached na podstawie nazwy (fuzzy matching)
+        /// Znajduje ulicę w liście UlicaCached 
+        /// 
         /// </summary>
         public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName,out bool wasFuzzy)
         {
@@ -58,12 +59,11 @@ namespace AddressLibrary.Services.AddressSearch
             var normalizedSearch = TextNormalizer.Normalize(streetName);
             var parsed = _parser.Parse(streetName);
 
+//            Oddrukuj(ulice);
+            
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
-
-               
-
                 var normalizedFull = ulica.GetFullNormalized();
                 // Zwykłe porównanie nazw
                 if (normalizedFull == normalizedSearch)
@@ -76,10 +76,6 @@ namespace AddressLibrary.Services.AddressSearch
             foreach (var ulica in ulice)
             {
 
-                if (ulica.Nazwisko == "ii" && streetName.Contains("Jana Pawła"))
-                {
-                    int y = 1;
-                }
                 int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.CechaUlicy.Nazwa) ? 0 : -20;
                 var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
 
@@ -96,7 +92,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 var normalizedFull = ulica.GetFullNormalized();
                 // Częściowe dopasowanie (contains)
-                if (true || normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
+                if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
                 {
                     int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
                     if (distance <= 2)
@@ -176,12 +172,17 @@ namespace AddressLibrary.Services.AddressSearch
                     return 0;
                 }
             }
-            else
+
+            if (!string.IsNullOrEmpty(search.Pseudonim) && search.Pseudonim==ulica.Pseudonim)
             {
-                // ⚠️ Brak nazwiska w search - to może być ulica nie-osobowa
-                // Zwróć 0, aby wymusić dopasowanie przez pełną nazwę
-                return 0;
-            }
+                if (search.Imie == ulica.Imie 
+                    && search.Nazwisko == ulica.Nazwisko 
+                    && search.Postfiks == ulica.Postfiks
+                    && search.Prefiks == ulica.Prefiks
+                    )
+                    // Nie ma imienia ani nazwiska, ale pseudonim się zgadza czyli mjr Hubala
+                    return 100;
+            } 
 
             // 2. Imię
             if (!string.IsNullOrEmpty(search.Imie))
@@ -230,9 +231,6 @@ namespace AddressLibrary.Services.AddressSearch
 
         private void Oddrukuj(List<UlicaCached> ulice)
         {
-
-            return;
-
             try
             {
                 var debugLines = new System.Text.StringBuilder();
