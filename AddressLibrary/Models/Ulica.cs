@@ -107,6 +107,9 @@ namespace AddressLibrary.Models
 
         // Relacja 1:N - jedna ulica ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
+
+        public string Opis { get { return $"{Miasto.Opis} ({Dzielnica}), {CechaUlicy.Opis} {TypUlicy.Opis}".Trim(); } }
+
     }
 }
 

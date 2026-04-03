@@ -34,5 +34,8 @@ namespace AddressLibrary.Models
 
         // Relacja 1:N - jedna miejscowoœæ ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
+
+        public string Opis { get { return $"{Nazwa} gm.{Gmina.Nazwa} pow.{Gmina.Powiat.Nazwa} woj.{Gmina.Powiat.Wojewodztwo.Nazwa}"; } }
+
     }
 }

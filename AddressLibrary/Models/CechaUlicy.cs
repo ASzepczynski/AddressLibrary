@@ -25,5 +25,7 @@ namespace AddressLibrary.Models
         [Required]
         [MaxLength(20)]
         public string Skrot { get; set; } = string.Empty;
+
+        public string Opis { get { return Skrot; } }  
     }
 }

@@ -1,6 +1,7 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
+using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -132,11 +133,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
                             {
                                 rodzajMiastaId = rodzajeMiasta[simc.RodzajMiasta].Id;
                             }
-
                             var miasto = new Miasto
                             {
                                 Kod = simc.Symbol,
-                                Nazwa = simc.Nazwa,
+                                // Usunięcie cudzysłowów w Mazewo Dworskie "A" i "B"
+                                Nazwa = UliceUtils.RemoveQuote(simc.Nazwa),
                                 RodzajMiastaId = rodzajMiastaId ?? -1,
                                 GminaId = gmina.Id
                             };

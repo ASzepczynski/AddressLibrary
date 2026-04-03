@@ -19,5 +19,7 @@ namespace AddressLibrary.Models
 
         // Relacja 1:N - jedno województwo ma wiele powiatów
         public ICollection<Powiat> Powiaty { get; set; } = new List<Powiat>();
+
+        public string Opis { get { return $"{Nazwa.ToLower()}"; } }
     }
 }

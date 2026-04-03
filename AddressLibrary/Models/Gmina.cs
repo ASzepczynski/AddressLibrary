@@ -31,5 +31,6 @@ namespace AddressLibrary.Models
 
         // Relacja 1:N - jedna gmina ma wiele miejscowoœci
         public ICollection<Miasto> Miasta { get; set; } = new List<Miasto>();
+        public string Opis { get { return $"{Nazwa} pow. {Powiat.Nazwa} woj. {Powiat.Wojewodztwo.Nazwa}"; } }
     }
 }

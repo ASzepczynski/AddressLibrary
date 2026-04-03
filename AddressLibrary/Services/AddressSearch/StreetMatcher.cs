@@ -87,21 +87,21 @@ namespace AddressLibrary.Services.AddressSearch
             }
             if (bestMatch != null && bestScore > 70) return bestMatch;
 
-            // Fuzzy matching dla ulic nie-osobowych (jeśli nie znaleziono osobowej)
-            foreach (var ulica in ulice)
-            {
-                var normalizedFull = ulica.GetFullNormalized();
-                // Częściowe dopasowanie (contains)
-                if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
-                {
-                    int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
-                    if (distance <= 2)
-                    {
-                        wasFuzzy = true;
-                        return ulica;
-                    }
-                }
-            }
+            //// Fuzzy matching dla ulic nie-osobowych (jeśli nie znaleziono osobowej)
+            //foreach (var ulica in ulice)
+            //{
+            //    var normalizedFull = ulica.GetFullNormalized();
+            //    // Częściowe dopasowanie (contains)
+            //    if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
+            //    {
+            //        int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
+            //        if (distance <= 2)
+            //        {
+            //            wasFuzzy = true;
+            //            return ulica;
+            //        }
+            //    }
+            //}
 
             return null;
         }

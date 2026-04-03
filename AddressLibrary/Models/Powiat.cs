@@ -25,5 +25,7 @@ namespace AddressLibrary.Models
 
         // Relacja 1:N - jeden powiat ma wiele gmin
         public ICollection<Gmina> Gminy { get; set; } = new List<Gmina>();
+        public string Opis { get { return $"{Nazwa} woj.{Wojewodztwo.Opis}"; } }
+
     }
 }

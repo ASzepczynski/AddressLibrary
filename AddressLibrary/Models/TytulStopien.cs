@@ -32,5 +32,7 @@ namespace AddressLibrary.Models
         [Required]
         [MaxLength(50)]
         public string Dopelniacz { get; set; } = string.Empty;
+        public string Opis { get { return $"{Dopelniacz}"; } }
+
     }
 }

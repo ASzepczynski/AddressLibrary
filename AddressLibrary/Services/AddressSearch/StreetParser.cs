@@ -154,8 +154,10 @@ namespace AddressLibrary.Services.AddressSearch
             var remainingWords = words.Skip(index).ToList();
 
             result.Postfiks = "";
+            bool czyDopiszDrugieImie = false;
             foreach (var word in remainingWords)
             {
+
                 // Czy to jest Skłodowskiej-Curie?
                 var nazwiska = word.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
                 if (nazwiska.Length == 2)
@@ -188,6 +190,14 @@ namespace AddressLibrary.Services.AddressSearch
                 bool czyImie = _imiona!.Contains(word);
                 bool czyNazwisko = _nazwiska!.Contains(word);
 
+                if (czyDopiszDrugieImie && czyImie)
+                {
+                    // Tutaj kończymy obsługę Jasia i Małgosi
+                    result.Imie2 += " "+word;
+                    czyDopiszDrugieImie = false;
+                    continue;
+                }
+
                 if (czyImie && string.IsNullOrEmpty(result.Imie))
                 {
                     result.Imie = word;
@@ -196,7 +206,12 @@ namespace AddressLibrary.Services.AddressSearch
 
                 if (czyImie && string.IsNullOrEmpty(result.Imie2))
                 {
+                    // Tutaj obsługujemy Jasia i Małgosi
                     result.Imie2 = word;
+                    if (word == "i")
+                    {
+                        czyDopiszDrugieImie = true;
+                    }
                     continue;
                 }
 
