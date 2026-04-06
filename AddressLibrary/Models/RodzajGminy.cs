@@ -8,6 +8,6 @@ namespace AddressLibrary.Models
 
         // Relacja 1:N - jeden rodzaj gminy mo¿e byæ przypisany do wielu gmin
         public ICollection<Gmina> Gminy { get; set; } = new List<Gmina>();
-        public string Opis { get { return $"{Nazwa} {Kod}"; } }
+      public string Opis() => $"{Nazwa} {Kod}";
     }
 }

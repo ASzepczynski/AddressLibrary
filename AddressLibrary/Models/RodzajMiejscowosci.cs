@@ -9,6 +9,6 @@ namespace AddressLibrary.Models
         // Relacja 1:N - jeden rodzaj miejscowoœci mo¿e byæ przypisany do wielu miejscowoœci
         public ICollection<Miasto> Miasta { get; set; } = new List<Miasto>();
 
-        public string Opis { get { return $"{Nazwa} {Kod}"; } }
+        public string Opis() => $"{Nazwa} {Kod}";
     }
 }

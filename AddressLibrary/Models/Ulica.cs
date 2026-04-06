@@ -15,8 +15,8 @@ namespace AddressLibrary.Models
 
         // ✅ ZMIENIONO: Cecha jest teraz kluczem obcym do CechyUlic
         [ForeignKey(nameof(CechaUlicy))]
-        public int? CechaUlicyId { get; set; }
-        public CechaUlicy? CechaUlicy { get; set; }
+        public int CechaUlicyId { get; set; }
+        public CechaUlicy CechaUlicy { get; set; } = null!;
 
         //// ✅ DODANO: Computed property dla zgodności wstecznej
         //[NotMapped]
@@ -51,7 +51,7 @@ namespace AddressLibrary.Models
         }
 
         [NotMapped]
-        public string? Nazwa2
+        public string Nazwa2
         {
             get
             {
@@ -102,14 +102,17 @@ namespace AddressLibrary.Models
 
         // ✅ Klucz obcy do TypUlicy (opcjonalny - nullable)
         [ForeignKey(nameof(TypUlicy))]
-        public int? TypUlicyId { get; set; }
-        public TypUlicy? TypUlicy { get; set; }
+        public int TypUlicyId { get; set; }
+        public TypUlicy TypUlicy { get; set; } = null!;
 
         // Relacja 1:N - jedna ulica ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
 
-        public string Opis { get { return $"{Miasto.Opis} ({Dzielnica}), {CechaUlicy.Opis} {TypUlicy.Opis}".Trim(); } }
-
+        public string Opis()
+        {
+            var dzielnicaPart = !string.IsNullOrWhiteSpace(Dzielnica) ? $" ({Dzielnica})" : "";
+            return $"{Miasto.Opis()}{dzielnicaPart}, {CechaUlicy.Opis()} {TypUlicy.Opis()}".Trim();
+        }
     }
 }
 

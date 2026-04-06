@@ -78,7 +78,7 @@ namespace AddressLibrary.Services.AddressSearch
                 if (u.CechaUlicy == null)
                 {
                     nullCount++;
-                    Console.WriteLine($"⚠️ Ulica Id={u.Id}, Symbol={u.Symbol}, CechaUlicyId={u.CechaUlicyId ?? -999} => CechaUlicy jest NULL!");
+                    Console.WriteLine($"⚠️ Ulica Id={u.Id}, Symbol={u.Symbol}, CechaUlicyId={u.CechaUlicyId} => CechaUlicy jest NULL!");
                 }
                 else
                 {

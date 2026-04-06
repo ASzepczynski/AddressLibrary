@@ -218,7 +218,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     CechaUlicyId = -1,
                     MiastoId = miasto.Id,
                     Dzielnica = dzielnica,
-                    TypUlicyId = null
+                    TypUlicyId = -1
                 };
 
                 if (terytUlicPoprawkiDict.TryGetValue(original, out var terytUlicPoprawka))

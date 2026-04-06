@@ -105,7 +105,7 @@ namespace AddressLibrary.Helpers
                 context,
                 "TytulyStopnie",
                 new[] { "Nazwa", "Skrot", "Dopelniacz" },
-                new[] { "'brak'", "''", "'braku'" },
+                new[] { "'brak'", "''", "''" },
                 logger
             );
         }
