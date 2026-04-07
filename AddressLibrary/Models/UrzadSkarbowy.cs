@@ -1,3 +1,4 @@
+using AddressLibrary.Attributes;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -6,15 +7,9 @@ namespace AddressLibrary.Models
     /// <summary>
     /// Reprezentuje urz¹d skarbowy
     /// </summary>
+    [TableParam(Choice = ChoiceMode.Huge, Description = "Urz¹d skarbowy")]
     public class UrzadSkarbowy
     {
-        /// <summary>
-        /// Identyfikator urzêdu
-        /// </summary>
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
-
         /// <summary>
         /// Nazwa urzêdu skarbowego
         /// </summary>
@@ -68,5 +63,13 @@ namespace AddressLibrary.Models
         /// </summary>
         [MaxLength(200)]
         public string Www { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Identyfikator urzêdu
+        /// </summary>
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
+
     }
 }

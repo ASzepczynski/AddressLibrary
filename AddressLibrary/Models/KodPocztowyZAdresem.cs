@@ -1,10 +1,12 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
+using AddressLibrary.Attributes;
 
 namespace AddressLibrary.Models
 {
     /// <summary>
     /// Po³¹czenie kodu pocztowego z pe³nymi danymi adresowymi
     /// </summary>
+    [TableParam(Choice = ChoiceMode.Huge,Description="Kod pocztowy z adresem")]
     public class KodPocztowyZAdresem
     {
         public KodPocztowy KodPocztowy { get; set; } = null!;

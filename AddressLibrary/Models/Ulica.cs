@@ -1,28 +1,19 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using AddressLibrary.Attributes;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {
+    [TableParam(Choice = ChoiceMode.Huge, Description = "Ulica w mieście")]
     public class Ulica
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
 
-        [Required]
-        [MaxLength(10)]
-        public string Symbol { get; set; } = string.Empty;
-
-        // ✅ ZMIENIONO: Cecha jest teraz kluczem obcym do CechyUlic
         [ForeignKey(nameof(CechaUlicy))]
+        [MemberParam(Desc = "Cecha ulicy")]
         public int CechaUlicyId { get; set; }
         public CechaUlicy CechaUlicy { get; set; } = null!;
 
-        //// ✅ DODANO: Computed property dla zgodności wstecznej
-        //[NotMapped]
-        //public string? Cecha => CechaUlicy?.Skrot;
-
-        // ✅ ZMIENIONO: Nazwa1 i Nazwa2 są teraz computed properties (nie mapowane do bazy)
+        // Nazwa1 i Nazwa2 są teraz computed properties (nie mapowane do bazy)
         [NotMapped]
         public string Nazwa1
         {
@@ -92,18 +83,31 @@ namespace AddressLibrary.Models
 
         // ✅ DODANO: Pole dzielnica
         [MaxLength(200)]
+        [MemberParam(Desc = "Dzielnica")]
         public string Dzielnica { get; set; } = string.Empty;
 
         // Klucz obcy do miejscowości
         [Required]
         [ForeignKey(nameof(Miasto))]
+        [MemberParam(Desc = "Miasto")]
         public int MiastoId { get; set; }
         public Miasto Miasto { get; set; } = null!;
 
         // ✅ Klucz obcy do TypUlicy (opcjonalny - nullable)
         [ForeignKey(nameof(TypUlicy))]
+        [MemberParam(Desc = "Typ ulicy")]
         public int TypUlicyId { get; set; }
         public TypUlicy TypUlicy { get; set; } = null!;
+
+        [Required]
+        [MaxLength(10)]
+        [MemberParam(Desc = "Symbol TERYT")]
+        public string Symbol { get; set; } = string.Empty;
+
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [MemberParam(Desc = "ID")]
+        public int Id { get; set; }
 
         // Relacja 1:N - jedna ulica ma wiele kodów pocztowych
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();

@@ -1,29 +1,34 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using AddressLibrary.Attributes;
 
 namespace AddressLibrary.Models
 {
+    [TableParam(Choice = ChoiceMode.Huge, Description = "Powiat")]
     public class Powiat
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
-
-        [Required]
-        [MaxLength(4)]
-        public string Kod { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(100)]
+        [MemberParam(Desc = "Nazwa powiatu")]
         public string Nazwa { get; set; } = string.Empty;
 
-        // Klucz obcy do województwa
         [Required]
         [ForeignKey(nameof(Wojewodztwo))]
+        [MemberParam(Desc = "Województwo, do którego nale¿y powiat")]
         public int WojewodztwoId { get; set; }
         public Wojewodztwo Wojewodztwo { get; set; } = null!;
 
-        // Relacja 1:N - jeden powiat ma wiele gmin
+        [Required]
+        [MaxLength(4)]
+        [MemberParam(Desc = "Kod TERYT powiatu")]
+        public string Kod { get; set; } = string.Empty;
+
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [MemberParam(Desc = "ID")]
+        public int Id { get; set; }
+
         public ICollection<Gmina> Gminy { get; set; } = new List<Gmina>();
         
         public string Opis() => $"{Nazwa} woj.{Wojewodztwo.Opis()}";

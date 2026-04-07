@@ -1,19 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using AddressLibrary.Attributes;
 
 namespace AddressLibrary.Models
 {
     /// <summary>
     /// Model reprezentuj¹cy typy ulic osobowych z pe³n¹ dekompozycj¹ nazwy
     /// </summary>
+    [TableParam(Choice = ChoiceMode.Huge, Description = "Poprawka nazwy ulicy z TERYT")]
     public class TerytUlicPoprawka
     {
-        /// <summary>
-        /// Identyfikator (klucz g³ówny w bazie danych - auto-increment)
-        /// </summary>
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
 
         /// <summary>
         /// Identyfikator z Excela (klucz biznesowy - u¿ywany do wyszukiwania)
@@ -68,5 +64,13 @@ namespace AddressLibrary.Models
         /// Postfiks/przydomek (np. dodatkowe informacje)
         /// </summary>
         public string? Postfiks { get; set; }
+
+        /// <summary>
+        /// Identyfikator (klucz g³ówny w bazie danych - auto-increment)
+        /// </summary>
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
+
     }
 }

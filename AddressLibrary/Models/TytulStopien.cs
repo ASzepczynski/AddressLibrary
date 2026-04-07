@@ -1,3 +1,4 @@
+using AddressLibrary.Attributes;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -6,12 +7,9 @@ namespace AddressLibrary.Models
     /// <summary>
     /// S³ownik tytu³ów i stopni (gen., p³k., dr., prof., itp.)
     /// </summary>
+    [TableParam(Choice = ChoiceMode.Huge, Description = "Tytu³ lub stopieñ")]
     public class TytulStopien
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
-
         /// <summary>
         /// Pe³na nazwa tytu³u/stopnia (np. "genera³", "pu³kownik", "doktor")
         /// </summary>
@@ -32,7 +30,13 @@ namespace AddressLibrary.Models
         [Required]
         [MaxLength(50)]
         public string Dopelniacz { get; set; } = string.Empty;
-             public string Opis() => $"{Dopelniacz}";
+
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
+
+
+        public string Opis() => $"{Dopelniacz}";
 
     }
 }

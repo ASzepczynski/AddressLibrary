@@ -1,5 +1,8 @@
+using AddressLibrary.Attributes;
+
 namespace AddressLibrary.Models
 {
+    [TableParam(Choice = ChoiceMode.Huge)]
     public class TerytUlic
     {
         public int Id { get; set; }

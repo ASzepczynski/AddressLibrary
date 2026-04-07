@@ -1,5 +1,8 @@
-﻿namespace AddressLibrary.Models
+﻿using AddressLibrary.Attributes;
+
+namespace AddressLibrary.Models
 {
+    [TableParam(Choice = ChoiceMode.Huge, Description = "Pocztowy numer adresowy")]
     public class Pna
     {
         public int Id { get; set; }

@@ -1,3 +1,4 @@
+using AddressLibrary.Attributes;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
@@ -5,13 +6,9 @@ namespace AddressLibrary.Models
     /// <summary>
     /// Model reprezentuj¹cy typy ulic osobowych z pe³n¹ dekompozycj¹ nazwy
     /// </summary>
+    [TableParam(Choice = ChoiceMode.Huge, Description = "Typ ulicy")]
     public class TypUlicy
     {
-        /// <summary>
-        /// Identyfikator (klucz g³ówny)
-        /// </summary>
-        public int Id { get; set; }
-
         /// <summary>
         /// Prefiks (np. "p³k.", "gen.", "ks.", "im.", "imienia")
         /// </summary>
@@ -64,6 +61,11 @@ namespace AddressLibrary.Models
         /// Postfiks/przydomek (np. dodatkowe informacje po pseudonimie)
         /// </summary>
         public string Postfiks { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Identyfikator (klucz g³ówny)
+        /// </summary>
+        public int Id { get; set; }
 
         public string Opis() => $"{Prefiks} {TytulStopien?.Dopelniacz} {Imie} {Imie2} {Nazwisko} {Nazwisko2} {Pseudonim} {Postfiks}".Trim();
     }

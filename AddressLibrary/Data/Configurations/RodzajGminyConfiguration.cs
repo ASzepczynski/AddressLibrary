@@ -1,5 +1,6 @@
 using AddressLibrary.Models;
 using AddressLibrary.Helpers;
+using AddressLibrary.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,7 +10,7 @@ namespace AddressLibrary.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<RodzajGminy> builder)
         {
-            builder.SetAllColumnsCaseSensitive();
+            builder.ApplyStandardConfiguration();
         }
     }
 }
