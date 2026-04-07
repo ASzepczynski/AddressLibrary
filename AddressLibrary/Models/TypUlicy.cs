@@ -67,6 +67,6 @@ namespace AddressLibrary.Models
         /// </summary>
         public int Id { get; set; }
 
-        public string Opis() => $"{Prefiks} {TytulStopien?.Dopelniacz} {Imie} {Imie2} {Nazwisko} {Nazwisko2} {Pseudonim} {Postfiks}".Trim();
+        public string Opis() => $"{Prefiks} {Tytul} {Imie} {Imie2} {Nazwisko} {Nazwisko2} {Pseudonim} {Postfiks}".Trim();
     }
 }

@@ -15,6 +15,7 @@ namespace AddressLibrary.Models
 
         // Nazwa1 i Nazwa2 są teraz computed properties (nie mapowane do bazy)
         [NotMapped]
+        [MemberParam(Desc = "Nazwa 1", Visible = false)]
         public string Nazwa1
         {
             get
@@ -42,6 +43,7 @@ namespace AddressLibrary.Models
         }
 
         [NotMapped]
+        [MemberParam(Desc = "Nazwa 2", Visible = false)]
         public string Nazwa2
         {
             get

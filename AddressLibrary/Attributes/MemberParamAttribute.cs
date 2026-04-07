@@ -21,5 +21,10 @@ namespace AddressLibrary.Attributes
             get => Description;
             set => Description = value;
         }
+
+        /// <summary>
+        /// Czy kolumna jest widoczna w tabelkach i formularzach (domyœlnie true)
+        /// </summary>
+        public bool Visible { get; set; } = true;
     }
 }
