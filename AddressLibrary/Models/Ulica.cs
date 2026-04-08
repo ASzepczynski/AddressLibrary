@@ -7,11 +7,21 @@ namespace AddressLibrary.Models
     [TableParam(Choice = ChoiceMode.Huge, Description = "Ulica w mieście")]
     public class Ulica
     {
+        [NotMapped]
+        [MemberParam(Desc = "Miasto")]
+        public string NazwaMiasta => Miasto?.Nazwa ?? string.Empty;
 
         [ForeignKey(nameof(CechaUlicy))]
         [MemberParam(Desc = "Cecha ulicy")]
         public int CechaUlicyId { get; set; }
         public CechaUlicy CechaUlicy { get; set; } = null!;
+
+        // ✅ Klucz obcy do TypUlicy (opcjonalny - nullable)
+        [ForeignKey(nameof(TypUlicy))]
+        [MemberParam(Desc = "Typ ulicy")]
+        public int TypUlicyId { get; set; }
+        public TypUlicy TypUlicy { get; set; } = null!;
+
 
         // Nazwa1 i Nazwa2 są teraz computed properties (nie mapowane do bazy)
         [NotMapped]
@@ -95,12 +105,7 @@ namespace AddressLibrary.Models
         public int MiastoId { get; set; }
         public Miasto Miasto { get; set; } = null!;
 
-        // ✅ Klucz obcy do TypUlicy (opcjonalny - nullable)
-        [ForeignKey(nameof(TypUlicy))]
-        [MemberParam(Desc = "Typ ulicy")]
-        public int TypUlicyId { get; set; }
-        public TypUlicy TypUlicy { get; set; } = null!;
-
+        
         [Required]
         [MaxLength(10)]
         [MemberParam(Desc = "Symbol TERYT")]
