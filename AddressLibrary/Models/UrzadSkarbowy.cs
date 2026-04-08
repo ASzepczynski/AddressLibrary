@@ -44,8 +44,8 @@ namespace AddressLibrary.Models
         /// <summary>
         /// Klucz obcy do Ulicy (wype³niany automatycznie podczas importu)
         /// </summary>
-        [ForeignKey(nameof(Models.Ulica))]
-        public int? UlicaId { get; set; }
+        [ForeignKey(nameof(UlicaNavigation))]
+        public int UlicaId { get; set; }
 
         /// <summary>
         /// Nawigacja do obiektu Ulica
@@ -70,6 +70,8 @@ namespace AddressLibrary.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
+
+        public string Opis() => $"{Nazwa}";
 
     }
 }

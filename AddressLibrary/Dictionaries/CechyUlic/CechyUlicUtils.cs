@@ -8,6 +8,26 @@
         public static readonly Dictionary<string, List<string>> StreetPrefixes = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Czy słownik prefiksów ulic został zainicjalizowany danymi z bazy
+        /// </summary>
+        public static bool IsInitialized => StreetPrefixes.Count > 0;
+
+        /// <summary>
+        /// Sprawdza czy słownik został zainicjalizowany. Jeśli nie - rzuca InvalidOperationException.
+        /// Należy wywołać przed każdą operacją zależną od StreetPrefixes.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Gdy StreetPrefixes jest pusty</exception>
+        public static void EnsureInitialized()
+        {
+            if (!IsInitialized)
+                throw new InvalidOperationException(
+                    "CechyUlicUtils nie zostały zainicjalizowane. " +
+                    "Przed użyciem należy załadować dane z bazy wywołując " +
+                    "CechyUlicUtils.Add() dla każdej cechy ulicy (tabela CechaUlicy). " +
+                    "Inicjalizacja odbywa się w LoadTypyUlicService lub analogicznym serwisie startowym.");
+        }
+
+        /// <summary>
         /// Dodaje nową cechę ulicy do słownika StreetPrefixes
         /// </summary>
         /// <param name="Cecha">Klucz - pełna nazwa cechy (np. "aleja", "ulica", "plac")</param>
@@ -50,6 +70,7 @@
         /// <returns>Preferowany skrót (pierwszy wariant ze słownika) lub oryginalny tekst</returns>
         public static string GetStreetAbbreviation(string text)
         {
+            EnsureInitialized();
             if (string.IsNullOrWhiteSpace(text))
                 return text;
 
@@ -74,6 +95,7 @@
         /// </summary>
         public static string RemoveStreetPrefixes(string text)
         {
+            EnsureInitialized();
             var sortedPrefixes = StreetPrefixes
                 .SelectMany(kv => kv.Value).
                 Distinct(StringComparer.OrdinalIgnoreCase).
@@ -101,6 +123,7 @@
         /// </summary>
         public static List<string> GetAllStreetPrefixes()
         {
+            EnsureInitialized();
             return StreetPrefixes
                 .SelectMany(kv => kv.Value)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -116,6 +139,7 @@
         /// <returns>Tuple (znormalizowany prefiks (pierwszy ze słownika) lub pusty string, nazwa bez prefiksu)</returns>
         public static (string Prefix, string Name) SplitStreetPrefix(string? streetName)
         {
+            EnsureInitialized();
             if (string.IsNullOrWhiteSpace(streetName))
                 return ("", streetName ?? string.Empty);
 

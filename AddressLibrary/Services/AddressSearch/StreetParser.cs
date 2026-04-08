@@ -38,10 +38,28 @@ namespace AddressLibrary.Services.AddressSearch
 
             Console.WriteLine($"[StreetParser] === Inicjalizacja słowników ===");
 
-            // 1. ✅ CechyUlicUtils jest już zainicjalizowany przez CechyUlicDictionaryService
-            //    Nie trzeba nic robić - używamy CechyUlicUtils.StreetPrefixes bezpośrednio
+            // 1. CechyUlicUtils - załaduj z bazy jeśli jeszcze nie zainicjalizowany
+            if (!CechyUlicUtils.IsInitialized)
+            {
+                Console.WriteLine($"[StreetParser] Ładowanie CechyUlicUtils z bazy danych...");
+                var cechy = await _context.CechyUlic
+                    .AsNoTracking()
+                    .Where(c => c.Id != -1)
+                    .ToListAsync();
+
+                foreach (var cecha in cechy)
+                {
+                    // Klucz: Nazwa (np. "ulica"), warianty: [Skrot, Nazwa] (np. ["ul.", "ulica"])
+                    var warianty = new List<string> { cecha.Skrot };
+                    if (!cecha.Skrot.Equals(cecha.Nazwa, StringComparison.OrdinalIgnoreCase))
+                        warianty.Add(cecha.Nazwa);
+                    CechyUlicUtils.Add(cecha.Nazwa, warianty);
+                }
+                Console.WriteLine($"[StreetParser] Załadowano {cechy.Count} cech ulic do CechyUlicUtils");
+            }
+
             var cechyCount = CechyUlicUtils.StreetPrefixes.SelectMany(kv => kv.Value).Distinct().Count();
-            Console.WriteLine($"[StreetParser] CechyUlicUtils ma {cechyCount} cech ulic");
+            Console.WriteLine($"[StreetParser] CechyUlicUtils ma {cechyCount} wariantów cech ulic");
 
             // 2. ✅ Zainicjalizuj TitleManager (jeśli jeszcze nie był)
             if (!TitleManager.IsInitialized)

@@ -54,12 +54,12 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(m => TextNormalizer.Normalize(m.Nazwa))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // ✅ POPRAWKA: Załaduj TypUlicy z TytulStopien oraz CechaUlicy
+            // Załaduj ulice z CechaUlicy i TypUlicy (z TytulStopien)
             Console.WriteLine("=== AddressSearchCache: Ładowanie ulic z bazy ===");
 
             var ulice = await _context.Ulice
                 .Include(u => u.Miasto)
-                .Include(u => u.CechaUlicy)  // ✅ DODANE: Załaduj CechaUlicy
+                .Include(u => u.CechaUlicy)
                 .Include(u => u.TypUlicy)
                     .ThenInclude(t => t.TytulStopien)
                 .Where(u => u.Id != -1)
@@ -150,13 +150,15 @@ namespace AddressLibrary.Services.AddressSearch
                 .Include(k => k.Ulica)
                 .ToListAsync();
 
-            // Słownik: miasto ID -> kody pocztowe dla tego miasta (bez ulicy)
+            // Słownik: miasto ID -> kody pocztowe dla wszystkich miast (z ulicą lub bez)
             _kodyPocztoweMiastDict = kodyPocztowe
-                .Where(k => k.UlicaId == null || k.UlicaId == -1)
+//                .Where(k => k.UlicaId == -1)
                 .GroupBy(k => k.MiastoId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Słownik: ulica ID -> kody pocztowe dla tej ulicy
+            var bialystok = _kodyPocztoweMiastDict.TryGetValue(666633, out var lista);
+
+            // Słownik: ulica ID -> kody pocztowe dla wszystkich ulic
             _kodyPocztoweUlicDict = kodyPocztowe
                 .Where(k => k.UlicaId != -1)
                 .GroupBy(k => k.UlicaId)
@@ -228,6 +230,11 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (_kodyPocztoweMiastDict == null)
                 return false;
+
+            if (miastoId == 666633)
+            {
+                int v = 1;
+            }
 
             return _kodyPocztoweMiastDict.TryGetValue(miastoId, out kody!);
         }
