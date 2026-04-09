@@ -14,7 +14,7 @@ namespace AddressLibrary.Services
             _context = context;
         }
 
-        public async Task LoadDataFromCsvAsync<T>(string csvFilePath) where T : class
+        public async Task LoadDataFromCsvAsync<T>(string csvFilePath, IProgress<LoadProgress>? progress = null) where T : class
         {
             if (!File.Exists(csvFilePath))
             {
@@ -39,9 +39,25 @@ namespace AddressLibrary.Services
 
             if (records.Any())
             {
+                const int batchSize = 1000;
                 var dbSet = _context.Set<T>();
-                await dbSet.AddRangeAsync(records);
-                await _context.SaveChangesAsync();
+                int inserted = 0;
+
+                for (int i = 0; i < records.Count; i += batchSize)
+                {
+                    var batch = records.Skip(i).Take(batchSize).ToList();
+                    await dbSet.AddRangeAsync(batch);
+                    await _context.SaveChangesAsync();
+                    _context.ChangeTracker.Clear();
+                    inserted += batch.Count;
+
+                    progress?.Report(new LoadProgress
+                    {
+                        CurrentOperation = $"Wstawiono {inserted}/{records.Count} rekordów...",
+                        ProcessedCount = inserted,
+                        TotalCount = records.Count
+                    });
+                }
             }
         }
 

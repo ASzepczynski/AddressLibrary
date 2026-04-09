@@ -148,10 +148,11 @@ namespace AddressLibrary
         /// </summary>
         /// <typeparam name="T">Typ encji (nazwa tabeli)</typeparam>
         /// <param name="csvFilePath">Ścieżka do pliku CSV</param>
-        public async Task LoadDataFromCsvAsync<T>(string csvFilePath) where T : class
+        /// <param name="progress">Opcjonalny obiekt do raportowania postępu</param>
+        public async Task LoadDataFromCsvAsync<T>(string csvFilePath, IProgress<LoadProgress>? progress = null) where T : class
         {
             var loader = new CsvDataLoader(_context);
-            await loader.LoadDataFromCsvAsync<T>(csvFilePath);
+            await loader.LoadDataFromCsvAsync<T>(csvFilePath, progress);
         }
 
         /// <summary>
