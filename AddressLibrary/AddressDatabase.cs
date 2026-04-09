@@ -305,10 +305,12 @@ namespace AddressLibrary
                     ALTER TABLE Gminy NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Powiaty NOCHECK CONSTRAINT ALL;
                     ALTER TABLE Wojewodztwa NOCHECK CONSTRAINT ALL;
+                    ALTER TABLE UrzedySkarbowe NOCHECK CONSTRAINT ALL;
 
                     -- Usuń dane (zachowaj rekordy z Id = -1)
                     -- WAŻNE: KodyPocztowe NAJPIERW (ma FK do Ulice i Miasta)
                     DELETE FROM KodyPocztowe WHERE Id != -1;
+                    UPDATE UrzedySkarbowe SET UlicaId = -1;
                     DELETE FROM Ulice WHERE Id != -1;
                     DELETE FROM Miasta WHERE Id != -1;
                     DELETE FROM Gminy WHERE Id != -1;
@@ -324,6 +326,7 @@ namespace AddressLibrary
                     ALTER TABLE Gminy CHECK CONSTRAINT ALL;
                     ALTER TABLE Powiaty CHECK CONSTRAINT ALL;
                     ALTER TABLE Wojewodztwa CHECK CONSTRAINT ALL;
+                    ALTER TABLE UrzedySkarbowe CHECK CONSTRAINT ALL;
                 ";
 
                 await _context.Database.ExecuteSqlRawAsync(sql);

@@ -31,6 +31,19 @@ namespace AddressLibrary.Services.AddressSearch
         public bool IsInitialized => _isInitialized;
 
         /// <summary>
+        /// Wymusza ponowną inicjalizację cache przy następnym wywołaniu InitializeAsync.
+        /// Należy wywołać po każdej operacji zmieniającej dane w bazie (np. załadowaniu kodów pocztowych).
+        /// </summary>
+        public void Invalidate()
+        {
+            _isInitialized = false;
+            _miastaDict = null;
+            _uliceDict = null;
+            _kodyPocztoweMiastDict = null;
+            _kodyPocztoweUlicDict = null;
+        }
+
+        /// <summary>
         /// Inicjalizuje wszystkie słowniki z bazy danych
         /// </summary>
         public async Task InitializeAsync()
@@ -144,10 +157,10 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(u => u.MiastoId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Załaduj wszystkie kody pocztowe
+            // Załaduj wszystkie kody pocztowe — wyłącz AutoInclude (generuje JOIN który odcina rekordy z nieistniejącymi FK)
             var kodyPocztowe = await _context.KodyPocztowe
-                .Include(k => k.Miasto)
-                .Include(k => k.Ulica)
+                .IgnoreAutoIncludes()
+                .AsNoTracking()
                 .ToListAsync();
 
             // Słownik: miasto ID -> kody pocztowe dla wszystkich miast (z ulicą lub bez)
@@ -156,7 +169,7 @@ namespace AddressLibrary.Services.AddressSearch
                 .GroupBy(k => k.MiastoId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            var bialystok = _kodyPocztoweMiastDict.TryGetValue(666633, out var lista);
+         
 
             // Słownik: ulica ID -> kody pocztowe dla wszystkich ulic
             _kodyPocztoweUlicDict = kodyPocztowe

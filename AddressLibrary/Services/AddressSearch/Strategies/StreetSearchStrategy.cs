@@ -190,6 +190,11 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
                     foreach (var ulica in ulice)
                     {
+                        if (ulica.Postfiks == "zabia" || ulica.Postfiks=="Żabia")
+                        {
+                            int v = 11;
+                        }
+
                         if (_streetMatcher.IsMatch(ulica, normalizedStreet))
                         {
                             diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");

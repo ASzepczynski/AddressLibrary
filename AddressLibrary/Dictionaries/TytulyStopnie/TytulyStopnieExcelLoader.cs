@@ -2,8 +2,6 @@
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
 using AddressLibrary.Helpers;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using AddressLibrary.Services;
 
@@ -82,68 +80,21 @@ namespace AddressLibrary.Dictionaries.TytulyStopnie
             {
                 progress?.Report(new LoadProgress { CurrentOperation = "Odczyt pliku Excel..." });
 
+                var rows = ExcelTableReader.Read(excelPath);
                 var tytulyFromExcel = new List<TytulStopien>();
-                int rowNumber = 0;
 
-                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(excelPath, false))
+                foreach (var row in rows)
                 {
-                    WorkbookPart? workbookPart = spreadsheet.WorkbookPart;
-                    if (workbookPart == null)
-                    {
-                        _logger.LogError("Nie można otworzyć arkusza Excel");
-                        result.ErrorMessage = "Nie można otworzyć arkusza Excel";
-                        return result;
-                    }
+                    var nazwa      = row["Mianownik"]?.Trim();
+                    var dopelniacz = row["Dopełniacz"]?.Trim();
+                    var skrot      = row["Skrót"]?.Trim();
 
-                    string[] sharedStrings = Array.Empty<string>();
-                    var sharedStringPart = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
-                    if (sharedStringPart?.SharedStringTable != null)
-                    {
-                        sharedStrings = sharedStringPart.SharedStringTable
-                            .Elements<SharedStringItem>()
-                            .Select(item => item.InnerText)
-                            .ToArray();
-                    }
+                    _logger.LogInfo($"Wiersz {row.RowNumber}: Nazwa='{nazwa}', Dopelniacz='{dopelniacz}', Skrot='{skrot}'");
 
-                    WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
-                    SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
-
-                    bool isFirstRow = true;
-
-                    foreach (var row in sheetData.Elements<Row>())
-                    {
-                        rowNumber++;
-
-                        if (isFirstRow)
-                        {
-                            isFirstRow = false;
-                            _logger.LogInfo($"Wiersz {rowNumber}: NAGŁÓWEK (pomijam)");
-                            continue;
-                        }
-
-                        var cellValues = GetRowCellsDictionary(row, sharedStrings);
-
-                        var nazwa = cellValues.GetValueOrDefault("A")?.Trim();
-                        var dopelniacz = cellValues.GetValueOrDefault("B")?.Trim();
-                        var skrot = cellValues.GetValueOrDefault("C")?.Trim();
-
-                        // Logowanie wczytanych wartości
-                        _logger.LogInfo($"Wiersz {rowNumber}: A(Nazwa)='{nazwa}', B(Dopelniacz)='{dopelniacz}', C(Skrot)='{skrot}'");
-
-                        if (!string.IsNullOrWhiteSpace(nazwa) && !string.IsNullOrWhiteSpace(skrot) && !string.IsNullOrWhiteSpace(dopelniacz))
-                        {
-                            tytulyFromExcel.Add(new TytulStopien
-                            {
-                                Nazwa = nazwa,
-                                Skrot = skrot,
-                                Dopelniacz = dopelniacz
-                            });
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"Wiersz {rowNumber}: Pominięto - brak wymaganych danych");
-                        }
-                    }
+                    if (!string.IsNullOrWhiteSpace(nazwa) && !string.IsNullOrWhiteSpace(skrot) && !string.IsNullOrWhiteSpace(dopelniacz))
+                        tytulyFromExcel.Add(new TytulStopien { Nazwa = nazwa, Skrot = skrot, Dopelniacz = dopelniacz });
+                    else
+                        _logger.LogWarning($"Wiersz {row.RowNumber}: Pominięto - brak wymaganych danych");
                 }
 
                 result.TotalCount = tytulyFromExcel.Count;
@@ -194,53 +145,5 @@ namespace AddressLibrary.Dictionaries.TytulyStopnie
         {
             await DefaultRecordHelper.EnsureTytulStopienDefaultAsync(_context, _logger);
         }
-
-        private static Dictionary<string, string> GetRowCellsDictionary(Row row, string[] sharedStrings)
-        {
-            var result = new Dictionary<string, string>();
-
-            foreach (var cell in row.Elements<Cell>())
-            {
-                var columnName = GetColumnName(cell.CellReference?.Value);
-                if (!string.IsNullOrEmpty(columnName))
-                {
-                    var value = GetCellValue(cell, sharedStrings);
-                    if (value != null)
-                    {
-                        result[columnName] = value;
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        private static string GetColumnName(string? cellReference)
-        {
-            if (string.IsNullOrEmpty(cellReference))
-                return string.Empty;
-
-            return new string(cellReference.TakeWhile(char.IsLetter).ToArray());
-        }
-
-        private static string? GetCellValue(Cell cell, string[] sharedStrings)
-        {
-            if (cell.CellValue == null)
-                return null;
-
-            var value = cell.CellValue.Text;
-
-            if (cell.DataType?.Value == CellValues.SharedString && int.TryParse(value, out int stringIndex))
-            {
-                if (stringIndex >= 0 && stringIndex < sharedStrings.Length)
-                {
-                    return sharedStrings[stringIndex];
-                }
-            }
-
-            return value;
-        }
-
-  
     }
 }

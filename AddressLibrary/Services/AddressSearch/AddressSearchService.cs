@@ -52,6 +52,16 @@ namespace AddressLibrary.Services.AddressSearch
             _noStreetSearch = new NoStreetSearchStrategy(_cache, filters, resultFactory);
         }
 
+        /// <summary>
+        /// Unieważnia cache — wymusza ponowne załadowanie danych przy następnym SearchAsync.
+        /// Należy wywołać po załadowaniu nowych kodów pocztowych lub zmianie hierarchii.
+        /// </summary>
+        public async Task ReinitializeAsync()
+        {
+            _cache.Invalidate();
+            await InitializeAsync();
+        }
+
         public async Task<AddressSearchResult> SearchAsync(
             AddressSearchRequest request
             )

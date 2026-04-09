@@ -65,6 +65,12 @@ namespace AddressLibrary.Models
         public string Www { get; set; } = string.Empty;
 
         /// <summary>
+        /// Strona WWW
+        /// </summary>
+        [MaxLength(200)]
+        public string Zasieg { get; set; } = string.Empty;
+
+        /// <summary>
         /// Identyfikator urzêdu
         /// </summary>
         [Key]
