@@ -163,6 +163,9 @@ namespace AddressLibrary.Services.AddressSearch
                 .AsNoTracking()
                 .ToListAsync();
 
+            Console.WriteLine($"=== AddressSearchCache: Załadowano {kodyPocztowe.Count} kodów pocztowych ===");
+            Console.WriteLine($"=== AddressSearchCache: Unikalne MiastoId: {kodyPocztowe.Select(k => k.MiastoId).Distinct().Count()} ===");
+
             // Słownik: miasto ID -> kody pocztowe dla wszystkich miast (z ulicą lub bez)
             _kodyPocztoweMiastDict = kodyPocztowe
 //                .Where(k => k.UlicaId == -1)
