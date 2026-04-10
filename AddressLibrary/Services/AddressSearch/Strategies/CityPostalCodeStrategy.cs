@@ -34,7 +34,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             {
                 diagnostic?.Log("✗ Brak kodów pocztowych dla miejscowości");
 
-                var result = new AddressSearchResult
+                var noCodesResult = new AddressSearchResult
                 {
                     Status = AddressSearchStatus.KodPocztowyNotFound,
                     Miasto = miasto,
@@ -43,52 +43,31 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                     NormalizedBuildingNumber = normalizedBuildingNumber,
                     NormalizedApartmentNumber = request.NumerMieszkania
                 };
-                result.AddDiagnostic($"Miasto: {miasto.Nazwa}");
-                result.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
-                result.AddDiagnostic("Miejscowość nie ma kodów pocztowych");
-                return result;
+                noCodesResult.AddDiagnostic($"Miasto: {miasto.Nazwa}");
+                noCodesResult.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
+                noCodesResult.AddDiagnostic("Miejscowość nie ma kodów pocztowych");
+                return noCodesResult;
             }
 
             var cityCode = _filters.FindCityPostalCode(kodyPocztowe);
 
-            if (cityCode != null)
-            {
-                diagnostic?.Log($"✓ Zwracam kod miejscowości: {cityCode.Kod} (ulica nie ma przypisanego kodu)");
+            diagnostic?.Log($"✓ Zwracam kod miejscowości: {cityCode?.Kod} (ulica nie ma przypisanego kodu)");
 
-                var result = new AddressSearchResult
-                {
-                    Status = AddressSearchStatus.Success,
-                    KodPocztowy = cityCode,
-                    Miasto = miasto,
-                    Ulica = ulica,
-                    Message = null,
-                    NormalizedBuildingNumber = normalizedBuildingNumber,
-                    NormalizedApartmentNumber = request.NumerMieszkania
-                };
-                result.AddDiagnostic($"Kod: {cityCode.Kod}");
-                result.AddDiagnostic($"Miasto: {miasto.Nazwa}");
-                result.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
-                result.AddDiagnostic("Ulica nie ma przypisanego kodu - zwrócono kod miasta");
-                return result;
-            }
-            else
+            var result = new AddressSearchResult
             {
-                diagnostic?.Log($"✗ Brak kodu w PNA dla ulicy");
-
-                var result = new AddressSearchResult
-                {
-                    Status = AddressSearchStatus.KodPocztowyNotFound,
-                    Miasto = miasto,
-                    Ulica = ulica,
-                    Message = "Brak kodu pocztowego",
-                    NormalizedBuildingNumber = normalizedBuildingNumber,
-                    NormalizedApartmentNumber = request.NumerMieszkania
-                };
-                result.AddDiagnostic($"Miasto: {miasto.Nazwa}");
-                result.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
-                result.AddDiagnostic("Brak kodu ulicy w PNA");
-                return result;
-            }
+                Status = AddressSearchStatus.Success,
+                KodPocztowy = cityCode,
+                Miasto = miasto,
+                Ulica = ulica,
+                Message = null,
+                NormalizedBuildingNumber = normalizedBuildingNumber,
+                NormalizedApartmentNumber = request.NumerMieszkania
+            };
+            result.AddDiagnostic($"Kod: {cityCode?.Kod}");
+            result.AddDiagnostic($"Miasto: {miasto.Nazwa}");
+            result.AddDiagnostic($"Ulica: {ulica.Nazwa1}");
+            result.AddDiagnostic("Ulica nie ma przypisanego kodu - zwrócono kod miasta");
+            return result;
         }
     }
 }

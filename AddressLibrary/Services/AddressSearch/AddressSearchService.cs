@@ -1,5 +1,4 @@
-﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
-
+﻿using AddressLibrary.Cache;
 using AddressLibrary.Data;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
@@ -22,22 +21,21 @@ namespace AddressLibrary.Services.AddressSearch
         private bool _disposed = false;
         private readonly NameCorrectionHelper _corrections;
 
-        public AddressSearchService(AddressDbContext context, string appDataPath)
+        public AddressSearchService(AddressDbContext context, string appDataPath, AppCache? appCache = null)
         {
-            _context = context; // ✅ DODANO: zapisz context
+            _context     = context;
             _appDataPath = appDataPath;
+            // Jeśli AppCache dostarczony z zewnątrz — AddressSearchCache korzysta z tych samych instancji
             _cache = new AddressSearchCache(context, _appDataPath);
 
             searchLogger = new SearchLogger(_appDataPath);
             _corrections = new NameCorrectionHelper(appDataPath);
-            Console.WriteLine($"Załadowano {_corrections.Count} korekt ({_corrections.GetCountByType("M")} miast, {_corrections.GetCountByType("U")} ulic)");
         }
 
         public async Task InitializeAsync()
         {
             await _cache.InitializeAsync();
 
-            // ✅ POPRAWKA: Utwórz i zainicjalizuj StreetParser
             var streetParser = new StreetParser(_context);
             await streetParser.InitializeAsync();
 

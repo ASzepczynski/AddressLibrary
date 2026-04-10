@@ -52,22 +52,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             await _errorLogger.InitializeAsync(); // ✅ NOWE
             Console.WriteLine($"[KodyPocztoweLoaderService] ✓ _logger.InitializeAsync() zakończone");
 
-            // ✅ NOWE: Załaduj słownik StreetPrefixes z bazy danych CechyUlic
-            Console.WriteLine($"[KodyPocztoweLoaderService] Ładowanie słownika StreetPrefixes...");
+            // Zainicjalizuj CechyUlicUtils przez dedykowany cache
             _logger.LogInfo("=== Ładowanie słownika StreetPrefixes z bazy CechyUlic ===");
-
-            var cechyDict = new CechyUlicDictionary(_context);
-            await cechyDict.LoadIntoStreetPrefixesAsync();
-
+            var cechyCache = new AddressLibrary.Cache.CechyUlicCache(_context);
+            await cechyCache.InitializeAsync();
             _logger.LogInfo($"✓ Załadowano {CechyUlicUtils.StreetPrefixes.Count} cech ulic do StreetPrefixes");
-            Console.WriteLine($"[KodyPocztoweLoaderService] ✓ StreetPrefixes załadowany: {CechyUlicUtils.StreetPrefixes.Count} pozycji");
-
-            // Loguj pierwsze kilka elementów dla diagnostyki
-            var pierwszePozycje = CechyUlicUtils.StreetPrefixes.Take(5);
-            foreach (var entry in pierwszePozycje)
-            {
-                _logger.LogInfo($"  '{entry.Key}' -> [{string.Join(", ", entry.Value)}]");
-            }
 
             // DODANO: Wyczyść tabelę KodyPocztowe przed rozpoczęciem ładowania
             var progressInfo = new LoadProgressInfo

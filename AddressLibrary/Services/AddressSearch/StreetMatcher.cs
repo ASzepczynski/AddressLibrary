@@ -41,7 +41,7 @@ namespace AddressLibrary.Services.AddressSearch
             // Dokładne dopasowanie wymaga 100% score
             var score = CalculateMatchScore(parsed, ulica);
 
-            return score == 100;
+            return score>= 80;
         }
 
         /// <summary>
@@ -124,9 +124,9 @@ namespace AddressLibrary.Services.AddressSearch
 
             // WAGI komponentów
             const int NAZWISKO_WEIGHT = 50;
-            const int IMIE_WEIGHT = 20;
-            const int TYTUL_WEIGHT = 15;
-            const int PSEUDONIM_WEIGHT = 10;
+            const int IMIE_WEIGHT = 10;
+            const int TYTUL_WEIGHT = 5;
+            const int PSEUDONIM_WEIGHT = 5;
             const int IMIE2_WEIGHT = 5;
 
 // Dla nieosobowych zwróć zero
@@ -147,7 +147,7 @@ namespace AddressLibrary.Services.AddressSearch
                     }
                     if (TitleManager.TenSamTytul(ulica.Tytul, search.Tytul))
                     {
-                        score += 20;
+                        score += TYTUL_WEIGHT;
                     }
                 }
                 return score;
@@ -188,13 +188,13 @@ namespace AddressLibrary.Services.AddressSearch
             if (!string.IsNullOrEmpty(search.Imie))
             {
                 totalWeight += IMIE_WEIGHT;
-
-                if (ulica.Imie == search.Imie)
-                    matchedWeight += IMIE_WEIGHT;
-                else if (ulica.Imie2 == search.Imie)
-                    matchedWeight += IMIE_WEIGHT / 2;
+                if (ulica.Imie == search.Imie) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
+                // Tu załatwiamy wzorzec: Marii Faustyny Kowalskiej z poszukiwaniem Faustyny Kowalskiej
+                if (ulica.Imie2!="" && ulica.Imie2 == search.Imie) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
+                 // Tu załatwiamy J. Hallera
+                if (SkrotImienia(ulica.Imie,search.Imie)) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
             }
-
+            po_imie:
             // 3. Tytuł
             if (!string.IsNullOrEmpty(search.Tytul))
             {
@@ -217,16 +217,24 @@ namespace AddressLibrary.Services.AddressSearch
             if (!string.IsNullOrEmpty(search.Imie2))
             {
                 totalWeight += IMIE2_WEIGHT;
-
-                if (ulica.Imie2 == search.Imie2)
-                    matchedWeight += IMIE2_WEIGHT;
+                if (ulica.Imie2 == search.Imie2) { matchedWeight += IMIE2_WEIGHT; goto po_imie2; }
+                if (SkrotImienia(ulica.Imie2, search.Imie2)) { matchedWeight += IMIE2_WEIGHT; goto po_imie2; }
             }
-
+        po_imie2:
             // Oblicz procent dopasowania
             if (totalWeight == 0)
                 return 0;
 
             return (matchedWeight * 100) / totalWeight;
+        }
+
+        private bool SkrotImienia(string imie1, string imie2)
+        {
+            if (imie1.Length < 2) return false;
+            if (imie2.Length < 2) return false;
+            if (imie1.Length == 2 && imie1[1] == '.' && imie1[0] == imie2[0]) return true;
+            if (imie2.Length == 2 && imie2[1] == '.' && imie1[0] == imie2[0]) return true;
+            return false;
         }
 
         private void Oddrukuj(List<UlicaCached> ulice)

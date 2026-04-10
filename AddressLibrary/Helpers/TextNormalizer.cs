@@ -21,6 +21,8 @@ namespace AddressLibrary.Helpers
             normalized = normalized.Replace("  ", " ").Trim();
             normalized = normalized.Replace("-go", "").Trim();
             normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+            // Usuń kropkę bezpośrednio po cyfrze: "3." → "3", "12." → "12"
+            normalized = Regex.Replace(normalized, @"(\d)\.", "$1");
 
             return normalized;
         }

@@ -101,35 +101,38 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 Miasto = foundUlica.Miasto
             };
 
-            // Znajdź kody pocztowe
-            if (!_cache.TryGetKodyPocztoweMiasta(ulica.Miasto.Id, out var wszystkieKodyMiasta))
+            // Krok 1: szukaj kodów przypisanych bezpośrednio do tej ulicy
+            List<KodPocztowy> kodyPocztowe;
+
+            if (_cache.TryGetKodyPocztoweUlicy(ulica.Id, out var kodyUlicy) && kodyUlicy.Count > 0)
             {
-                searchLogger?.Log($"✗ Brak kodów pocztowych dla miasta {request.Miasto}");
-                return ZwrocBrakKoduPocztowego(request, ulica);
+                searchLogger?.Log($"Znaleziono {kodyUlicy.Count} kodów pocztowych dla ulicy");
+                kodyPocztowe = kodyUlicy;
+
+                // Filtruj po numerze domu tylko gdy ulica ma własne kody
+                kodyPocztowe = FilterByBuildingNumber(kodyPocztowe, combinedBuildingNumber, ulica.Id, searchLogger);
             }
-
-            // Filtruj po ulicy
-            var kodyPocztowe = wszystkieKodyMiasta.Where(k => k.UlicaId == ulica.Id).ToList();
-
-            searchLogger?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla ulicy");
-
-            if (kodyPocztowe.Count == 0)
+            else
             {
-                // Czy miasto ma jeden kod?
-                if (wszystkieKodyMiasta.Count != 1)
+                // Krok 2: ulica nie ma własnych kodów — sprawdź czy miasto ma dokładnie jeden unikalny kod
+                searchLogger?.Log("Ulica nie ma przypisanych kodów pocztowych");
+
+                if (!_cache.TryGetKodyPocztoweMiasta(ulica.Miasto.Id, out var kodyMiasta))
                 {
-                    searchLogger?.Log($"✗ Ulica nie ma kodów, a miasto ma {wszystkieKodyMiasta.Count} kodów");
+                    searchLogger?.Log($"✗ Brak kodów pocztowych dla miasta {request.Miasto}");
                     return ZwrocBrakKoduPocztowego(request, ulica);
                 }
-                
-                searchLogger?.Log("Ulica nie ma przypisanych kodów pocztowych - używam kodu miasta");
-                kodyPocztowe = wszystkieKodyMiasta;
+
+                if (kodyMiasta.Count != 1)
+                {
+                    searchLogger?.Log($"✗ Ulica nie ma kodów, a miasto ma {kodyMiasta.Count} różnych kodów");
+                    return ZwrocBrakKoduPocztowego(request, ulica);
+                }
+
+                searchLogger?.Log($"Miasto ma jeden kod pocztowy — używam kodu miasta: {kodyMiasta[0].Kod}");
+                // Nie filtrujemy po numerach — kod dotyczy całego miasta
+                kodyPocztowe = kodyMiasta;
             }
-
-            searchLogger?.Log($"Znaleziono {kodyPocztowe.Count} kodów pocztowych dla ulicy");
-
-            // Filtruj po numerze domu
-            kodyPocztowe = FilterByBuildingNumber(kodyPocztowe, combinedBuildingNumber, ulica.Id, searchLogger);
 
             var finalResult = _resultFactory.CreateResult(
                 kodyPocztowe, foundMiasto, ulica, combinedBuildingNumber, request.NumerMieszkania, searchLogger);

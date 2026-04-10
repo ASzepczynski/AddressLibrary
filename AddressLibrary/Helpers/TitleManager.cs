@@ -62,6 +62,15 @@ namespace AddressLibrary.Helpers
         public static bool IsInitialized => _titleMap != null && _titlesSet != null;
 
         /// <summary>
+        /// Resetuje cache — wymusza ponowną inicjalizację przy następnym wywołaniu Initialize.
+        /// </summary>
+        public static void Reset()
+        {
+            _titleMap  = null;
+            _titlesSet = null;
+        }
+
+        /// <summary>
         /// Usuwa tytuły wojskowe, religijne, naukowe z tekstu (case-insensitive, bez polskich znaków)
         /// </summary>
         public static string RemoveTitles(string text)

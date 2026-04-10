@@ -39,38 +39,19 @@ namespace AddressLibrary.Services.AddressSearch
 
             Console.WriteLine($"[StreetParser] === Inicjalizacja słowników ===");
 
-            // 1. CechyUlicUtils - załaduj z bazy jeśli jeszcze nie zainicjalizowany
+            // CechyUlicUtils i TitleManager są inicjalizowane przez AppCache przed wywołaniem StreetParser.
+            // Jeśli jednak nie zostały zainicjalizowane (np. w testach), inicjalizujemy je tutaj.
             if (!CechyUlicUtils.IsInitialized)
             {
-                Console.WriteLine($"[StreetParser] Ładowanie CechyUlicUtils z bazy danych...");
-                var cechy = await _context.CechyUlic
-                    .AsNoTracking()
-                    .Where(c => c.Id != -1)
-                    .ToListAsync();
-
-                foreach (var cecha in cechy)
-                {
-                    // Klucz: Nazwa (np. "ulica"), warianty: [Skrot, Nazwa] (np. ["ul.", "ulica"])
-                    var warianty = new List<string> { cecha.Skrot };
-                    if (!cecha.Skrot.Equals(cecha.Nazwa, StringComparison.OrdinalIgnoreCase))
-                        warianty.Add(cecha.Nazwa);
-                    CechyUlicUtils.Add(cecha.Nazwa, warianty);
-                }
-                Console.WriteLine($"[StreetParser] Załadowano {cechy.Count} cech ulic do CechyUlicUtils");
+                var cacheC = new AddressLibrary.Cache.CechyUlicCache(_context);
+                await cacheC.InitializeAsync();
             }
 
-            var cechyCount = CechyUlicUtils.StreetPrefixes.SelectMany(kv => kv.Value).Distinct().Count();
-            Console.WriteLine($"[StreetParser] CechyUlicUtils ma {cechyCount} wariantów cech ulic");
-
-            // 2. ✅ Zainicjalizuj TitleManager (jeśli jeszcze nie był)
             if (!TitleManager.IsInitialized)
             {
-                TitleManager.Initialize(await _context.TytulyStopnie
-                    .AsNoTracking()
-                    .Where(t => t.Id != -1) // ✅ Pomiń sentinel
-                    .ToListAsync());
+                var cacheT = new AddressLibrary.Cache.TytulyStopnieCache(_context);
+                await cacheT.InitializeAsync();
             }
-            Console.WriteLine($"[StreetParser] TitleManager zainicjalizowany");
 
             // 3. Załaduj imiona, nazwiska, pseudonimy z TypyUlic
             var typyUlic = await _context.TypyUlic
