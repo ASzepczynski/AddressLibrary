@@ -190,11 +190,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
                     foreach (var ulica in ulice)
                     {
-                        if (ulica.Postfiks == "zabia" || ulica.Postfiks=="Żabia")
-                        {
-                            int v = 11;
-                        }
-
                         if (_streetMatcher.IsMatch(ulica, normalizedStreet))
                         {
                             diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
@@ -241,15 +236,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             return (matchingStreets, wasFuzzy);
         }
 
-
-        /// <summary>
-        /// 🆕 Wyodrębnia nazwisko (ostatnie słowo) z nazwy ulicy personalnej
-        /// </summary>
-        private string GetLastName(string normalizedStreet)
-        {
-            var words = normalizedStreet.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            return words.Length > 0 ? words[^1] : normalizedStreet;
-        }
 
         /// <summary>
         /// 🆕 Próbuje rozwiązać niejednoznaczność wyboru ulicy

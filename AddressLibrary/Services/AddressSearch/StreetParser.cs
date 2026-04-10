@@ -2,6 +2,7 @@
 using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
+using DocumentFormat.OpenXml.ExtendedProperties;
 using Microsoft.EntityFrameworkCore;
 using UglyToad.PdfPig.Content;
 
@@ -252,7 +253,18 @@ namespace AddressLibrary.Services.AddressSearch
                 
                 result.Postfiks += " "+word;
             }
-            // Tutaj trzeba sprawdzić merytorycznie czy nie brakuje nazwiska i czy np. nie zastąpić nazwiska imieniem2
+
+            if (result.Nazwisko == "" && result.Imie2 != "" && _nazwiska!.Contains(result.Imie2))
+            {
+                // Tutaj trzeba sprawdzić merytorycznie czy nie brakuje nazwiska i czy np. nie zastąpić nazwiska imieniem2
+                // Ale trzeba uważać na Mieszka II i podobnych
+                var krolewskie = new List<string>() { "I", "II", "III" };
+                if (!krolewskie.Contains(result.Imie2))
+                {
+                    result.Nazwisko = result.Imie2;
+                    result.Imie2 = "";
+                }
+            }
 
             result.Postfiks=result.Postfiks.Trim();
 
