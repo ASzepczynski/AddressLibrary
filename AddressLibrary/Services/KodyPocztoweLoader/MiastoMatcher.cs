@@ -205,6 +205,35 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 }
             }
 
+            if (kod == "89-608")
+            {
+                // To jest Kamionka 1 w chojnickim
+                var elem = foundGminy.Where(x => x.miasto.Kod == "0082328").ToList();
+                if (elem.Count() == 1)
+                {
+                    selectedGmina = elem[0].gmina;
+                    selectedMiasto = elem[0].miasto;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 1/Końskie: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
+                    return;
+                }
+            }
+
+
+            if (kod == "89-620")
+            {
+                // To jest Kamionka 2 w chojnickim
+                var elem = foundGminy.Where(x => x.miasto.Kod == "0081524").ToList();
+                if (elem.Count() == 1)
+                {
+                    selectedGmina = elem[0].gmina;
+                    selectedMiasto = elem[0].miasto;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 2/Końskie: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
+                    return;
+                }
+            }
+
+
+
             // Brak miast głównych — wybierz pierwsze z foundGminy
             selectedGmina = foundGminy[0].gmina;
             selectedMiasto = foundGminy[0].miasto;
