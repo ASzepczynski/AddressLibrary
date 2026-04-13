@@ -39,9 +39,10 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         }
 
         /// <summary>
-        /// Tworzy słownik miast: GminaId -> Dictionary[Nazwa -> Miasto]
+        /// Tworzy słownik miast: GminaId -> Dictionary[Nazwa -> List&lt;Miasto&gt;]
+        /// Lista bo w jednej gminie mogą istnieć dwa miasta o tej samej nazwie.
         /// </summary>
-        public async Task<Dictionary<int, Dictionary<string, Miasto>>> BuildMiastaDictionaryAsync()
+        public async Task<Dictionary<int, Dictionary<string, List<Miasto>>>> BuildMiastaDictionaryAsync()
         {
             var miastaList = await _context.Miasta
                 .Include(m => m.RodzajMiasta)
@@ -54,7 +55,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     g => g.GroupBy(m => m.Nazwa.ToLowerInvariant())
                           .ToDictionary(
                               grp => grp.Key,
-                              grp => grp.First(),
+                              grp => grp.ToList(),
                               StringComparer.OrdinalIgnoreCase
                           )
                 );

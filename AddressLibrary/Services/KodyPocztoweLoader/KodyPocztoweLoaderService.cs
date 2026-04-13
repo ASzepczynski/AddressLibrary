@@ -19,6 +19,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         private readonly PostalCodesLogger _errorLogger;
         private readonly PnaCorrectionHelper _pnaCorrections;
         private readonly NameCorrectionHelper _corrections;
+        private readonly PnaErrorExcelWriter _excelWriter;
+        private readonly string _appDataPath;
         private string sKorekcja = "";
 
         public string LogFilePath => _logger.LogFilePath;
@@ -28,13 +30,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         public KodyPocztoweLoaderService(AddressDbContext context, string? appDataPath = null)
         {
             _context = context;
+            _appDataPath = appDataPath ?? string.Empty;
             _logger = new PostalCodesLogger(appDataPath);
             _fuzzyLogger = new PostalCodesLogger(appDataPath, "PostalCodesLoader_Fuzzy.txt");
             _errorLogger = new PostalCodesLogger(appDataPath, "PostalCodesLoader_Error.txt");
-            _pnaCorrections = new PnaCorrectionHelper(appDataPath ?? string.Empty);
+            _pnaCorrections = new PnaCorrectionHelper(_appDataPath);
             _corrections = new NameCorrectionHelper(appDataPath);
-
-            // ✅ NOWE: Załaduj ulice osobowe
+            _excelWriter = new PnaErrorExcelWriter();
 
             Console.WriteLine($"[KodyPocztoweLoaderService] Załadowano {_pnaCorrections.Count} korekt PNA");
         }
@@ -122,8 +124,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-//                 foreach (var pna_raw in pnaData.Where(x=>x.Ulica==("mjr. Hubala")))
-            foreach (var pna_raw in pnaData)
+                 foreach (var pna_raw in pnaData.Where(x => x.Miasto == "Małachów" && x.Gmina == "Końskie"))
+                //            foreach (var pna_raw in pnaData)
             {
                 try
                 {
@@ -179,6 +181,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         {
                             // ✅ ZMIENIONO: Loguj do error loggera
                             _errorLogger.LogError($"Nie znaleziono gminy: {gminaNazwa} w powiecie {pna.Powiat}, woj. {pna.Wojewodztwo} dla kodu {pna.Kod}");
+                            _excelWriter.Add(pna, $"Brak gminy: {gminaNazwa} / {pna.Powiat}");
                         }
                         else if (isMultipleGmin)
                         {
@@ -186,11 +189,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                                 .Select(g => g.RodzajGminy.Nazwa));
                             // ✅ ZMIENIONO: Loguj do error loggera
                             _errorLogger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w żadnej z {gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()].Count} gmin o nazwie '{gminaNazwa}' ({gminyLista}) dla kodu {pna.Kod}");
+                            _excelWriter.Add(pna, $"Brak miasta: {miastoNazwa} (wiele gmin: {gminyLista})");
                         }
                         else
                         {
                             // ✅ ZMIENIONO: Loguj do error loggera
                             _errorLogger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w gminie '{gminaNazwa}' ({gmina.RodzajGminy.Nazwa}) dla kodu {pna.Kod}");
+                            _excelWriter.Add(pna, $"Brak miasta: {miastoNazwa} w gminie {gminaNazwa}");
                         }
 
                         stats.ErrorCount++;
@@ -219,7 +224,10 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     {
                         // ✅ ZMIENIONO: Loguj do error loggera
 
-                        _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, sKorekcja)}");
+                        var ulicaMsg = ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, sKorekcja);
+                        _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMsg}");
+                        //                        _excelWriter.Add(pna, $"Brak ulicy: {ulicaMsg}");
+                        _excelWriter.Add(pna, "Brak ulicy");
                         stats.ErrorCount++;
                         stats.SkippedCount++;
                         stats.ProcessedCount++;
@@ -280,6 +288,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             progressInfo.ErrorCount = stats.ErrorCount;
             progressInfo.CurrentOperation = "Zakończono ładowanie kodów pocztowych";
             progress?.Report(progressInfo);
+
+            // Zapisz błędy do Excela
+            if (_excelWriter.Count > 0)
+            {
+                _excelWriter.Save(_appDataPath);
+                _logger.LogInfo($"Zapisano {_excelWriter.Count} błędów do BledyPnaPropozycje.xlsx");
+            }
         }
 
         private async Task SaveBatchAsync(List<KodPocztowy> pendingRecords, LoadStatistics stats)
