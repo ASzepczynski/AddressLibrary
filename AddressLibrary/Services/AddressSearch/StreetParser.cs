@@ -122,7 +122,28 @@ namespace AddressLibrary.Services.AddressSearch
 
             // Normalizuj wejściowy string
             var normalized = TextNormalizer.Normalize(streetName);
+            // Teraz sztuczka, zastępujemy " z " i " ze " tekstem z podkreśleniami
+            // Cel jest taki, żeby do nazwiska poszły teksty z podkreśleniami
+            var Przedrostki = new List<string>()
+            {
+                "de la","del","z","ze","van","de","da","el","von","le","du","a"
+            };
+
+
+            foreach (var przedrostek in Przedrostki.OrderByDescending(x=>x.Length))
+            {
+                var src = $" {przedrostek} ";
+                var dst = $" {przedrostek}_";
+                normalized = normalized.Replace(src, dst);
+            }
+
             var words = normalized.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+
+            // Przywracamy spację zamiast podkreślenia
+            for (int ind=0; ind<words.Length;ind++)
+            {
+                words[ind] = words[ind].Replace("_", " ");
+            }
 
             int index = 0;
 

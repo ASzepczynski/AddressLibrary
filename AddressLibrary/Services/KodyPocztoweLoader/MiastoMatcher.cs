@@ -213,7 +213,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 {
                     selectedGmina = elem[0].gmina;
                     selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 1/Końskie: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Kamionkę 1 w chojnickim: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
                     return;
                 }
             }
@@ -227,17 +227,15 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 {
                     selectedGmina = elem[0].gmina;
                     selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 2/Końskie: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Kamionkę 2 w chojnickim: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
                     return;
                 }
             }
 
-
-
             // Brak miast głównych — wybierz pierwsze z foundGminy
             selectedGmina = foundGminy[0].gmina;
             selectedMiasto = foundGminy[0].miasto;
-            logger?.LogInfo($"[MiastoMatcher] ✓ Brak miasta głównego, wybrano: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id}, Rodzaj={selectedMiasto.RodzajMiasta})");
+            logger?.LogInfo($"[MiastoMatcher] ✓ Brak miasta głównego, wybrano: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id}, Rodzaj={selectedMiasto.RodzajMiasta.Nazwa})");
         }
     }
 }

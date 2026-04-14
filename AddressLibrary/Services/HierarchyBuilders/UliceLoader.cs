@@ -102,7 +102,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     if (!miastaNaPrawachPowiatuDict.ContainsKey(kodPowiatu))
                     {
                         miastaNaPrawachPowiatuDict[kodPowiatu] = miasto;
-                        _logger.LogInfo($"Zarejestrowano miasto na prawach powiatu: {miasto.Nazwa} (MiastoId={miasto.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
+//                        _logger.LogInfo($"Zarejestrowano miasto na prawach powiatu: {miasto.Nazwa} (MiastoId={miasto.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
                     }
                 }
                 else
@@ -197,6 +197,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 dzielnica = UliceUtils.Wesola(ulic);
                 if (dzielnica == "")
                 {
+                    // Tutaj nie chcemy modyfikacji nazwy ulicy, bo chcemy potem w poprawkach TerytLoad mieć właściwą nazwę
                     (var tempNazwa3, dzielnica) = UliceUtils.ZielonaGora(miasto, tempNazwa1, dzielnica);
                 }
 
@@ -223,6 +224,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 if (terytUlicPoprawkiDict.TryGetValue(original, out var terytUlicPoprawka))
                 {
+   
                     // ✅ ZMIENIONO: Użyj CechyUlicDictionary dla cechy z poprawek
                     string sCecha = terytUlicPoprawka.Cecha;
                     if (!string.IsNullOrWhiteSpace(sCecha))
