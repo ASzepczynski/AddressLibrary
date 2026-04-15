@@ -130,14 +130,16 @@ namespace AddressLibrary.Services.AddressSearch
             };
 
 
+            var newText = $" {normalized} ";
+
             foreach (var przedrostek in Przedrostki.OrderByDescending(x=>x.Length))
             {
                 var src = $" {przedrostek} ";
                 var dst = $" {przedrostek}_";
-                normalized = normalized.Replace(src, dst);
+                newText = newText.Replace(src, dst);
             }
 
-            var words = normalized.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            var words = newText.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
 
             // Przywracamy spację zamiast podkreślenia
             for (int ind=0; ind<words.Length;ind++)
@@ -165,7 +167,7 @@ namespace AddressLibrary.Services.AddressSearch
             var tytuly = new List<string>();
             while (index < words.Length && IsTytul(words[index]))
             {
-                tytuly.Add(TitleManager.GetDopelniacz(words[index]));
+                tytuly.Add(TitleManager.GetAbbreviation(words[index]));
                 index++;
             }
             if (tytuly.Count > 0)

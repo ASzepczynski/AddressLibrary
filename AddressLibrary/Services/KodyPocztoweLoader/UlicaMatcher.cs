@@ -178,9 +178,15 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             // Loguj matching
             var matchMessage = $"[UlicaMatcher] ✓ MATCHED: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{ulicaCached.GetDisplayName()}'";
-            
-            if(!wasFuzzy)_PostalCodesLogger.LogInfo(matchMessage);
-            else _fuzzyLogger.LogInfo(matchMessage);
+
+            if (!wasFuzzy)
+            {
+             //   _PostalCodesLogger.LogInfo(matchMessage);
+            }
+            else
+            {
+                _fuzzyLogger.LogInfo(matchMessage);
+            }
 
             return (ulica, currentUlica);
         }

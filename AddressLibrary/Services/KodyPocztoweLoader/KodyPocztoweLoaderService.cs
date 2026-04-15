@@ -124,7 +124,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-//                 foreach (var pna_raw in pnaData.Where(x => x.Ulica== "Drzonków-Regentowa"))
+               // foreach (var pna_raw in pnaData.Where(x => x.Ulica.Contains("Ducha") && x.Miasto=="Gdańsk"))
             foreach (var pna_raw in pnaData)
             {
                 try
@@ -163,46 +163,36 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
                     // 1a. Znajdź miasto
 
-                    var matchResult = miastoMatcher.Match(pna, out bool isMultipleGmin);
-                    var miasto = matchResult.miasto;
+                    var matchResult = miastoMatcher.Match(pna);
 
-                    var gmina = matchResult.gmina;
-                    var miastoNazwa = matchResult.miastoNazwa;
-                    var gminaNazwa = matchResult.gminaNazwa;
 
-                    if (isMultipleGmin)
+                    if (matchResult == null)
                     {
-                        stats.MultipleGminFound++;
-                    }
-
-                    if (miasto == null)
-                    {
-                        if (gmina == null)
-                        {
-                            // ✅ ZMIENIONO: Loguj do error loggera
-                            _errorLogger.LogError($"Nie znaleziono gminy: {gminaNazwa} w powiecie {pna.Powiat}, woj. {pna.Wojewodztwo} dla kodu {pna.Kod}");
-                            _excelWriter.Add(pna, $"Brak gminy: {gminaNazwa} / {pna.Powiat}");
-                        }
-                        else if (isMultipleGmin)
-                        {
-                            var gminyLista = string.Join(", ", gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()]
-                                .Select(g => g.RodzajGminy.Nazwa));
-                            // ✅ ZMIENIONO: Loguj do error loggera
-                            _errorLogger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w żadnej z {gminyDict[$"{pna.Wojewodztwo}|{pna.Powiat}|{gminaNazwa}".ToLowerInvariant()].Count} gmin o nazwie '{gminaNazwa}' ({gminyLista}) dla kodu {pna.Kod}");
-                            _excelWriter.Add(pna, $"Brak miasta: {miastoNazwa} (wiele gmin: {gminyLista})");
-                        }
-                        else
-                        {
-                            // ✅ ZMIENIONO: Loguj do error loggera
-                            _errorLogger.LogError($"Nie znaleziono miasta: '{miastoNazwa}' w gminie '{gminaNazwa}' ({gmina.RodzajGminy.Nazwa}) dla kodu {pna.Kod}");
-                            _excelWriter.Add(pna, $"Brak miasta: {miastoNazwa} w gminie {gminaNazwa}");
-                        }
-
-                        stats.ErrorCount++;
-                        stats.SkippedCount++;
-                        stats.ProcessedCount++;
+                        _errorLogger.LogError($"Nie znaleziono miasta '{pna.Miasto}' w gminie '{pna.Gmina}/{pna.Powiat}/{pna.Wojewodztwo}' dla kodu {pna.Kod}");
                         continue;
                     }
+
+
+                    if (matchResult.Count>1)
+                    {
+                        // Wstawianie kodów pocztowych dla wszystkich wsi, osad i dzielnic o kodzie "Abisynia" czy "Wyźrzał"
+                        foreach (var elem in matchResult)
+                        {
+                            var kodPocztowy2 = new KodPocztowy
+                            {
+                                Kod = pna.Kod,
+                                Numery = pna.Numery,
+                                MiastoId = elem.Id,
+                                UlicaId = -1
+                            };
+
+                            _errorLogger.LogInfo($"Wstawianie '{pna.Miasto}/{elem.RodzajMiasta.Nazwa}' w gminie '{pna.Gmina}/{pna.Powiat}/{pna.Wojewodztwo}' dla kodu {pna.Kod}");
+                            pendingRecords.Add(kodPocztowy2);
+                        }
+                        continue;
+                    }
+
+                    var miasto = matchResult[0];
 
                     // 2. Znajdź ulicę (jeśli jest)
                     string? sUlica = pna.Ulica.Replace("-go", "");
@@ -218,13 +208,14 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     //                    sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix, sUlica);
                     //(bool zmiana,sPrefix,sUlica) = PrefixModification.ModifyPrefix(sPrefix, sUlica, miasto.Nazwa);
 
-                    (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, gminaNazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
+
+                    (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
 
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
                     {
                         // ✅ ZMIENIONO: Loguj do error loggera
 
-                        var ulicaMsg = ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miastoNazwa, sKorekcja);
+                        var ulicaMsg = ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miasto.Nazwa, sKorekcja);
                         _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMsg}");
                         //                        _excelWriter.Add(pna, $"Brak ulicy: {ulicaMsg}");
                         _excelWriter.Add(pna, "Brak ulicy");

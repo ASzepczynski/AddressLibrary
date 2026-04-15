@@ -33,33 +33,32 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         /// <summary>
         /// Próbuje znaleźć miejscowość w odpowiedniej gminie
         /// </summary>
-        public (Miasto? miasto, Gmina? gmina, string miastoNazwa, string gminaNazwa, int gminyCount) Match(
-            Pna pna,
-            out bool isMultipleGmin)
+        public List<Miasto>? Match(
+            Pna pna)
         {
-            isMultipleGmin = false;
             var currentMiasto = pna.Miasto;
             var currentDzielnica = pna.Dzielnica;
             var currentGmina = pna.Gmina;
             var currentUlica = pna.Ulica;
 
+            if (pna.Miasto == "Kraśnik" && pna.Gmina=="Kraśnik")
+            {
+                int y = 1;
+            }
             // Znajdź gminę
             var gminaKey = $"{pna.Wojewodztwo}|{pna.Powiat}|{currentGmina}".ToLowerInvariant();
 
             if (!_gminyDict.TryGetValue(gminaKey, out var gminyList))
             {
                 // Nie znaleziono gminy - zwróć null
-                return (null, null, currentMiasto, currentGmina, 0);
+                return null;
             }
 
             int gminyCount = gminyList.Count;
 
-            Miasto? miasto = null;
-            Gmina? foundGmina = null;
-            Miasto? foundMiasto = null;
 
             // KROK 3: Próbuj znaleźć miasto w każdej gminie
-            var foundGminy = new List<(Gmina gmina, Miasto miasto)>(); // ✅ ZMIANA: Przechowuj również miasto
+            var foundMiasta = new List<Miasto>();
 
             foreach (var gmina in gminyList)
             {
@@ -70,38 +69,24 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         foreach (var candidate in miastaCandidates)
                         {
                             if (candidate.RodzajMiasta.Kod != "99")
-                                foundGminy.Add((gmina, candidate));
+                                foundMiasta.Add(candidate);
                         }
                     }
                 }
             }
 
-            // Nie znaleziono - zwróć pierwszą gminę jako kontekst
-            if (foundGminy.Count == 0)
+       
+            if (foundMiasta.Count == 0)
             {
                 // ✅ DIAGNOSTYKA: Zaloguj dlaczego nie znaleziono
                 _errorLogger?.LogError($"[MiastoMatcher] ✗ Nie znaleziono ŻADNEGO miasta '{currentMiasto}' (po odfiltrowaniu dzielnic) dla kodu {pna.Kod}");
-                return (null, gminyList.First(), currentMiasto, currentGmina, gminyCount);
+                return null;
             }
 
-            // ✅ NOWE: Jeśli znaleziono wiele, PREFERUJ miasto główne (RodzajMiasta="96")
-            Miasto? selectedMiasto = null;
-            Gmina? selectedGmina = null;
-
-            if (foundGminy.Count == 1)
+            if (foundMiasta.Count > 1)
             {
-                selectedGmina = foundGminy[0].gmina;
-                selectedMiasto = foundGminy[0].miasto;
+                foundMiasta = DuplikatMiasta(_logger, pna.Kod, foundMiasta);
             }
-            else
-            {
-                DuplikatMiasta(_logger, pna.Kod, foundGminy, out selectedGmina, out selectedMiasto);
-                return (selectedMiasto, selectedGmina, selectedMiasto?.Nazwa, selectedGmina?.Nazwa, 1);
-            }
-
-
-            foundGmina = selectedGmina;
-            miasto = selectedMiasto;
 
             var powiatKod = gminyList.First().Powiat.Kod;
             var isCityWithPowiatRights = powiatKod.EndsWith("61") || powiatKod.EndsWith("62") ||
@@ -110,7 +95,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             // Jeśli dzielnica jest pusta lub jest to miasto powiatowe zwracamy miasto, nie patrząc na dzielnice
             if (string.IsNullOrEmpty(currentDzielnica) || isCityWithPowiatRights)
-                return (miasto, foundGmina, currentMiasto, currentGmina, gminyCount);
+                return foundMiasta;
 
             // KROK 4: Próbuj znaleźć dzielnicę w każdej gminie
             // tylko dla miast z niepustą dzielnicą
@@ -121,121 +106,100 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     {
                         if (miasta.TryGetValue(currentDzielnica.ToLowerInvariant(), out var dzielnicaCandidates))
                         {
-                            var miasto2 = dzielnicaCandidates.FirstOrDefault();
-                            if (miasto2 != null)
+                            if (dzielnicaCandidates.Count > 0)
                             {
-                                if (string.IsNullOrEmpty(pna.Ulica) || miasto2.Ulice.Any())
-                                    return (miasto2, gmina, currentDzielnica, currentGmina, gminyCount);
-                                else
-                                    return (miasto, foundGmina, currentMiasto, currentGmina, gminyCount);
+                                if (string.IsNullOrEmpty(pna.Ulica) || dzielnicaCandidates[0].Ulice.Any())
+                                    return dzielnicaCandidates;
                             }
                         }
                     }
                 }
-            // Znaleziono więcej niż 1- zwróć pierwszą gminę jako kontekst
-            return (null, gminyList.First(), currentMiasto, currentGmina, gminyCount);
+            return foundMiasta;
         }
 
-        private void DuplikatMiasta(
+        public List<Miasto>? DuplikatMiasta(
             PostalCodesLogger? logger,
             string kod,
-            List<(Gmina gmina, Miasto miasto)> foundGminy,
-            out Gmina? selectedGmina,
-            out Miasto? selectedMiasto)
+            List<Miasto> foundMiasta)
         {
-            var mainCities = foundGminy.Where(x => x.miasto.RodzajMiasta.Kod == "96").ToList();
 
-            if (mainCities.Count == 1)
+            if (kod == "23-200" || kod== "23-204")
             {
-                selectedGmina  = mainCities[0].gmina;
-                selectedMiasto = mainCities[0].miasto;
-                logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano miasto główne (96): '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
-                return;
+                // Szukamy Kraśnika i Kraśnika Fabrycznego
+                // Przez tą linijkę nie dostawi się niestety kod do Kraśnik(osada)
+                var elem = foundMiasta.Where(x => x.Nazwa.StartsWith("Kraśnik") && x.RodzajMiasta.Kod=="96").ToList();
+                if(elem.Count==1)return elem;
             }
+
 
             if (kod == "26-220")
             {
                 // To jest pierwszy Małachów w gminie Końskie
-                var elem= foundGminy.Where(x => x.miasto.Kod == "0243760").ToList();
+                var elem = foundMiasta.Where(x => x.Kod == "0243760").ToList();
                 if (elem.Count() == 1)
                 {
-                    selectedGmina = elem[0].gmina;
-                    selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 1/Końskie: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
-                    return;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 1/Końskie: '{elem[0].Nazwa}' (Id={elem[0].Id})");
+                    return elem;
                 }
             }
 
             if (kod == "26-200")
             {
                 // To jest drugi Małachów w gminie Końskie
-                var elem = foundGminy.Where(x => x.miasto.Kod == "0244340").ToList();
+                var elem = foundMiasta.Where(x => x.Kod == "0244340").ToList();
                 if (elem.Count() == 1)
                 {
-                    selectedGmina = elem[0].gmina;
-                    selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 2/Końskie: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
-                    return;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Małachów 2/Końskie: '{elem[0].Nazwa}' (Id={elem[0].Id})");
+                    return elem;
                 }
             }
 
             if (kod == "37-500")
             {
                 // To jest Wietlin (osada) w gminie Laszki
-                var elem = foundGminy.Where(x => x.miasto.Kod == "0989650").ToList();
+                var elem = foundMiasta.Where(x => x.Kod == "0989650").ToList();
                 if (elem.Count() == 1)
                 {
-                    selectedGmina = elem[0].gmina;
-                    selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Wietlin (osada)/Laszki: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
-                    return;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Wietlin (osada)/Laszki: '{elem[0].Nazwa}' (Id={elem[0].Id})");
+                    return elem;
                 }
             }
 
             if (kod == "37-512")
             {
                 // To jest Wietlin (wieś) w gminie Laszki
-                var elem = foundGminy.Where(x => x.miasto.Kod == "0605766").ToList();
+                var elem = foundMiasta.Where(x => x.Kod == "0605766").ToList();
                 if (elem.Count() == 1)
                 {
-                    selectedGmina = elem[0].gmina;
-                    selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Wietlin (wieś)/Laszki: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
-                    return;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Wietlin (wieś)/Laszki: '{elem[0].Nazwa}' (Id={elem[0].Id})");
+                    return elem;
                 }
             }
 
             if (kod == "89-608")
             {
                 // To jest Kamionka 1 w chojnickim
-                var elem = foundGminy.Where(x => x.miasto.Kod == "0082328").ToList();
+                var elem = foundMiasta.Where(x => x.Kod == "0082328").ToList();
                 if (elem.Count() == 1)
                 {
-                    selectedGmina = elem[0].gmina;
-                    selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Kamionkę 1 w chojnickim: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
-                    return;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Kamionkę 1 w chojnickim: '{elem[0].Nazwa}' (Id={elem[0].Id})");
+                    return elem;
                 }
             }
-
 
             if (kod == "89-620")
             {
                 // To jest Kamionka 2 w chojnickim
-                var elem = foundGminy.Where(x => x.miasto.Kod == "0081524").ToList();
+                var elem = foundMiasta.Where(x => x.Kod == "0081524").ToList();
                 if (elem.Count() == 1)
                 {
-                    selectedGmina = elem[0].gmina;
-                    selectedMiasto = elem[0].miasto;
-                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Kamionkę 2 w chojnickim: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id})");
-                    return;
+                    logger?.LogInfo($"[MiastoMatcher] ✓ Wybrano Kamionkę 2 w chojnickim: '{elem[0].Nazwa}' (Id={elem[0].Id})");
+                    return elem;
                 }
             }
 
-            // Brak miast głównych — wybierz pierwsze z foundGminy
-            selectedGmina = foundGminy[0].gmina;
-            selectedMiasto = foundGminy[0].miasto;
-            logger?.LogInfo($"[MiastoMatcher] ✓ Brak miasta głównego, wybrano: '{selectedMiasto.Nazwa}' (Id={selectedMiasto.Id}, Rodzaj={selectedMiasto.RodzajMiasta.Nazwa})");
+            // Istnieje wiele miast
+            return foundMiasta;
         }
     }
 }

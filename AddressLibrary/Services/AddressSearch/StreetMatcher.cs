@@ -59,14 +59,35 @@ namespace AddressLibrary.Services.AddressSearch
             var normalizedSearch = TextNormalizer.Normalize(streetName);
             var parsed = _parser.Parse(streetName);
 
-//            Oddrukuj(ulice);
-            
+            var nowaUlica = new UlicaCached
+            {
+                Prefiks   = parsed.Prefiks,
+                Tytul     = parsed.Tytul,
+                Imie      = parsed.Imie,
+                Imie2     = parsed.Imie2,
+                Nazwisko  = parsed.Nazwisko,
+                Nazwisko2 = parsed.Nazwisko2,
+                Pseudonim = parsed.Pseudonim,
+                Postfiks  = parsed.Postfiks,
+            };
+
+            var parsedSearch = nowaUlica.GetFullNormalized();
+
+            //            Oddrukuj(ulice);
+
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
+                ulica.Tytul = TitleManager.GetAbbreviation(ulica.Tytul);
                 var normalizedFull = ulica.GetFullNormalized();
                 // Zwykłe porównanie nazw
+                if (normalizedFull.Contains("ducha"))
+                {
+                    int z = 1;
+                }
                 if (normalizedFull == normalizedSearch)
+                    return ulica;
+                if (normalizedFull == parsedSearch)
                     return ulica;
             }
 
@@ -75,6 +96,11 @@ namespace AddressLibrary.Services.AddressSearch
             int bestScore = 0;
             foreach (var ulica in ulice)
             {
+
+                if (ulica.Nazwisko.Contains("ducha") || ulica.Postfiks.Contains("ducha"))
+                {
+                    int z = 1;
+                }
 
                 int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.CechaUlicy.Nazwa) ? 0 : -20;
                 var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
