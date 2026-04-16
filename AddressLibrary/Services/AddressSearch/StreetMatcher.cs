@@ -78,6 +78,10 @@ namespace AddressLibrary.Services.AddressSearch
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
+                if (ulica.Postfiks.Contains("spokojna"))
+                {
+                    int z = 1;
+                }
                 var normalizedShort = ulica.GetShortNormalized();
                 // Zwykłe porównanie nazw
                 if (normalizedShort == normalizedSearch)
@@ -92,7 +96,7 @@ namespace AddressLibrary.Services.AddressSearch
             foreach (var ulica in ulice)
             {
 
-                if (ulica.Tytul.Contains("rodziny"))
+                if (ulica.Postfiks.Contains("spokojna"))
                 {
                     int z = 1;
                 }
