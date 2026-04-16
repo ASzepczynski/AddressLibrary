@@ -71,23 +71,18 @@ namespace AddressLibrary.Services.AddressSearch
                 Postfiks  = parsed.Postfiks,
             };
 
-            var parsedSearch = nowaUlica.GetFullNormalized();
+            var parsedSearch = nowaUlica.GetShortNormalized();
 
             //            Oddrukuj(ulice);
 
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
-                ulica.Tytul = TitleManager.GetAbbreviation(ulica.Tytul);
-                var normalizedFull = ulica.GetFullNormalized();
+                var normalizedShort = ulica.GetShortNormalized();
                 // Zwykłe porównanie nazw
-                if (normalizedFull.Contains("ducha"))
-                {
-                    int z = 1;
-                }
-                if (normalizedFull == normalizedSearch)
+                if (normalizedShort == normalizedSearch)
                     return ulica;
-                if (normalizedFull == parsedSearch)
+                if (normalizedShort == parsedSearch)
                     return ulica;
             }
 
@@ -97,7 +92,7 @@ namespace AddressLibrary.Services.AddressSearch
             foreach (var ulica in ulice)
             {
 
-                if (ulica.Nazwisko.Contains("ducha") || ulica.Postfiks.Contains("ducha"))
+                if (ulica.Nazwisko.Contains("rodziny") || ulica.Postfiks.Contains("rodziny"))
                 {
                     int z = 1;
                 }

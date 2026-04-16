@@ -1,4 +1,6 @@
 ﻿using AddressLibrary.Models;
+using AddressLibrary.Utils;
+using AddressLibrary.Helpers;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -41,6 +43,21 @@ namespace AddressLibrary.Services.AddressSearch
             if (!string.IsNullOrEmpty(Postfiks)) parts.Add(Postfiks);
             return string.Join(" ", parts);
         }
+
+        public string GetShortNormalized()
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(Prefiks)) parts.Add(Prefiks);
+            if (!string.IsNullOrEmpty(Tytul)) parts.Add(TitleManager.GetAbbreviation(Tytul));
+            if (!string.IsNullOrEmpty(Imie)) parts.Add(Imie);
+            if (!string.IsNullOrEmpty(Imie2)) parts.Add(Imie2);
+            if (!string.IsNullOrEmpty(Nazwisko)) parts.Add(Nazwisko);
+            if (!string.IsNullOrEmpty(Nazwisko2)) parts.Add(Nazwisko2);
+            if (!string.IsNullOrEmpty(Pseudonim)) parts.Add(Pseudonim);
+            if (!string.IsNullOrEmpty(Postfiks)) parts.Add(Postfiks);
+            return string.Join(" ", parts);
+        }
+
 
         /// <summary>
         /// Zwraca pełną nazwę z cechą (dla wyświetlania)

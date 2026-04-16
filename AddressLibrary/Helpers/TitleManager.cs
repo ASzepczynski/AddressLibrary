@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 using AddressLibrary.Models;
-using AddressLibrary.Utils;
+
 
 namespace AddressLibrary.Helpers
 {
@@ -13,7 +13,7 @@ namespace AddressLibrary.Helpers
         // ✅ ZMIANA: Usunięto tablicę titles_pl - teraz używamy słownika z bazy danych
         // Cached słownik tytułów (Skrot -> TytulStopien)
         private static Dictionary<string, TytulStopien>? _titleMap;
-        
+
         // Cached HashSet dla szybkiego sprawdzania
         private static HashSet<string>? _titlesSet;
 
@@ -66,7 +66,7 @@ namespace AddressLibrary.Helpers
         /// </summary>
         public static void Reset()
         {
-            _titleMap  = null;
+            _titleMap = null;
             _titlesSet = null;
         }
 
@@ -176,64 +176,60 @@ namespace AddressLibrary.Helpers
             return string.Join(" ", normalizedTitles);
         }
 
+
         /// <summary>
         /// Pobiera pełną nazwę tytułu na podstawie skrótu
         /// Przykład: "płk." → "pułkownika", "gen." → "generała"
         /// </summary>
-        public static string? GetFullName(string titleOrAbbreviation)
+        public static string GetTitleField(string titleOrAbbreviation, string sType)
         {
             if (string.IsNullOrWhiteSpace(titleOrAbbreviation) || _titleMap == null)
-                return null;
+                return "";
 
-            var normalized = UliceUtils.RemoveDiacritics(titleOrAbbreviation.Replace(".", "").ToLowerInvariant());
+            var normalized = UliceUtils.RemoveDiacritics(titleOrAbbreviation.ToLowerInvariant());
 
             if (_titleMap.TryGetValue(normalized, out var titleDef) ||
                 _titleMap.TryGetValue(titleOrAbbreviation, out titleDef))
             {
-                return titleDef.Nazwa;
+                switch (sType)
+                {
+                    case "N": return titleDef.Nazwa;
+                    case "D": return titleDef.Dopelniacz;
+                    case "S": return titleDef.Skrot;
+                    default: throw new Exception("Nieznane pole w stopniach/tytułach");
+                }
             }
 
-            return null;
+            return "";
+        }
+
+
+
+        /// <summary>
+        /// Pobiera pełną nazwę tytułu na podstawie skrótu
+        /// Przykład: "płk." → "pułkownika", "gen." → "generała"
+        /// </summary>
+        public static string GetFullName(string stopien)
+        {
+            return GetTitleField(stopien,"N");
         }
 
         /// <summary>
         /// Pobiera skrót tytułu na podstawie pełnej nazwy
         /// Przykład: "pułkownika" → "płk.", "generała" → "gen."
         /// </summary>
-        public static string? GetAbbreviation(string titleOrFullName)
+        public static string GetAbbreviation(string stopien)
         {
-            if (string.IsNullOrWhiteSpace(titleOrFullName) || _titleMap == null)
-                return null;
-
-            var normalized = UliceUtils.RemoveDiacritics(titleOrFullName.Replace(".", "").ToLowerInvariant());
-
-            if (_titleMap.TryGetValue(normalized, out var titleDef) ||
-                _titleMap.TryGetValue(titleOrFullName, out titleDef))
-            {
-                return titleDef.Skrot;
-            }
-
-            return null;
+            return GetTitleField(stopien, "S");
         }
 
         /// <summary>
         /// Pobiera dopełniacz tytułu na podstawie skrótu lub nazwy
         /// Przykład: "płk." → "pułkownika", "generał" → "generała"
         /// </summary>
-        public static string? GetDopelniacz(string titleOrAbbreviation)
+        public static string GetDopelniacz(string stopien)
         {
-            if (string.IsNullOrWhiteSpace(titleOrAbbreviation) || _titleMap == null)
-                return null;
-
-            var normalized = UliceUtils.RemoveDiacritics(titleOrAbbreviation.Replace(".", "").ToLowerInvariant());
-
-            if (_titleMap.TryGetValue(normalized, out var titleDef) ||
-                _titleMap.TryGetValue(titleOrAbbreviation, out titleDef))
-            {
-                return titleDef.Dopelniacz;
-            }
-
-            return null;
+            return GetTitleField(stopien, "D");
         }
 
         /// <summary>
@@ -248,7 +244,7 @@ namespace AddressLibrary.Helpers
             // Oba puste lub null → równe
             if (string.IsNullOrWhiteSpace(tytul1) && string.IsNullOrWhiteSpace(tytul2))
                 return true;
-            
+
             // Jeden pusty, drugi nie → różne
             if (string.IsNullOrWhiteSpace(tytul1) || string.IsNullOrWhiteSpace(tytul2))
                 return false;
@@ -277,12 +273,12 @@ namespace AddressLibrary.Helpers
                 // Porównaj znormalizowane skróty (np. "św." dla obu form)
                 var skrot1 = TextNormalizer.Normalize(title1.Skrot ?? "");
                 var skrot2 = TextNormalizer.Normalize(title2.Skrot ?? "");
-                
+
                 if (!string.IsNullOrEmpty(skrot1) && !string.IsNullOrEmpty(skrot2))
                 {
                     return skrot1 == skrot2;
                 }
-                
+
                 // Fallback: porównaj ID jeśli skróty są puste
                 return title1.Id == title2.Id;
             }
@@ -293,9 +289,9 @@ namespace AddressLibrary.Helpers
                 var norm1Nazwa = TextNormalizer.Normalize(title1.Nazwa ?? "");
                 var norm1Dopelniacz = TextNormalizer.Normalize(title1.Dopelniacz ?? "");
                 var norm1Skrot = TextNormalizer.Normalize(title1.Skrot ?? "");
-                
-                return norm1Nazwa == normalized2 || 
-                       norm1Dopelniacz == normalized2 || 
+
+                return norm1Nazwa == normalized2 ||
+                       norm1Dopelniacz == normalized2 ||
                        norm1Skrot == normalized2;
             }
 
@@ -304,9 +300,9 @@ namespace AddressLibrary.Helpers
                 var norm2Nazwa = TextNormalizer.Normalize(title2.Nazwa ?? "");
                 var norm2Dopelniacz = TextNormalizer.Normalize(title2.Dopelniacz ?? "");
                 var norm2Skrot = TextNormalizer.Normalize(title2.Skrot ?? "");
-                
-                return norm2Nazwa == normalized1 || 
-                       norm2Dopelniacz == normalized1 || 
+
+                return norm2Nazwa == normalized1 ||
+                       norm2Dopelniacz == normalized1 ||
                        norm2Skrot == normalized1;
             }
 
@@ -314,5 +310,5 @@ namespace AddressLibrary.Helpers
             return false;
         }
     }
-   
+
 }

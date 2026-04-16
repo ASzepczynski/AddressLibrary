@@ -297,7 +297,7 @@ namespace AddressLibrary.Services.AddressSearch
         private bool IsTytul(string word)
         {
             // Deleguj sprawdzenie do TitleManager - używa już znormalizowanych danych
-            return TitleManager.IsInitialized && TitleManager.GetAbbreviation(word) != null;
+            return TitleManager.IsInitialized && !string.IsNullOrEmpty(TitleManager.GetAbbreviation(word));
         }
     }
 
