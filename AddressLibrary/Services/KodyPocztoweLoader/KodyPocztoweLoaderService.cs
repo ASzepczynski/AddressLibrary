@@ -124,8 +124,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-             foreach (var pna_raw in pnaData.Where(x => x.Ulica.Contains("Świętej Rodziny")))
-//             foreach (var pna_raw in pnaData)
+//             foreach (var pna_raw in pnaData.Where(x => x.Ulica.Contains("Świętej Rodziny")))
+             foreach (var pna_raw in pnaData)
             {
                 try
                 {

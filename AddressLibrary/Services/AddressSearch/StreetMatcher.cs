@@ -92,7 +92,7 @@ namespace AddressLibrary.Services.AddressSearch
             foreach (var ulica in ulice)
             {
 
-                if (ulica.Nazwisko.Contains("rodziny") || ulica.Postfiks.Contains("rodziny"))
+                if (ulica.Tytul.Contains("rodziny"))
                 {
                     int z = 1;
                 }
