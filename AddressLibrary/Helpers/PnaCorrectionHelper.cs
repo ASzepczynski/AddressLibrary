@@ -76,15 +76,18 @@ namespace AddressLibrary.Helpers
                 {
                     Kod = GetCellValueByColumn(workbookPart, row, "A").Trim(),
                     Miasto = GetCellValueByColumn(workbookPart, row, "B").Trim(),
-                    Ulica = GetCellValueByColumn(workbookPart, row, "C").Trim(),
-                    Numery = GetCellValueByColumn(workbookPart, row, "D").Trim(),
-                    Gmina = GetCellValueByColumn(workbookPart, row, "E").Trim(),
-                    Powiat = GetCellValueByColumn(workbookPart, row, "F").Trim(),
-                    Wojewodztwo = GetCellValueByColumn(workbookPart, row, "G").Trim()
+                    Dzielnica = GetCellValueByColumn(workbookPart, row, "C").Trim(),
+                    Ulica = GetCellValueByColumn(workbookPart, row, "D").Trim(),
+                    Numery = GetCellValueByColumn(workbookPart, row, "E").Trim(),
+                    Gmina = GetCellValueByColumn(workbookPart, row, "F").Trim(),
+                    Powiat = GetCellValueByColumn(workbookPart, row, "G").Trim(),
+                    Wojewodztwo = GetCellValueByColumn(workbookPart, row, "H").Trim()
                 };
 
+
+
                 // Opcjonalna kolumna komentarza (8. kolumna = H)
-                comment = GetCellValueByColumn(workbookPart, row, "H").Trim();
+                comment = GetCellValueByColumn(workbookPart, row, "I").Trim();
                 pna.Comment = comment;
 
                 return pna;
@@ -162,6 +165,7 @@ namespace AddressLibrary.Helpers
                     {
                         Kod = correction.NewPna.Kod,
                         Miasto = correction.NewPna.Miasto,
+                        Dzielnica = correction.NewPna.Dzielnica,
                         Ulica = correction.NewPna.Ulica,
                         Numery = correction.NewPna.Numery,
                         Gmina = correction.NewPna.Gmina,
@@ -181,6 +185,7 @@ namespace AddressLibrary.Helpers
         {
             return string.Equals(pna.Kod, pattern.Kod, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(pna.Miasto, pattern.Miasto, StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(pna.Dzielnica, pattern.Dzielnica, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(pna.Ulica, pattern.Ulica, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(pna.Numery, pattern.Numery, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(pna.Gmina, pattern.Gmina, StringComparison.OrdinalIgnoreCase) &&

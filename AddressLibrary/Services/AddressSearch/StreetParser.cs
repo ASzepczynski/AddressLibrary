@@ -84,23 +84,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 throw new InvalidOperationException($"StreetParser: Słownik _nazwiska jest PUSTY! TypyUlic ma {typyUlic.Count} rekordów.");
             }
-
-            // ✅ TEST: Czy "chrobrego" jest w słowniku
-            var chrobrego = TextNormalizer.Normalize("Chrobrego");
-            if (!_nazwiska.Contains(chrobrego))
-            {
-                // Znajdź rekordy z "Chrobrego" w nazwiskach
-                var chrobregoRecords = typyUlic
-                    .Where(t => !string.IsNullOrEmpty(t.Nazwisko) &&
-                               t.Nazwisko.Contains("Chrobrego", StringComparison.OrdinalIgnoreCase))
-                    .Select(t => $"ID={t.Id}, Nazwisko='{t.Nazwisko}'")
-                    .ToList();
-
-                throw new InvalidOperationException(
-                    $"StreetParser: 'chrobrego' NIE JEST w słowniku _nazwiska!\n" +
-                    $"Znaleziono {chrobregoRecords.Count} rekordów z 'Chrobrego': {string.Join(", ", chrobregoRecords)}");
-            }
-
+          
             Console.WriteLine($"[StreetParser] Załadowano {_imiona.Count} imion, {_nazwiska.Count} nazwisk, {_pseudonimy.Count} pseudonimów");
 
             _isInitialized = true;

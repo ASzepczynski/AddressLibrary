@@ -88,7 +88,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 foundMiasta = DuplikatMiasta(_logger, pna.Kod, foundMiasta);
             }
 
-            var powiatKod = gminyList.First().Powiat.Kod;
+            var powiatKod = foundMiasta[0].Gmina.Powiat.Kod;
             var isCityWithPowiatRights = powiatKod.EndsWith("61") || powiatKod.EndsWith("62") ||
                                          powiatKod.EndsWith("63") || powiatKod.EndsWith("64") ||
                                          powiatKod.EndsWith("65");
