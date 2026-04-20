@@ -75,7 +75,7 @@ namespace AddressLibrary.Cache
             var norm = TextNormalizer.Normalize(streetName);
             foreach (var (_, ulice) in _dict)
                 foreach (var u in ulice)
-                    if (u.GetFullNormalized().Contains(norm) || (u.Nazwisko?.Contains(norm) == true))
+                    if (u.GetFullName().Contains(norm) || (u.Nazwisko?.Contains(norm) == true))
                         result.Add((u.Miasto?.Nazwa ?? "?", u.GetDisplayName()));
             return result;
         }

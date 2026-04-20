@@ -17,14 +17,69 @@ namespace AddressLibrary.Helpers
 
             var normalized = text.Replace("..", ".");
             normalized = normalized.Replace(".", ". ").Trim();
-            // usuń ewentualnie powstałe podwójne spacje
             normalized = normalized.Replace("  ", " ").Trim();
             normalized = normalized.Replace("-go", "").Trim();
-            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
-            // Usuń kropkę bezpośrednio po cyfrze: "3." → "3", "12." → "12"
-            normalized = Regex.Replace(normalized, @"(\d)\.", "$1");
+
+            // Zastąpienie Regex.Replace(normalized, @"\s+", " ") — scalenie białych znaków
+            normalized = CollapseWhitespace(normalized);
+
+            // Zastąpienie Regex.Replace(normalized, @"(\d)\.", "$1") — usunięcie kropki po cyfrze
+            normalized = RemoveDotAfterDigit(normalized);
 
             return normalized;
+        }
+
+        private static string CollapseWhitespace(string text)
+        {
+            var buf = new char[text.Length];
+            int len = 0;
+            bool prevWasSpace = false;
+            foreach (char c in text)
+            {
+                if (char.IsWhiteSpace(c))
+                {
+                    if (!prevWasSpace && len > 0)
+                    {
+                        buf[len++] = ' ';
+                    }
+                    prevWasSpace = true;
+                }
+                else
+                {
+                    buf[len++] = c;
+                    prevWasSpace = false;
+                }
+            }
+            // usuń końcową spację jeśli istnieje
+            if (len > 0 && buf[len - 1] == ' ')
+                len--;
+            return new string(buf, 0, len);
+        }
+
+        private static string RemoveDotAfterDigit(string text)
+        {
+            // jeśli nie ma żadnej cyfry, wróć od razu
+            bool hasDot = false;
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (text[i] == '.' && i > 0 && char.IsDigit(text[i - 1]))
+                {
+                    hasDot = true;
+                    break;
+                }
+            }
+            if (!hasDot)
+                return text;
+
+            var buf = new char[text.Length];
+            int len = 0;
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (text[i] == '.' && i > 0 && char.IsDigit(text[i - 1]))
+                    continue; // pomiń kropkę po cyfrze
+                buf[len++] = text[i];
+            }
+            return new string(buf, 0, len);
         }
 
         public static string Normalize(string text)
@@ -39,33 +94,6 @@ namespace AddressLibrary.Helpers
 //            normalized = RemoveInitialsPrefix(normalized);
             return normalized;
         }
-
-        /// <summary>
-        /// Usuwa prefiksy związane z patronami ulic: "im.", "imienia", "imieniem" (case insensitive)
-        /// Przykłady: "im. Kowalskiego" -> "Kowalskiego", "Imienia Jana Pawła" -> "Jana Pawła"
-        /// </summary>
-        public static string RemoveNamePrefixes(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            // Wzorzec: na początku tekstu znajduje się "im.", "imienia" lub "imieniem" (case insensitive) + spacja
-            // Flaga RegexOptions.IgnoreCase zapewnia case insensitive
-            var pattern = @"^(im\.|imienia|imieniem)\s+";
-
-            return Regex.Replace(text, pattern, string.Empty, RegexOptions.IgnoreCase).TrimStart();
-        }
-
-        public static string RemoveInitialsPrefix(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            // Wzorzec: 1-3 litery (polskie lub łacińskie), kropka, ewentualnie powtórzone, na początku napisu
-            // Przykłady: "J. ", "A.B. ", "M.K. ", "Ł. ", "J.K. ", "A.B.C. "
-            var pattern = @"^(([\p{L}]{1,2}\.)+\s*)+";
-
-            return Regex.Replace(text, pattern, string.Empty).TrimStart();
-        }
+      
     }
 }

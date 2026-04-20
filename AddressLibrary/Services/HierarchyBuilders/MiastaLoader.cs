@@ -23,6 +23,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
         {
             var miastaDict = new Dictionary<string, Miasto>();
 
+            // Słownik Symbol -> Nazwa do wyszukiwania nazw miejscowości podstawowych
+            var symbolToNazwa = simcData.ToDictionary(s => s.Symbol, s => s.Nazwa);
+
             _logger.LogInfo("Rekord domyślny 'Brak' z Id=-1 już istnieje (utworzony przez DefaultRecordSeeder)");
 
             int cityWithRightsCount = 0;
@@ -133,11 +136,17 @@ namespace AddressLibrary.Services.HierarchyBuilders
                             {
                                 rodzajMiastaId = rodzajeMiasta[simc.RodzajMiasta].Id;
                             }
+                            var nazwaDoZapisu = UliceUtils.RemoveQuote(simc.Nazwa);
+                            if (simc.SymbolPodstawowy != simc.Symbol &&
+                                symbolToNazwa.TryGetValue(simc.SymbolPodstawowy, out var nazwaPodstawowej))
+                            {
+                                nazwaDoZapisu = $"{UliceUtils.RemoveQuote(nazwaPodstawowej)}({UliceUtils.RemoveQuote(simc.Nazwa)})";
+                            }
+
                             var miasto = new Miasto
                             {
                                 Kod = simc.Symbol,
-                                // Usunięcie cudzysłowów w Mazewo Dworskie "A" i "B"
-                                Nazwa = UliceUtils.RemoveQuote(simc.Nazwa),
+                                Nazwa = nazwaDoZapisu,
                                 RodzajMiastaId = rodzajMiastaId ?? -1,
                                 GminaId = gmina.Id
                             };

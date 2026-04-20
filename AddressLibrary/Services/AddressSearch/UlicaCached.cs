@@ -30,7 +30,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// <summary>
         /// Zwraca pełną znormalizowaną nazwę (wszystkie komponenty bez cechy)
         /// </summary>
-        public string GetFullNormalized()
+        public string GetFullName()
         {
             var parts = new List<string>();
             if (!string.IsNullOrEmpty(Prefiks)) parts.Add(Prefiks);
@@ -44,7 +44,7 @@ namespace AddressLibrary.Services.AddressSearch
             return string.Join(" ", parts);
         }
 
-        public string GetShortNormalized()
+        public string GetShortName()
         {
             var parts = new List<string>();
             if (!string.IsNullOrEmpty(Prefiks)) parts.Add(Prefiks);
@@ -58,13 +58,29 @@ namespace AddressLibrary.Services.AddressSearch
             return string.Join(" ", parts);
         }
 
+        private string? _normalizedShortName;
+
+        /// <summary>
+        /// Znormalizowana skrócona nazwa — obliczana raz i zapamiętywana.
+        /// Zastępuje TextNormalizer.Normalize(GetShortName()) w pętlach.
+        /// </summary>
+        public string NormalizedShortName => _normalizedShortName ??= TextNormalizer.Normalize(GetShortName());
+
+        private string? _normalizedFullName;
+
+        /// <summary>
+        /// Pełna znormalizowana nazwa — obliczana raz i zapamiętywana.
+        /// Zastępuje GetFullName() w pętlach.
+        /// </summary>
+        public string NormalizedFullName => _normalizedFullName ??= GetFullName();
+
 
         /// <summary>
         /// Zwraca pełną nazwę z cechą (dla wyświetlania)
         /// </summary>
         public string GetDisplayName()
         {
-            var name = GetFullNormalized();
+            var name = GetFullName();
             
             if (string.IsNullOrEmpty(CechaUlicy.Skrot))
                 return name;

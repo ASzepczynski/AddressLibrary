@@ -31,8 +31,11 @@ namespace AddressLibrary.Services.AddressSearch
             if (ulica.IsEmpty())
             {
                 var normalizedSearch = TextNormalizer.Normalize(streetName);
-                var normalizedFull = ulica.GetFullNormalized();
-                return normalizedFull == normalizedSearch;
+                var normalizedFull = ulica.NormalizedFullName;
+                if(normalizedFull == normalizedSearch)return true;
+                var normalizedShort = ulica.NormalizedShortName;
+                if (normalizedShort == normalizedSearch) return true;
+                return false;
             }
 
             // ✅ KROK 2: Jeśli ulica jest osobowa - parsuj i dopasuj komponenty
@@ -71,22 +74,30 @@ namespace AddressLibrary.Services.AddressSearch
                 Postfiks  = parsed.Postfiks,
             };
 
-            var parsedSearch = nowaUlica.GetShortNormalized();
+            var parsedSearch = TextNormalizer.Normalize(nowaUlica.GetShortName());
 
             //            Oddrukuj(ulice);
 
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
-                if (ulica.Postfiks.Contains("spokojna"))
-                {
-                    int z = 1;
-                }
-                var normalizedShort = ulica.GetShortNormalized();
+
+                var normalizedShort = ulica.NormalizedShortName;
+                //if (normalizedShort.Contains("dominika"))
+                //{
+                //    int y = 1;
+                //}
                 // Zwykłe porównanie nazw
                 if (normalizedShort == normalizedSearch)
                     return ulica;
                 if (normalizedShort == parsedSearch)
+                    return ulica;
+
+                var normalizedFull = ulica.NormalizedFullName;
+                // Zwykłe porównanie nazw
+                if (normalizedFull == normalizedSearch)
+                    return ulica;
+                if (normalizedFull == parsedSearch)
                     return ulica;
             }
 
@@ -95,12 +106,11 @@ namespace AddressLibrary.Services.AddressSearch
             int bestScore = 0;
             foreach (var ulica in ulice)
             {
-
-                if (ulica.Postfiks.Contains("spokojna"))
-                {
-                    int z = 1;
-                }
-
+                var normalizedShort = ulica.NormalizedShortName;
+                //if (normalizedShort.Contains("dominika"))
+                //{
+                //    int y = 1;
+                //}
                 int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.CechaUlicy.Nazwa) ? 0 : -20;
                 var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
 

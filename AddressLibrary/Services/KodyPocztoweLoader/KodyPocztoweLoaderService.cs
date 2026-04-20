@@ -124,8 +124,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-            // foreach (var pna_raw in pnaData.Where(x => x.Ulica==("Spokojna") && x.Miasto=="Ostrów Mazowiecka"))
-            foreach (var pna_raw in pnaData)
+              // foreach (var pna_raw in pnaData.Where(x => x.Ulica.Contains("Dominika") && x.Miasto=="Gdynia"))
+             foreach (var pna_raw in pnaData)
             {
                 try
                 {
@@ -175,6 +175,10 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
                     if (matchResult.Count>1)
                     {
+                        if (pna.Miasto == "Baćkowice")
+                        {
+                            int g = 1;
+                        }
                         // Wstawianie kodów pocztowych dla wszystkich wsi, osad i dzielnic o kodzie "Abisynia" czy "Wyźrzał"
                         foreach (var elem in matchResult)
                         {

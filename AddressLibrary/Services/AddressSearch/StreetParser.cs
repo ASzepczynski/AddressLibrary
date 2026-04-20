@@ -91,7 +91,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 // Znajdź rekordy z "Chrobrego" w nazwiskach
                 var chrobregoRecords = typyUlic
-                    .Where(t => !string.IsNullOrEmpty(t.Nazwisko) && 
+                    .Where(t => !string.IsNullOrEmpty(t.Nazwisko) &&
                                t.Nazwisko.Contains("Chrobrego", StringComparison.OrdinalIgnoreCase))
                     .Select(t => $"ID={t.Id}, Nazwisko='{t.Nazwisko}'")
                     .ToList();
@@ -132,17 +132,17 @@ namespace AddressLibrary.Services.AddressSearch
 
             var newText = $" {normalized} ";
 
-            foreach (var przedrostek in Przedrostki.OrderByDescending(x=>x.Length))
+            foreach (var przedrostek in Przedrostki.OrderByDescending(x => x.Length))
             {
                 var src = $" {przedrostek} ";
                 var dst = $" {przedrostek}_";
                 newText = newText.Replace(src, dst);
             }
 
-            var words = newText.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            var words = newText.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
             // Przywracamy spację zamiast podkreślenia
-            for (int ind=0; ind<words.Length;ind++)
+            for (int ind = 0; ind < words.Length; ind++)
             {
                 words[ind] = words[ind].Replace("_", " ");
             }
@@ -216,7 +216,7 @@ namespace AddressLibrary.Services.AddressSearch
                 if (czyDopiszDrugieImie && czyImie)
                 {
                     // Tutaj kończymy obsługę Jasia i Małgosi
-                    result.Imie2 += " "+word;
+                    result.Imie2 += " " + word;
                     czyDopiszDrugieImie = false;
                     continue;
                 }
@@ -254,8 +254,8 @@ namespace AddressLibrary.Services.AddressSearch
                     result.Nazwisko2 = word;
                     continue;
                 }
-                
-                result.Postfiks += " "+word;
+
+                result.Postfiks += " " + word;
             }
 
             if (result.Nazwisko == "" && result.Imie2 != "" && _nazwiska!.Contains(result.Imie2))
@@ -270,8 +270,31 @@ namespace AddressLibrary.Services.AddressSearch
                 }
             }
 
-            result.Postfiks=result.Postfiks.Trim();
+            result.Postfiks = result.Postfiks.Trim();
 
+            return Wyjatki(result);
+        }
+
+        public ParsedStreet Wyjatki(ParsedStreet result)
+        {
+            // Wyjątki!!!
+            // księdza biskupa Konstantyna Dominika
+            if (result.Prefiks == "" && (result.Tytul.Contains("bp") || result.Tytul.Contains("ks") || result.Tytul == "") && result.Imie == "dominika" && result.Nazwisko == "" && result.Nazwisko2 == "" && result.Pseudonim == "" && result.Postfiks == "")
+            {
+                result.Tytul = "ks bp";
+                result.Imie = "konstantyna";
+                result.Nazwisko = "dominika";
+                return result;
+            }
+            // Wyjątki!!!
+            // dr Henryka Jordana
+            if (result.Prefiks == "" && (result.Tytul.Contains("dr") || result.Tytul == "") && result.Imie == "jordana" && result.Nazwisko == "" && result.Nazwisko2 == "" && result.Pseudonim == "" && result.Postfiks == "")
+            {
+                result.Tytul = "dr";
+                result.Imie = "henryka";
+                result.Nazwisko = "jordana";
+                return result;
+            }
             return result;
         }
 
