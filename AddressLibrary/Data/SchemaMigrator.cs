@@ -17,6 +17,10 @@ namespace AddressLibrary.Data
             (
                 "0001_AddZasiegToUrzedySkarbowe",
                 """
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.columns
+                    WHERE object_id = OBJECT_ID('UrzedySkarbowe') AND name = 'Zasieg'
+                )
                 ALTER TABLE UrzedySkarbowe
                 ADD Zasieg NVARCHAR(200) NOT NULL DEFAULT '';
                 """

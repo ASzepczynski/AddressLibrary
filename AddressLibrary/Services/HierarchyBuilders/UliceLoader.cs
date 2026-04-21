@@ -51,8 +51,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
             var typyUlicDict = await _typyUlicService.GetTypyUlicMappingAsync();
             _logger.LogInfo($"Załadowano {typyUlicDict.Count} wpisów z tabeli TypyUlic");
 
-            // ✅ DODANO: Zainicjalizuj słownik tytułów/stopni PRZED użyciem
+            // ✅ Zainicjalizuj słownik tytułów/stopni z bazy danych
             _logger.LogInfo("Wczytywanie słownika TytulyStopnie...");
+            _tytulyService.ClearCache();
             await _tytulyService.GetSkrotToIdMappingAsync();
             await _tytulyService.GetDopelniaczToIdMappingAsync();
             _logger.LogInfo("Słownik TytulyStopnie został zainicjalizowany");

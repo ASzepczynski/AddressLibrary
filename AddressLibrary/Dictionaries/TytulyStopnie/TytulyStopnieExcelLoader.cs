@@ -57,6 +57,11 @@ namespace AddressLibrary.Dictionaries.TytulyStopnie
                     .ExecuteDeleteAsync();
                 _logger.LogInfo($"Usunięto {deletedCount} rekordów");
 
+                // Zresetuj licznik IDENTITY — bez tego każde ponowne ładowanie Excela
+                // generuje inne ID, przez co TypyUlic (zawierające TytulStopienId) stają się niespójne
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('TytulyStopnie', RESEED, 0)");
+                _logger.LogInfo("Zresetowano licznik IDENTITY tabeli TytulyStopnie");
+
                 progress?.Report(new LoadProgress
                 {
                     CurrentOperation = $"Usunięto {deletedCount} starych rekordów"
