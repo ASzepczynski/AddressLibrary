@@ -110,7 +110,6 @@ namespace AddressLibrary.Services.HierarchyBuilders
             // Usuñ popularne prefiksy
             var prefixes = CechyUlicUtils.GetAllStreetPrefixes();
             var normalized = name.ToLowerInvariant().Trim();
-            // Usuwa -go z nazwy ulicy
             normalized = UliceUtils.NormalizeOrdinalNumber(normalized);
 
             foreach (var prefix in prefixes)

@@ -218,25 +218,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             }
 
             // ✅ Normalizacja liczebników porządkowych
-            var normalizedNazwa2 = NormalizeOrdinalNumber(ulica.Nazwa2);
+            var normalizedNazwa2 = UliceUtils.NormalizeOrdinalNumber(ulica.Nazwa2);
             return $"{normalizedNazwa2} {ulica.Nazwa1}".Trim();
-        }
-
-        /// <summary>
-        /// ✅ Normalizuje liczebniki porządkowe w nazwach ulic
-        /// "3-go" → "3", "29-go" → "29", "II-go" → "II"
-        /// </summary>
-        private string NormalizeOrdinalNumber(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            return System.Text.RegularExpressions.Regex.Replace(
-                text,
-                @"-?(go|tego|cie)$",
-                "",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase
-            ).Trim();
         }
     }
 }

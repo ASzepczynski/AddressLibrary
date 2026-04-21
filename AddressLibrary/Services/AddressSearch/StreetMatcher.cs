@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025-2026 Andrzej Szepczyński. All rights reserved.
 
+using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 using CsvHelper;
@@ -57,11 +58,12 @@ namespace AddressLibrary.Services.AddressSearch
             wasFuzzy = false;
             if (string.IsNullOrWhiteSpace(streetName))
                 return null;
+            (string sCecha, string normalizedSearch) = CechyUlicUtils.SplitStreetPrefix(streetName);
 
-      
-            var normalizedSearch = TextNormalizer.Normalize(streetName);
-            var parsed = _parser.Parse(streetName);
+            normalizedSearch = TextNormalizer.Normalize(normalizedSearch);
 
+            var parsed = _parser.Parse(normalizedSearch);
+        
             var nowaUlica = new UlicaCached
             {
                 Prefiks   = parsed.Prefiks,
@@ -75,19 +77,21 @@ namespace AddressLibrary.Services.AddressSearch
             };
 
             var parsedSearch = TextNormalizer.Normalize(nowaUlica.GetShortName());
-
-            //            Oddrukuj(ulice);
-
+        
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
 
                 var normalizedShort = ulica.NormalizedShortName;
-                //if (normalizedShort.Contains("dominika"))
-                //{
-                //    int y = 1;
-                //}
+                if (normalizedShort.Contains("bracki"))
+                {
+                    int y = 1;
+                }
                 // Zwykłe porównanie nazw
+
+                var isCechaOk = sCecha == "" || sCecha == ulica.CechaUlicy.Skrot || sCecha == ulica.CechaUlicy.Nazwa;
+                if (!isCechaOk) continue;
+
                 if (normalizedShort == normalizedSearch)
                     return ulica;
                 if (normalizedShort == parsedSearch)
@@ -106,13 +110,15 @@ namespace AddressLibrary.Services.AddressSearch
             int bestScore = 0;
             foreach (var ulica in ulice)
             {
+                var isCechaOk = sCecha == "" || sCecha == ulica.CechaUlicy.Skrot || sCecha == ulica.CechaUlicy.Nazwa;
+                if (!isCechaOk) continue;
+
                 var normalizedShort = ulica.NormalizedShortName;
-                //if (normalizedShort.Contains("dominika"))
-                //{
-                //    int y = 1;
-                //}
-                int punktyCecha = CzyCechaPasuje(parsed.Cecha, ulica.CechaUlicy.Nazwa) ? 0 : -20;
-                var score = CalculateMatchScore(parsed, ulica) + punktyCecha;
+                if (normalizedShort.Contains("jagiellonki"))
+                {
+                    int y = 1;
+                }
+                var score = CalculateMatchScore(parsed, ulica);
 
                 if (score > bestScore)
                 {
@@ -139,14 +145,6 @@ namespace AddressLibrary.Services.AddressSearch
             //}
 
             return null;
-        }
-
-        bool CzyCechaPasuje(string cechaSearch, string cechaCached)
-        {
-            // Sprawdź dopasowanie cechy
-            if (cechaSearch == "") return true;
-            if (cechaCached == "") return true;
-            return cechaSearch == cechaCached;
         }
 
         /// <summary>
@@ -270,48 +268,6 @@ namespace AddressLibrary.Services.AddressSearch
             if (imie1.Length == 2 && imie1[1] == '.' && imie1[0] == imie2[0]) return true;
             if (imie2.Length == 2 && imie2[1] == '.' && imie1[0] == imie2[0]) return true;
             return false;
-        }
-
-        private void Oddrukuj(List<UlicaCached> ulice)
-        {
-            try
-            {
-                var debugLines = new System.Text.StringBuilder();
-                debugLines.AppendLine($"Liczba ulic: {ulice.Count}");
-                debugLines.AppendLine(new string('-', 100));
-                debugLines.AppendLine($"" +
-                $"ID|" +
-                $"Cecha|" +
-                $"Prefiks|" +
-                $"Tytuł|" +
-                $"Imie|" +
-                $"Imie2|" +
-                $"Nazwisko|" +
-                $"Nazwisko2|" +
-                $"Pseudonim|" +
-                $"Postfiks|" +
-                $"IsEmpty");
-
-                foreach (var u in ulice)
-                {
-                    debugLines.AppendLine($"" +
-                        $"{u.Id}|" +
-                        $"{u.CechaUlicy.Skrot}|" +
-                        $"{u.Prefiks}|" +
-                        $"{u.Tytul}|" +
-                        $"{u.Imie}|" +
-                        $"{u.Imie2}|" +
-                        $"{u.Nazwisko}|" +
-                        $"{u.Nazwisko2}|" +
-                        $"{u.Pseudonim}|" +
-                        $"{u.Postfiks}|" +
-                        $"{u.IsEmpty()}");
-                }
-
-                debugLines.AppendLine(new string('=', 100));
-                System.IO.File.WriteAllText(@"C:\dane\UliceMiasta.txt", debugLines.ToString(), System.Text.Encoding.UTF8);
-            }
-            catch { /* Ignoruj błędy zapisu */ }
         }
     }
 }

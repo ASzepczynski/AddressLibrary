@@ -124,7 +124,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             string sGmina,
             Miasto miasto,
             string sDzielnica,
-            string sPrefiks,
+            string sCecha,
             string sUlica
         )
         {
@@ -159,7 +159,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             }
 
             // Deleguj wyszukiwanie do StreetMatcher.FindStreet
-            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, currentUlica, out bool wasFuzzy);
+            
+            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), out bool wasFuzzy);
 
             if (ulicaCached == null)
             {

@@ -208,26 +208,6 @@ namespace AddressLibrary.Services.Validation
                 {
                     end = int.MaxValue;
                     isDK = true;
-
-                    // ✅ NOWA REGUŁA: Automatyczna parzystość dla N-DK (gdzie N != 1)
-                    if (!isEven && !isOdd && start != 1)
-                    {
-                        bool autoParzyste = start % 2 == 0;
-
-                        _parityWarnings.Add(new ParityWarning
-                        {
-                            Kod = kod,
-                            Miasto = miasto,
-                            Ulica = ulica,
-                            OriginalRange = originalRange,
-                            SuggestedRange = $"{start}-DK({(autoParzyste ? "p" : "n")})",
-                            Reason = $"Zakres '{originalRange}' (DK) bez oznaczenia - początek {start} jest {(autoParzyste ? "parzysty" : "nieparzysty")}"
-                        });
-
-                        isEven = autoParzyste;
-                        isOdd = !autoParzyste;
-                    }
-                    // ✅ Jeśli start == 1, pozostaw ParityType.All (brak ograniczenia parzystości)
                 }
                 else if (!int.TryParse(parts[1], out end))
                 {

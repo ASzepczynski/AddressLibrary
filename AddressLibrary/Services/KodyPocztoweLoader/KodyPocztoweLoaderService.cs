@@ -124,8 +124,8 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-               foreach (var pna_raw in pnaData.Where(x => x.Ulica.Contains("Spokojna") && x.Miasto=="Ostrów Mazowiecka"))
-          //   foreach (var pna_raw in pnaData)
+//              foreach (var pna_raw in pnaData.Where(x => x.Miasto=="Opole" && x.Ulica.Contains("Rynek")))
+            foreach (var pna_raw in pnaData)
             {
                 try
                 {
@@ -175,10 +175,6 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
                     if (matchResult.Count>1)
                     {
-                        if (pna.Miasto == "Baćkowice")
-                        {
-                            int g = 1;
-                        }
                         // Wstawianie kodów pocztowych dla wszystkich wsi, osad i dzielnic o kodzie "Abisynia" czy "Wyźrzał"
                         foreach (var elem in matchResult)
                         {
@@ -197,23 +193,32 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     }
 
                     var miasto = matchResult[0];
-
-                    // 2. Znajdź ulicę (jeśli jest)
-                    string? sUlica = pna.Ulica.Replace("-go", "");
-
-                    (string sPrefix, sUlica) = CechyUlicUtils.SplitStreetPrefix(sUlica);
-                    (string sPrefix2, string sUlica2) = CechyUlicUtils.SplitStreetPrefix(sUlica);
-                    if (sPrefix2 != "")
+                    var sCecha = "";
+                    var sUlica = pna.Ulica;
+                    var pattern = "inne";
+                    // w korekcie umieściłem napis "inne" który oznacza, że nie mam dodawać "ul." do ulicy PNA
+                    if (pna.Ulica.StartsWith(pattern + " "))
                     {
-                        // przypadek 'ul. Plac' ma dać 'pl.'
-                        sPrefix = sPrefix2;
-                        sUlica = sUlica2;
+                        sUlica = pna.Ulica.Substring(pattern.Length + 1);
+                    } else 
+                    {
+                        // Jeśli skorygowana ulica nie zaczyna się od inne, to staramy się nadać cechę "ul."
+                        (sCecha, sUlica) = CechyUlicUtils.SplitStreetPrefix(pna.Ulica);
+                        (string sCecha2, string sUlica2) = CechyUlicUtils.SplitStreetPrefix(sUlica);
+                        if (sCecha2 != "")
+                        {
+                            // przypadek 'ul. Plac' ma dać 'pl.'
+                            sCecha = sCecha2;
+                            sUlica = sUlica2;
+                        }
+
+                        // Sprawdzamy czy nazwa ulicy sama z siebie nie jest Cechą czyli Rynek, Zaułek itd.
+                        CechyUlicUtils.StreetPrefixes.TryGetValue(sUlica, out var wynik);
+
+                        if (wynik == null && sCecha == "") sCecha = "ul.";
                     }
-                    //                    sUlica = UliceUtils.RemoveStreetTypeDuplication(sPrefix, sUlica);
-                    //(bool zmiana,sPrefix,sUlica) = PrefixModification.ModifyPrefix(sPrefix, sUlica, miasto.Nazwa);
 
-
-                    (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sPrefix, sUlica);
+                    (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sCecha, sUlica);
 
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
                     {

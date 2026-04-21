@@ -185,7 +185,11 @@ namespace AddressLibrary.Helpers
         {
             return string.Equals(pna.Kod, pattern.Kod, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(pna.Miasto, pattern.Miasto, StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(pna.Dzielnica, pattern.Dzielnica, StringComparison.OrdinalIgnoreCase) &&
+                   (string.Equals(pna.Dzielnica, pattern.Dzielnica, StringComparison.OrdinalIgnoreCase)
+                   ||
+// Żeby uniknąć dzielnic typu Praga-Północ
+                   pattern.Dzielnica=="")
+                   &&
                    string.Equals(pna.Ulica, pattern.Ulica, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(pna.Numery, pattern.Numery, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(pna.Gmina, pattern.Gmina, StringComparison.OrdinalIgnoreCase) &&

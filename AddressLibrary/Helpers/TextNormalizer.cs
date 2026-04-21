@@ -18,7 +18,6 @@ namespace AddressLibrary.Helpers
             var normalized = text.Replace("..", ".");
             normalized = normalized.Replace(".", ". ").Trim();
             normalized = normalized.Replace("  ", " ").Trim();
-            normalized = normalized.Replace("-go", "").Trim();
 
             // Zastąpienie Regex.Replace(normalized, @"\s+", " ") — scalenie białych znaków
             normalized = CollapseWhitespace(normalized);

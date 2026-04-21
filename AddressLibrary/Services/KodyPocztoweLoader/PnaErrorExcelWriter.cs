@@ -49,7 +49,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             // Nag³ówek
             sheetData.Append(MakeRow(0,
-                "Kod", "Miasto", "Ulica", "Numery",
+                "Kod", "Miasto", "Dzielnica","Ulica", "Numery",
                 "Gmina", "Powiat", "Województwo", "Komentarz"));
 
             uint rowIndex = 1;
@@ -57,12 +57,12 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             {
                 // Wiersz oryginalny (z komentarzem b³êdu)
                 sheetData.Append(MakeRow(rowIndex++,
-                    pna.Kod, pna.Miasto, pna.Ulica, pna.Numery,
+                    pna.Kod, pna.Miasto, pna.Dzielnica, pna.Ulica, pna.Numery,
                     pna.Gmina, pna.Powiat, pna.Wojewodztwo, komentarz));
 
                 // Wiersz do korekty (wszystkie pola identyczne, komentarz pusty)
                 sheetData.Append(MakeRow(rowIndex++,
-                    pna.Kod, pna.Miasto, pna.Ulica, pna.Numery,
+                    pna.Kod, pna.Miasto, pna.Dzielnica, pna.Ulica, pna.Numery,
                     pna.Gmina, pna.Powiat, pna.Wojewodztwo, string.Empty));
             }
 

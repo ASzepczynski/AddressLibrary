@@ -64,53 +64,9 @@ namespace AddressLibrary.Helpers
             return (ulicaNazwa, dzielnicaNazwa);
         }
 
-        static public (string Nazwa1, string Nazwa2) GetCorrectedStreetName(string Nazwa1, string Nazwa2)
-        {
-            Nazwa2 = Nazwa2.Replace("-go", "");
-            Nazwa1 = Nazwa1.Replace("-go", "");
-            // ✅ OBSŁUGA ULIC Z NUMEREM (np. "3 Maja")
-            // Jeśli Nazwa2 wygląda jak liczba/data → zamień Nazwa1
-            // na "Nazwa2 Nazwa1"
-            if (!string.IsNullOrEmpty(Nazwa2) && IsNumericPrefix(Nazwa2))
-            {
-                return ($"{Nazwa2} {Nazwa1}".Trim(), "");
-            }
-
-            if ((Nazwa2 == "Księcia") && Nazwa1 == "Józefa")
-            {
-                return ($"{Nazwa2} {Nazwa1}".Trim(), "");
-            }
-
-            return (Nazwa1.Trim(), Nazwa2.Trim());
-
-        }
+       
         /// <summary>
-        /// Sprawdza czy Nazwa2 to prefix numeryczny/datowy
-        /// Przykłady: "3-go", "1", "29", "15-go", "II", "1-go"
-        /// </summary>
-        static public bool IsNumericPrefix(string nazwa2)
-        {
-            if (string.IsNullOrWhiteSpace(nazwa2))
-                return false;
-
-            // Usuń białe znaki
-            var trimmed = nazwa2.Trim();
-
-            // ✅ WZORCE DLA NAZW NUMERYCZNYCH:
-            // 1. Zawiera cyfry: "3-go", "29", "1-go", "15"
-            if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"\d"))
-                return true;
-
-            // 2. Numery rzymskie: "II", "III", "IV"
-            if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^(I|V|X|L|C|D|M)+$",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                return true;
-
-            return false;
-        }
-
-        /// <summary>
-        /// Normalizuje liczebniki porządkowe (usuwa "-go", "-tego", "-cie")
+        /// Normalizuje liczebniki porządkowe (usuwa "-go")
         /// </summary>
         public static string NormalizeOrdinalNumber(string text)
         {
@@ -119,7 +75,7 @@ namespace AddressLibrary.Helpers
 
             return System.Text.RegularExpressions.Regex.Replace(
                 text,
-                @"-?(go|tego|cie)$",
+                @"-?(go)$",
                 "",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase
             ).Trim();
