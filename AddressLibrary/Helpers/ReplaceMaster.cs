@@ -11,11 +11,6 @@
             if (string.IsNullOrEmpty(oldValue) || string.IsNullOrEmpty(text))
                 return text;
 
-            if (newValue.Contains(" z") && text.Contains(" z"))
-            {
-                int y = 1;
-            }
-
             // Własna implementacja Replace z case-insensitive (String.Replace ma bug)
             var result = new System.Text.StringBuilder(text.Length);
             int startIndex = 0;
@@ -102,7 +97,8 @@
                    c == '.' || c == ',' || c == ';' || c == ':' ||
                    c == '-' || c == '/' || c == '\\' ||
                    c == '(' || c == ')' || c == '[' || c == ']' ||
-                   c == '{' || c == '}' || c == '"' || c == '\'';
+                   c == '{' || c == '}' || c == '"';
+            // Uwaga: tutaj usunąłem pojedynczy apostrof używany w Tagore'a czyli apostrofy są teraz częścią słów
         }
     }
 }

@@ -124,7 +124,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-//              foreach (var pna_raw in pnaData.Where(x => x.Miasto=="Opole" && x.Ulica.Contains("Rynek")))
+//              foreach (var pna_raw in pnaData.Where(x => x.Miasto=="Łódź" && x.Ulica.Contains("Katedralny")))
             foreach (var pna_raw in pnaData)
             {
                 try
@@ -186,7 +186,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                                 UlicaId = -1
                             };
 
-                            _errorLogger.LogInfo($"Wstawianie '{pna.Miasto}/{elem.RodzajMiasta.Nazwa}' w gminie '{pna.Gmina}/{pna.Powiat}/{pna.Wojewodztwo}' dla kodu {pna.Kod}");
+//                            _errorLogger.LogInfo($"Wstawianie '{pna.Miasto}/{elem.RodzajMiasta.Nazwa}' w gminie '{pna.Gmina}/{pna.Powiat}/{pna.Wojewodztwo}' dla kodu {pna.Kod}");
                             pendingRecords.Add(kodPocztowy2);
                         }
                         continue;

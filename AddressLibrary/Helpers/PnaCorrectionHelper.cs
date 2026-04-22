@@ -158,6 +158,10 @@ namespace AddressLibrary.Helpers
 
             foreach (var correction in _corrections)
             {
+                if (correction.OldPna.Ulica.Contains("Katedralny"))
+                {
+                    int v = 1;
+                }
                 if (IsMatch(pna, correction.OldPna))
                 {
                     // Znaleziono dopasowanie - zwróć nowy rekord

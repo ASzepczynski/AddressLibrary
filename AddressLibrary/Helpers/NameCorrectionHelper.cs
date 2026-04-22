@@ -168,10 +168,6 @@ namespace AddressLibrary.Helpers
             var result = oldName;
             bool hasChanged;
 
-            if (oldName.Contains("Czarnkowa"))
-            {
-                int y = 1;
-            }
 
             // ✅ POPRAWKA: Iteruj dopóki następna iteracja wprowadza zmiany
             int LiczbaPoprawek = 0;
@@ -183,6 +179,11 @@ namespace AddressLibrary.Helpers
                 foreach (var (oldPattern, newPattern) in _correctionsByType[normalizedType])
                 {
                     // ✅ NOWA LOGIKA: Sprawdź czy oldPattern zaczyna się od "!"
+                    if (oldPattern.Contains("agore") && newPattern.Contains("agore") && result.Contains("agore"))
+                    {
+                        int y = 1;
+                    }
+
                     if (oldPattern.StartsWith("!"))
                     {
                         // Tryb dosłowny - usuń "!" i zamień dokładnie
