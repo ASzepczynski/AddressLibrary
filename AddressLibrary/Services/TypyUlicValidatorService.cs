@@ -171,9 +171,7 @@ namespace AddressLibrary.Services
 
             var cecha = TerytUlicPoprawka.Cecha == "inne" ? "" : TerytUlicPoprawka.Cecha;
 
-            string ulica = $"{cecha} {TerytUlicPoprawka.Prefiks} {osoba} {TerytUlicPoprawka.Postfiks}";
-            // ✅ Zastąp wielokrotne spacje jedną spacją
-            ulica = Regex.Replace(ulica.Trim(), @"\s+", " ");
+            string ulica = TextNormalizer.MakeCorrections($"{cecha} {TerytUlicPoprawka.Prefiks} {osoba} {TerytUlicPoprawka.Postfiks}".Trim());
 
             ulica = ulica.Replace("\"", "");
             poprawiona = poprawiona.Replace("\"", "");
@@ -218,7 +216,7 @@ namespace AddressLibrary.Services
             }
 
             // Usuń wielokrotne spacje
-            znormalizowana = Regex.Replace(znormalizowana, @"\s+", " ").Trim();
+            znormalizowana = TextNormalizer.MakeCorrections(znormalizowana);
 
             return znormalizowana;
         }

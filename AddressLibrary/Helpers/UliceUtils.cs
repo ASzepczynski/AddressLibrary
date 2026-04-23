@@ -116,59 +116,11 @@ namespace AddressLibrary.Helpers
                     stringBuilder.Append(c);
                 }
             }
-            return ZamienPolskie(stringBuilder.ToString());
+            return PolishUtils.ToLatin(stringBuilder.ToString());
 
             //  Litera ł(U+0142) i Ł(U+0141) są osobnymi znakami w Unicode, a nie literą bazową z nałożonym znakiem diakrytycznym.
             // 	Standardowa normalizacja Unicode(FormD) i usuwanie znaków diakrytycznych działa dla znaków takich jak: ą → a, ć → c, é → e, ö → o, itp., ale nie zamienia ł na l ani Ł na L.
         }
-
-
-        // Zamienia polskie litery na łacińskie
-        // Funkcja RemoveDiacritics miała problemy z 'ł' i z 'ż'
-
-        public static string ZamienPolskie(string s)
-        {
-            if (string.IsNullOrEmpty(s))
-                return s;
-
-            var replacements = new Dictionary<char, char>
-    {
-        { 'ą', 'a' }, { 'ć', 'c' }, { 'ę', 'e' }, { 'ł', 'l' }, { 'ń', 'n' },
-        { 'ó', 'o' }, { 'ś', 's' }, { 'ź', 'z' }, { 'ż', 'z' },
-        { 'Ą', 'A' }, { 'Ć', 'C' }, { 'Ę', 'E' }, { 'Ł', 'L' }, { 'Ń', 'N' },
-        { 'Ó', 'O' }, { 'Ś', 'S' }, { 'Ź', 'Z' }, { 'Ż', 'Z' }
-    };
-
-            var sb = new StringBuilder(s.Length);
-            foreach (var c in s)
-            {
-                sb.Append(replacements.TryGetValue(c, out var ascii) ? ascii : c);
-            }
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// ✅ DODAJ TĘ METODĘ:
-        /// Usuwa inicjały imion z nazw ulic (np. "G. Zapolskiej" -> "Zapolskiej")
-        /// </summary>
-        public static string RemoveNameInitial(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-
-            // Wzorzec: 1-3 litery + kropka + spacja (lub 1-3 litery + spacja)
-            // Przykłady: "G. ", "Gen. ", "J.K. ", "dr ", "prof. "
-            var pattern = @"^(?:[A-Za-zĄĆĘŁŃÓŚŹŻ]{1,3}\.?\s+)+";
-
-            var result = System.Text.RegularExpressions.Regex.Replace(
-                text,
-                pattern,
-                string.Empty,
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-            return result.Trim();
-        }
-
         /// <summary>
         /// Buduje pełną nazwę ulicy z Nazwa2 (prefiks) + Nazwa1 (główna nazwa)
         /// </summary>

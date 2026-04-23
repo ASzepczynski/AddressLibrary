@@ -121,10 +121,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
             }
 
             // Zamieñ polskie znaki na ich odpowiedniki ³aciñskie
-            normalized = normalized
-                .Replace('¹', 'a').Replace('æ', 'c').Replace('ê', 'e')
-                .Replace('³', 'l').Replace('ñ', 'n').Replace('ó', 'o')
-                .Replace('œ', 's').Replace('Ÿ', 'z').Replace('¿', 'z');
+
+            normalized = PolishUtils.ToLatin(normalized);
 
             // Usuñ znaki specjalne i wielokrotne spacje
             normalized = new string(normalized.Where(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-').ToArray());
