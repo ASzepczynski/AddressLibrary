@@ -126,7 +126,7 @@ namespace AddressLibrary.Services
 
                     insertedCount += batch.Count;
 
-                    _logger.LogInfo($"✓ Wstawiono partię {i / batchSize + 1}: {batch.Count} wpisów (łącznie: {insertedCount}/{dataList.Count})");
+                    // _logger.LogInfo($"✓ Wstawiono partię {i / batchSize + 1}: {batch.Count} wpisów (łącznie: {insertedCount}/{dataList.Count})");
 
                     progress?.Report(new LoadProgress
                     {

@@ -277,7 +277,7 @@ namespace AddressLibrary.Services
                         
                         insertedCount += batch.Count;
                         
-                        _logger.LogInfo($"✓ Wstawiono partię {batchNumber}: {batch.Count} wpisów (łącznie: {insertedCount}/{uniqueUlice.Count})");
+                        // _logger.LogInfo($"✓ Wstawiono partię {batchNumber}: {batch.Count} wpisów (łącznie: {insertedCount}/{uniqueUlice.Count})");
                         
                         progress?.Report(new ValidatorProgress
                         {

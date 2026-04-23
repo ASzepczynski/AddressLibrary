@@ -114,7 +114,7 @@ namespace AddressLibrary.Dictionaries.CechyUlic
                     var nazwa = row["Nazwa"]?.Trim();
                     var skrot = row["Skrot"]?.Trim();
 
-                    _logger.LogInfo($"Wiersz {row.RowNumber}: Nazwa='{nazwa}', Skrot='{skrot}'");
+              //      _logger.LogInfo($"Wiersz {row.RowNumber}: Nazwa='{nazwa}', Skrot='{skrot}'");
 
                     if (!string.IsNullOrWhiteSpace(nazwa) && !string.IsNullOrWhiteSpace(skrot))
                         cechyFromExcel.Add(new CechaUlicy { Nazwa = nazwa, Skrot = skrot });
@@ -126,11 +126,11 @@ namespace AddressLibrary.Dictionaries.CechyUlic
                 _logger.LogInfo($"Wczytano {result.TotalCount} wpisów z Excel");
 
                 // Wyświetl wszystkie wczytane rekordy
-                _logger.LogInfo("=== Lista wczytanych cech ulic ===");
-                foreach (var c in cechyFromExcel)
-                {
-                    _logger.LogInfo($"  Nazwa='{c.Nazwa}', Skrot='{c.Skrot}'");
-                }
+                //_logger.LogInfo("=== Lista wczytanych cech ulic ===");
+                //foreach (var c in cechyFromExcel)
+                //{
+                //    _logger.LogInfo($"  Nazwa='{c.Nazwa}', Skrot='{c.Skrot}'");
+                //}
 
                 progress?.Report(new LoadProgress
                 {

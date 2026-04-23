@@ -1,6 +1,4 @@
 ﻿using AddressLibrary.Models;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace AddressLibrary.Helpers
 {
@@ -26,36 +24,22 @@ namespace AddressLibrary.Helpers
             var excelPath = Path.Combine(appDataPath, "AppData", "Pna", "KorektyPna.xlsx");
 
             if (!File.Exists(excelPath))
-            {
-                // Plik nie istnieje - helper będzie pusty (bezpieczne)
-                return;
-            }
-
-            using var document = SpreadsheetDocument.Open(excelPath, false);
-            var workbookPart = document.WorkbookPart;
-            var worksheetPart = workbookPart?.WorksheetParts.First();
-            var sheetData = worksheetPart?.Worksheet.Elements<SheetData>().First();
-
-            if (sheetData == null)
                 return;
 
-            var rows = sheetData.Elements<Row>().Skip(1).ToList(); // Pomiń nagłówek
+            var rows = ExcelTableReader.Read(excelPath);
 
             // Przetwarzaj pary wierszy (stary rekord + nowy rekord)
-            for (int i = 0; i < rows.Count - 1; i += 2)
+            for (int i = 0; i + 1 < rows.Count; i += 2)
             {
-                var oldRow = rows[i];
-                var newRow = rows[i + 1];
-
-                var oldPna = ParsePnaFromRow(workbookPart, oldRow, out var comment);
-                var newPna = ParsePnaFromRow(workbookPart, newRow, out _);
+                var oldPna = ParsePnaFromRow(rows[i], out var comment);
+                var newPna = ParsePnaFromRow(rows[i + 1], out _);
 
                 if (oldPna != null && newPna != null)
                 {
                     _corrections.Add(new PnaCorrectionPair
                     {
-                        OldPna = oldPna,
-                        NewPna = newPna,
+                        OldPna  = oldPna,
+                        NewPna  = newPna,
                         Comment = comment
                     });
                 }
@@ -63,87 +47,32 @@ namespace AddressLibrary.Helpers
         }
 
         /// <summary>
-        /// Parsuje rekord PNA z wiersza Excel
-        /// ✅ POPRAWKA: Obsługuje puste komórki w środku wiersza
+        /// Parsuje rekord PNA z wiersza ExcelRow
         /// </summary>
-        private PnaWithComment? ParsePnaFromRow(WorkbookPart? workbookPart, Row row, out string comment)
+        private static PnaWithComment? ParsePnaFromRow(ExcelRow row, out string comment)
         {
             comment = string.Empty;
-
             try
             {
                 var pna = new PnaWithComment
                 {
-                    Kod = GetCellValueByColumn(workbookPart, row, "A").Trim(),
-                    Miasto = GetCellValueByColumn(workbookPart, row, "B").Trim(),
-                    Dzielnica = GetCellValueByColumn(workbookPart, row, "C").Trim(),
-                    Ulica = GetCellValueByColumn(workbookPart, row, "D").Trim(),
-                    Numery = GetCellValueByColumn(workbookPart, row, "E").Trim(),
-                    Gmina = GetCellValueByColumn(workbookPart, row, "F").Trim(),
-                    Powiat = GetCellValueByColumn(workbookPart, row, "G").Trim(),
-                    Wojewodztwo = GetCellValueByColumn(workbookPart, row, "H").Trim()
+                    Kod          = row.GetString("Kod"),
+                    Miasto       = row.GetString("Miasto"),
+                    Dzielnica    = row.GetString("Dzielnica"),
+                    Ulica        = row.GetString("Ulica"),
+                    Numery       = row.GetString("Numery"),
+                    Gmina        = row.GetString("Gmina"),
+                    Powiat       = row.GetString("Powiat"),
+                    Wojewodztwo  = row.GetString("Województwo")
                 };
-
-
-
-                // Opcjonalna kolumna komentarza (8. kolumna = H)
-                comment = GetCellValueByColumn(workbookPart, row, "I").Trim();
-                pna.Comment = comment;
-
+                comment      = row.GetString("Komentarz");
+                pna.Comment  = comment;
                 return pna;
             }
             catch
             {
                 return null;
             }
-        }
-
-        /// <summary>
-        /// ✅ NOWA METODA: Pobiera wartość komórki na podstawie nazwy kolumny (np. "A", "B", "C")
-        /// Obsługuje brakujące komórki (zwraca pusty string)
-        /// </summary>
-        private string GetCellValueByColumn(WorkbookPart? workbookPart, Row row, string columnName)
-        {
-            if (row == null || workbookPart == null)
-                return string.Empty;
-
-            var rowIndex = row.RowIndex?.Value.ToString();
-            if (string.IsNullOrEmpty(rowIndex))
-                return string.Empty;
-
-            // Znajdź komórkę o adresie np. "A5", "B5", "C5"
-            var cellReference = $"{columnName}{rowIndex}";
-            var cell = row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == cellReference);
-
-            if (cell == null)
-                return string.Empty; // ✅ Komórka nie istnieje (pusta)
-
-            return GetCellValue(workbookPart, cell);
-        }
-
-        /// <summary>
-        /// Pobiera wartość komórki Excel (obsługuje SharedString)
-        /// </summary>
-        private string GetCellValue(WorkbookPart? workbookPart, Cell cell)
-        {
-            if (cell == null || cell.CellValue == null || workbookPart == null)
-                return string.Empty;
-
-            var value = cell.CellValue.InnerText;
-
-            // Sprawdź czy to SharedString
-            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
-            {
-                var stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
-                if (stringTable != null)
-                {
-                    value = stringTable.SharedStringTable
-                        .ElementAt(int.Parse(value))
-                        .InnerText;
-                }
-            }
-
-            return value ?? string.Empty;
         }
 
         /// <summary>

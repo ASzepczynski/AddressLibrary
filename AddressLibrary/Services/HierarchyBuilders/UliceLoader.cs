@@ -114,11 +114,11 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
             _logger.LogInfo($"Mapowanie miast na prawach powiatu zawiera {miastaNaPrawachPowiatuDict.Count} wpisów");
 
-            // Wyświetl wszystkie wpisy
-            foreach (var kvp in miastaNaPrawachPowiatuDict)
-            {
-                _logger.LogInfo($"  [{kvp.Key}] => {kvp.Value.Nazwa} (MiastoId={kvp.Value.Id})");
-            }
+            //// Wyświetl wszystkie wpisy
+            //foreach (var kvp in miastaNaPrawachPowiatuDict)
+            //{
+            //    _logger.LogInfo($"  [{kvp.Key}] => {kvp.Value.Nazwa} (MiastoId={kvp.Value.Id})");
+            //}
 
             _logger.LogInfo("Przetwarzam ulice...");
 

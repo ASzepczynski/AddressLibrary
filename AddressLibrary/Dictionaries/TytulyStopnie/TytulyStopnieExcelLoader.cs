@@ -94,7 +94,7 @@ namespace AddressLibrary.Dictionaries.TytulyStopnie
                     var dopelniacz = row["Dopełniacz"]?.Trim();
                     var skrot      = row["Skrót"]?.Trim();
 
-                    _logger.LogInfo($"Wiersz {row.RowNumber}: Nazwa='{nazwa}', Dopelniacz='{dopelniacz}', Skrot='{skrot}'");
+       //             _logger.LogInfo($"Wiersz {row.RowNumber}: Nazwa='{nazwa}', Dopelniacz='{dopelniacz}', Skrot='{skrot}'");
 
                     if (!string.IsNullOrWhiteSpace(nazwa) && !string.IsNullOrWhiteSpace(skrot) && !string.IsNullOrWhiteSpace(dopelniacz))
                         tytulyFromExcel.Add(new TytulStopien { Nazwa = nazwa, Skrot = skrot, Dopelniacz = dopelniacz });

@@ -1,6 +1,4 @@
 ﻿using AddressLibrary.Models;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace AddressLibrary.Helpers
 {
@@ -37,7 +35,6 @@ namespace AddressLibrary.Helpers
                 return;
             }
 
-            // ✅ RETRY LOGIC - Próbuj otworzyć plik maksymalnie 3 razy
             const int maxRetries = 3;
             const int delayMs = 500;
 
@@ -47,100 +44,47 @@ namespace AddressLibrary.Helpers
                 {
                     Console.WriteLine($"[NameCorrectionHelper] Próba {attempt}/{maxRetries} otwarcia pliku: {excelPath}");
 
-                    // ✅ Otwórz w trybie READ-ONLY (FileShare.Read pozwala innym procesom czytać)
-                    using var fileStream = new FileStream(
-                        excelPath,
-                        FileMode.Open,
-                        FileAccess.Read,
-                        FileShare.ReadWrite); // ✅ Pozwól innym procesom na odczyt i zapis
-
-                    using var document = SpreadsheetDocument.Open(fileStream, false);
-                    var workbookPart = document.WorkbookPart;
-                    var worksheetPart = workbookPart?.WorksheetParts.First();
-                    var sheetData = worksheetPart?.Worksheet.Elements<SheetData>().First();
-
-                    if (sheetData == null)
-                    {
-                        Console.WriteLine($"[NameCorrectionHelper] Brak danych w arkuszu");
-                        return;
-                    }
-
-                    var rows = sheetData.Elements<Row>().Skip(1); // Pomiń nagłówek
+                    var rows = ExcelTableReader.Read(excelPath);
                     int loadedCount = 0;
 
                     foreach (var row in rows)
                     {
-                        var cells = row.Elements<Cell>().ToList();
+                        var type    = row.GetString("Typ").Trim().ToUpperInvariant();
+                        var oldName = row.GetString("Stara nazwa").Trim().Replace("*", " ");
+                        var newName = row.GetString("Nowa nazwa").Trim().Replace("*", " ");
 
-                        if (cells.Count < 3)
-                            continue;
-
-                        var type = GetCellValue(workbookPart, cells[0]).Trim().ToUpperInvariant();
-                        var oldName = GetCellValue(workbookPart, cells[1]).Trim().Replace("*"," ");
-                        var newName = GetCellValue(workbookPart, cells[2]).Trim().Replace("*"," "); 
-
-                        // Walidacja typu
                         if (type != "M" && type != "U")
                             continue;
 
                         if (string.IsNullOrWhiteSpace(oldName))
                             continue;
 
-                        // Dodaj do listy korekt dla danego typu
                         _correctionsByType[type].Add((oldName, newName));
                         loadedCount++;
                     }
 
                     Console.WriteLine($"[NameCorrectionHelper] ✓ Załadowano {loadedCount} korekt: M={_correctionsByType["M"].Count}, U={_correctionsByType["U"].Count}");
-                    return; // ✅ Sukces - wyjdź z pętli retry
+                    return;
                 }
                 catch (IOException ex) when (attempt < maxRetries)
                 {
-                    // ✅ Plik zajęty - spróbuj ponownie
                     Console.WriteLine($"[NameCorrectionHelper] ⚠️ Plik zajęty (próba {attempt}/{maxRetries}): {ex.Message}");
                     Console.WriteLine($"[NameCorrectionHelper] Czekam {delayMs}ms przed kolejną próbą...");
                     Thread.Sleep(delayMs);
                 }
                 catch (IOException ex)
                 {
-                    // ✅ Ostatnia próba nie powiodła się
                     Console.WriteLine($"[NameCorrectionHelper] ✗ Nie udało się otworzyć pliku po {maxRetries} próbach: {ex.Message}");
                     Console.WriteLine($"[NameCorrectionHelper] Kontynuacja bez korekt nazw.");
                     return;
                 }
                 catch (Exception ex)
                 {
-                    // ✅ Inny błąd (np. uszkodzony plik Excel)
                     Console.WriteLine($"[NameCorrectionHelper] ✗ Błąd wczytywania pliku Excel: {ex.Message}");
                     Console.WriteLine($"[NameCorrectionHelper] Kontynuacja bez korekt nazw.");
                     return;
                 }
             }
-        }
-
-        /// <summary>
-        /// Pobiera wartość komórki Excel (obsługuje SharedString)
-        /// </summary>
-        private string GetCellValue(WorkbookPart? workbookPart, Cell cell)
-        {
-            if (cell == null || cell.CellValue == null || workbookPart == null)
-                return string.Empty;
-
-            var value = cell.CellValue.InnerText;
-
-            // Sprawdź czy to SharedString
-            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
-            {
-                var stringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
-                if (stringTable != null)
-                {
-                    value = stringTable.SharedStringTable
-                        .ElementAt(int.Parse(value))
-                        .InnerText;
-                }
-            }
-
-            return value ?? string.Empty;
         }
 
         /// <summary>

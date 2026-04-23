@@ -150,7 +150,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         }
                         else
                         {
-                            _logger.LogInfo($"{FormatPnaRecord(pna)}|Błąd w PNA, pozycja zignorowana");
+//                            _logger.LogInfo($"{FormatPnaRecord(pna)}|Błąd w PNA, pozycja zignorowana");
                             continue;
                         }
                     }
@@ -382,7 +382,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             if (corrected != null)
             {
-                _logger.LogInfo($"✓ Korekta PNA: '{pna.Kod}' '{pna.Miasto}/{pna.Ulica}' -> '{corrected.Kod}' '{corrected.Miasto}/{corrected.Ulica}'");
+//                _logger.LogInfo($"✓ Korekta PNA: '{pna.Kod}' '{pna.Miasto}/{pna.Ulica}' -> '{corrected.Kod}' '{corrected.Miasto}/{corrected.Ulica}'");
                 return true;
             }
 
