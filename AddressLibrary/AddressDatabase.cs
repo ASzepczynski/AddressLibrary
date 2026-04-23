@@ -29,26 +29,6 @@ namespace AddressLibrary
         }
 
         /// <summary>
-        /// Bezpieczna inicjalizacja bazy danych - NIGDY nie kasuje istniejącej bazy automatycznie
-        /// - Jeśli baza nie istnieje: tworzy ją
-        /// - Jeśli baza istnieje: nic nie robi (nawet jeśli struktura jest błędna)
-        /// </summary>
-        public async Task InitializeDatabaseAsync()
-        {
-            try
-            {
-                // Po prostu upewnij się że baza istnieje
-                // EnsureCreatedAsync NIE kasuje istniejącej bazy - tylko tworzy jeśli nie istnieje
-                await _context.Database.EnsureCreatedAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ Błąd podczas inicjalizacji bazy: {ex.Message}");
-                throw; // Rzuć wyjątek dalej - nie ignoruj błędów
-            }
-        }
-
-        /// <summary>
         /// RĘCZNE odtworzenie bazy danych - wymaga świadomej decyzji użytkownika
         /// UWAGA: WSZYSTKIE DANE ZOSTANĄ UTRACONE!
         /// Użyj tego TYLKO gdy chcesz wyczyścić bazę i zacząć od nowa
@@ -77,34 +57,6 @@ namespace AddressLibrary
             {
                 return false;
             }
-        }
-
-        /// <summary>
-        /// Sprawdza czy tabela istnieje w bazie danych
-        /// </summary>
-        public async Task<bool> TableExistsAsync(string tableName)
-        {
-            try
-            {
-                var query = $"SELECT TOP 1 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @p0";
-                var result = await _context.Database
-                    .SqlQueryRaw<int>(query, tableName)
-                    .FirstOrDefaultAsync();
-                return result == 1;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Tworzy bazę danych jeśli nie istnieje (automatycznie na podstawie modelu)
-        /// BEZPIECZNE - nie kasuje istniejącej bazy
-        /// </summary>
-        public async Task EnsureDatabaseCreatedAsync()
-        {
-            await _context.Database.EnsureCreatedAsync();
         }
 
         /// <summary>

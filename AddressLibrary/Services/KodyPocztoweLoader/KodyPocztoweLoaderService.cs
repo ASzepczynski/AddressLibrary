@@ -218,6 +218,9 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         if (wynik == null && sCecha == "") sCecha = "ul.";
                     }
 
+//
+//  I główne wywołanie - szukamy ulicy w znalezionym mieście
+//
                     (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sCecha, sUlica);
 
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)

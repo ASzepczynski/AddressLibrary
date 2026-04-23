@@ -132,14 +132,7 @@ namespace AddressLibrary.Helpers
             }
             return $"{ulica.Nazwa2} {ulica.Nazwa1}";
         }
-        /// <summary>
-        /// Buduje pełną nazwę ulicy z Nazwa2 (prefiks) + Nazwa1 (główna nazwa)
-        /// </summary>
-        public static string GetPelnaNazwaZPrefiksem(Ulica ulica)
-        {
-            var x = GetPelnaNazwa(ulica);
-            return $"{ulica.CechaUlicy.Skrot} {x}".Trim();
-        }
+       
 
         /// <summary>
         /// Wyodrębnia numer domu z końca nazwy ulicy
@@ -184,38 +177,7 @@ namespace AddressLibrary.Helpers
             return (street, number);
         }
 
-        /// <summary>
-        /// Porównuje string z wzorcem podobnie do LIKE w SQL.
-        /// Automatycznie zamienia wszystkie spacje i znaki specjalne na wildcard '%'.
-        /// Przykłady:
-        /// - "Boh. Września" -> "Boh%Wrzes%" pasuje do "Bohaterów Września"
-        /// - "Bat.Chłopskich" -> "Bat%Chłopskich" pasuje do "Batalionów Chłopskich"
-        /// </summary>
-        /// <param name="input">String do sprawdzenia</param>
-        /// <param name="pattern">Wzorzec (będzie przekształcony na wzorzec LIKE)</param>
-        /// <returns>True jeśli input pasuje do wzorca</returns>
-        public static bool IsLikePattern(string input, string pattern)
-        {
-            if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(pattern))
-                return false;
-
-            // ✅ KROK 1: Znormalizuj oba stringi (lowercase, bez diakrytyków)
-            var normalizedInput = NormalizeForPattern(input);
-            var normalizedPattern = NormalizeForPattern(pattern);
-
-            // ✅ KROK 2: Zamień wszystkie spacje i znaki specjalne na '%'
-            var wildcardPattern = CechyUlicUtils.ConvertToWildcardPattern(normalizedPattern);
-
-            // ✅ KROK 3: Przekształć wzorzec SQL LIKE na regex
-            var regexPattern = CechyUlicUtils.ConvertLikeToRegex(wildcardPattern);
-
-            // ✅ KROK 4: Sprawdź dopasowanie
-            return System.Text.RegularExpressions.Regex.IsMatch(
-                normalizedInput,
-                regexPattern,
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        }
-
+        
         /// <summary>
         /// Normalizuje string do porównania (lowercase + usunięcie diakrytyków)
         /// </summary>
@@ -227,61 +189,7 @@ namespace AddressLibrary.Helpers
             // Usuń diakrytyki i zamień na lowercase
             return UliceUtils.RemoveDiacritics(text.ToLowerInvariant());
         }
-
-        /// <summary>
-        /// ⚡ SZYBKA funkcja sprawdzająca czy wzorzec pasuje do tekstu od lewej do prawej
-        /// Usuwa wszystkie znaki oprócz liter i cyfr, następnie szuka każdej litery wzorca w tekście po kolei.
-        /// Przykłady:
-        /// - "Bat.Chłopskich" pasuje do "Batalionów Chłopskich" ✅
-        /// - "Boh.Września" pasuje do "Bohaterów Września" ✅
-        /// </summary>
-        public static bool IsLeftToRightMatch(string str1, string str2)
-        {
-            if (string.IsNullOrEmpty(str1) || string.IsNullOrEmpty(str2))
-                return false;
-
-            // KROK 1: Znormalizuj oba stringi (usuń diakrytyki, lowercase)
-            var normalized1 = UliceUtils.RemoveDiacritics(str1.ToLowerInvariant());
-            var normalized2 = UliceUtils.RemoveDiacritics(str2.ToLowerInvariant());
-
-            // KROK 2: Usuń wszystkie znaki oprócz liter i cyfr
-            var clean1 = new string(normalized1.Where(c => char.IsLetterOrDigit(c)).ToArray());
-            var clean2 = new string(normalized2.Where(c => char.IsLetterOrDigit(c)).ToArray());
-
-            // KROK 3: Automatycznie wykryj który jest wzorcem (krótszy) a który tekstem (dłuższy)
-            string pattern, text;
-            if (clean1.Length <= clean2.Length)
-            {
-                pattern = clean1;
-                text = clean2;
-            }
-            else
-            {
-                pattern = clean2;
-                text = clean1;
-            }
-
-            // KROK 4: Dla każdej litery z wzorca znajdź pierwsze wystąpienie w tekście
-            int textIndex = 0;
-
-            foreach (char patternChar in pattern)
-            {
-                // Znajdź pierwszą pozycję tej litery w pozostałej części tekstu
-                int foundIndex = text.IndexOf(patternChar, textIndex);
-
-                if (foundIndex == -1)
-                {
-                    // Nie znaleziono litery - brak dopasowania
-                    return false;
-                }
-
-                // Przesuń indeks za znalezioną literę
-                textIndex = foundIndex + 1;
-            }
-
-            // Sukces - znaleziono wszystkie litery wzorca w odpowiedniej kolejności
-            return true;
-        }
+       
 
         /// <summary>
         /// Poprawia cudzysłowy w tekstach CSV - usuwa zewnętrzne i konwertuje podwójne na pojedyncze

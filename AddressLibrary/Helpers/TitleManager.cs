@@ -134,48 +134,7 @@ namespace AddressLibrary.Helpers
             return (titlesString, nameWithoutTitles);
         }
 
-        /// <summary>
-        /// Normalizuje tytuły - zamienia pełne formy na skróty
-        /// Przykład: "doktora profesora" → "dr. prof."
-        /// </summary>
-        /// <param name="titles">Ciąg tytułów do znormalizowania</param>
-        /// <returns>Znormalizowany ciąg tytułów ze skrótami</returns>
-        public static string NormalizeTitles(string titles)
-        {
-            if (string.IsNullOrWhiteSpace(titles) || _titleMap == null)
-                return string.Empty;
-
-            var words = titles.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            var normalizedTitles = new List<string>();
-
-            foreach (var word in words)
-            {
-                // Normalizuj słowo (usuń kropkę, polskie znaki, lowercase)
-                var normalizedWord = UliceUtils.RemoveDiacritics(word.Replace(".", "").ToLowerInvariant());
-
-                // Szukaj w słowniku
-                TytulStopien? foundTitle = null;
-
-                // Spróbuj znaleźć bezpośrednio
-                if (_titleMap.TryGetValue(normalizedWord, out foundTitle) ||
-                    _titleMap.TryGetValue(word, out foundTitle))
-                {
-                    // Dodaj skrót (jeśli jeszcze go nie ma w liście)
-                    if (!string.IsNullOrWhiteSpace(foundTitle.Skrot) && !normalizedTitles.Contains(foundTitle.Skrot))
-                    {
-                        normalizedTitles.Add(foundTitle.Skrot);
-                    }
-                }
-                else
-                {
-                    // Jeśli nie znaleziono, zachowaj oryginalne słowo
-                    normalizedTitles.Add(word);
-                }
-            }
-
-            return string.Join(" ", normalizedTitles);
-        }
-
+     
 
         /// <summary>
         /// Pobiera pełną nazwę tytułu na podstawie skrótu

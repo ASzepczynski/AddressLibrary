@@ -158,8 +158,10 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 return (null, currentUlica);
             }
 
+            //
+            // Wywołanie kluczowej funkcji szukającej ulicy w mieście
             // Deleguj wyszukiwanie do StreetMatcher.FindStreet
-            
+            //          
             var ulicaCached = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), out bool wasFuzzy);
 
             if (ulicaCached == null)

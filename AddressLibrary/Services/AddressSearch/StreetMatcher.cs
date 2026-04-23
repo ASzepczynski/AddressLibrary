@@ -83,7 +83,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
 
                 var normalizedShort = ulica.NormalizedShortName;
-                if (normalizedShort.Contains("bracki"))
+                if (normalizedShort.Contains("jana paw"))
                 {
                     int y = 1;
                 }
