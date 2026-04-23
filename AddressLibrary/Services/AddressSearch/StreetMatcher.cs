@@ -20,34 +20,7 @@ namespace AddressLibrary.Services.AddressSearch
             _parser = parser;
         }
 
-        /// <summary>
-        /// Sprawdza czy ulica pasuje do wyszukiwanej nazwy (dokładne dopasowanie = 100% score)
-        /// </summary>
-        public bool IsMatch(UlicaCached ulica, string streetName)
-        {
-            if (string.IsNullOrWhiteSpace(streetName))
-                return false;
-
-            // ✅ KROK 1: Jeśli ulica jest nie-osobowa (brak komponentów) - dopasuj po pełnej nazwie
-            if (ulica.IsEmpty())
-            {
-                var normalizedSearch = TextNormalizer.Normalize(streetName);
-                var normalizedFull = ulica.NormalizedFullName;
-                if(normalizedFull == normalizedSearch)return true;
-                var normalizedShort = ulica.NormalizedShortName;
-                if (normalizedShort == normalizedSearch) return true;
-                return false;
-            }
-
-            // ✅ KROK 2: Jeśli ulica jest osobowa - parsuj i dopasuj komponenty
-            var parsed = _parser.Parse(streetName);
-
-            // Dokładne dopasowanie wymaga 100% score
-            var score = CalculateMatchScore(parsed, ulica);
-
-            return score>= 80;
-        }
-
+        
         /// <summary>
         /// 🚀 Strukturalne dopasowywanie komponentów ulicy
         /// Znajduje ulicę w liście UlicaCached 
@@ -83,7 +56,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
 
                 var normalizedShort = ulica.NormalizedShortName;
-                if (normalizedShort.Contains("jana paw"))
+                if (normalizedShort.Contains("jozefa"))
                 {
                     int y = 1;
                 }
@@ -114,7 +87,7 @@ namespace AddressLibrary.Services.AddressSearch
                 if (!isCechaOk) continue;
 
                 var normalizedShort = ulica.NormalizedShortName;
-                if (normalizedShort.Contains("jagiellonki"))
+                if (normalizedShort.Contains("odrow"))
                 {
                     int y = 1;
                 }
@@ -215,7 +188,22 @@ namespace AddressLibrary.Services.AddressSearch
                     )
                     // Nie ma imienia ani nazwiska, ale pseudonim się zgadza czyli mjr Hubala
                     return 100;
-            } 
+            }
+
+            if (search.Pseudonim!=""
+                && search.Imie == ""
+                && search.Imie2 == ""
+                && search.Nazwisko == ""
+                && search.Nazwisko2 == ""
+                && search.Pseudonim == ulica.Nazwisko)
+            {
+                if (ulica.Pseudonim=="" 
+                    && search.Postfiks == ulica.Postfiks
+                    && search.Prefiks == ulica.Prefiks
+                    )
+                    // Szukamy Odrowąża, ktory wszedł jako Pseudonim, ale to w rzeczywistości jest nazwisko
+                    return 100;
+            }
 
             // 2. Imię
             if (!string.IsNullOrEmpty(search.Imie))

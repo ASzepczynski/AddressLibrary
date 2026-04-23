@@ -27,6 +27,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// Zwraca szczegółowy komunikat o niejednoznaczności
         /// </summary>
         public string GetAmbiguityMessage(
+            AddressSearchRequest request,
             List<UlicaCached> streets,
             List<KodPocztowy> postalCodes)
         {
@@ -50,7 +51,7 @@ namespace AddressLibrary.Services.AddressSearch
                 return $"{codesStr} ({streetName}/{streetId}{dzielnicaStr})";
             }).ToList();
 
-            return $"Znaleziono wiele dopasowań ulicy [A] {details.Count}): {string.Join(", ", details)}";
+            return $"Znaleziono wiele dopasowań ulicy [{request.Miasto}][{request.Ulica}][A] {details.Count}): {string.Join(", ", details)}";
         }
     }
 }

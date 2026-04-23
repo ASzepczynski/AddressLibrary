@@ -81,7 +81,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
                 if (resolvedStreet == null)
                 {
-                    return CreateMultipleMatchesError(matchingStreets, miasta, searchLogger);
+                    return CreateMultipleMatchesError(request, matchingStreets, miasta, searchLogger);
                 }
 
                 matchingStreets = new List<(UlicaCached street, Miasto miasto)> { resolvedStreet.Value };
@@ -182,6 +182,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
 
             var matchingStreets = new List<(UlicaCached street, Miasto miasto)>();
             bool wasFuzzy = false;
+            string sUlica = $"{Prefix} {normalizedStreet}".Trim();
 
             // KROK 1: Dokładne dopasowanie
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -190,14 +191,10 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (_cache.TryGetUlice(miasto.Id, out var ulice))
                 {
                     diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
-
-                    foreach (var ulica in ulice)
-                    {
-                        if (_streetMatcher.IsMatch(ulica, normalizedStreet))
-                        {
+                    var ulica = _streetMatcher.FindStreet(ulice, sUlica, out wasFuzzy);
+                    if(ulica!=null){
                             diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");
                             matchingStreets.Add((ulica, miasto));
-                        }
                     }
                 }
             }
@@ -210,9 +207,6 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 return (matchingStreets, wasFuzzy: false);
             }
 
-            // 🆕 KROK 1.5: Jeśli nie znaleziono i ulica jest personalna (dwusłowowa), spróbuj tylko z nazwiskiem
-            // Na razie nie działa
-
             // KROK 2: Fuzzy matching
             diagnostic?.Log($"Poszukiwanie mniej dokładne (fuzzy) miasto:{request.Miasto} ulica:{request.Ulica}");
 
@@ -223,7 +217,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 {
                     diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
 
-                    var ulica = _streetMatcher.FindStreet(ulice, normalizedStreet,out bool isFuzzy);
+                    var ulica = _streetMatcher.FindStreet(ulice, sUlica,out bool isFuzzy);
                     wasFuzzy = isFuzzy;
                     if (ulica != null)
                     {
@@ -312,6 +306,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
         /// Tworzy wynik z listą wszystkich niejednoznacznych dopasowań
         /// </summary>
         private AddressSearchResult CreateMultipleMatchesError(
+            AddressSearchRequest request,
             List<(UlicaCached street, Miasto miasto)> matchingStreets,
             List<Miasto> miasta,
             GeneralLogger? diagnostic)
@@ -324,7 +319,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             }
 
             var streets = matchingStreets.Select(m => m.street).ToList();
-            var message = _ambiguityResolver.GetAmbiguityMessage(streets, postalCodes);
+            var message = _ambiguityResolver.GetAmbiguityMessage(request, streets, postalCodes);
 
             diagnostic?.Log($" [A] ℹ️ {message}");
 
