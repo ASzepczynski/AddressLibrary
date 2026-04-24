@@ -43,6 +43,7 @@ namespace AddressLibrary.Cache
                 Miasto     = u.Miasto,
                 Dzielnica  = u.Dzielnica ?? string.Empty,
                 TypUlicyId = u.TypUlicyId,
+                TypUlicy   = u.TypUlicy,
 
                 Prefiks   = Norm(u.TypUlicy?.Prefiks,   u.TypUlicyId),
                 Tytul     = NormTytul(u),

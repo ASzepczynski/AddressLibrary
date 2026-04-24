@@ -221,13 +221,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 //
 //  I główne wywołanie - szukamy ulicy w znalezionym mieście
 //
-                    (var ulica, var ulicaNazwa) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sCecha, sUlica);
+                    (var ulica, var ulicaNazwa,var info) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sCecha, sUlica);
 
                     if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
                     {
                         // ✅ ZMIENIONO: Loguj do error loggera
 
-                        var ulicaMsg = ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miasto.Nazwa, sKorekcja);
+                        var ulicaMsg = ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miasto.Nazwa, sKorekcja,info);
                         _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMsg}");
                         //                        _excelWriter.Add(pna, $"Brak ulicy: {ulicaMsg}");
                         _excelWriter.Add(pna, "Brak ulicy");

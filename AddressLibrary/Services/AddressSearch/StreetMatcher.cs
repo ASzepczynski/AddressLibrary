@@ -20,15 +20,16 @@ namespace AddressLibrary.Services.AddressSearch
             _parser = parser;
         }
 
-        
+
         /// <summary>
         /// 🚀 Strukturalne dopasowywanie komponentów ulicy
         /// Znajduje ulicę w liście UlicaCached 
         /// 
         /// </summary>
-        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName,out bool wasFuzzy)
+        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName, out bool wasFuzzy,out string info)
         {
             wasFuzzy = false;
+            info = "";
             if (string.IsNullOrWhiteSpace(streetName))
                 return null;
             (string sCecha, string normalizedSearch) = CechyUlicUtils.SplitStreetPrefix(streetName);
@@ -36,46 +37,64 @@ namespace AddressLibrary.Services.AddressSearch
             normalizedSearch = TextNormalizer.Normalize(normalizedSearch);
 
             var parsed = _parser.Parse(normalizedSearch);
-        
+
             var nowaUlica = new UlicaCached
             {
-                Prefiks   = parsed.Prefiks,
-                Tytul     = parsed.Tytul,
-                Imie      = parsed.Imie,
-                Imie2     = parsed.Imie2,
-                Nazwisko  = parsed.Nazwisko,
+                Prefiks = parsed.Prefiks,
+                Tytul = parsed.Tytul,
+                Imie = parsed.Imie,
+                Imie2 = parsed.Imie2,
+                Nazwisko = parsed.Nazwisko,
                 Nazwisko2 = parsed.Nazwisko2,
                 Pseudonim = parsed.Pseudonim,
-                Postfiks  = parsed.Postfiks,
+                Postfiks = parsed.Postfiks,
             };
 
             var parsedSearch = TextNormalizer.Normalize(nowaUlica.GetShortName());
-        
+
+            var listaPotencjalne = new List<(UlicaCached Ulica,int Score)>();
+
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
             {
 
                 var normalizedShort = ulica.NormalizedShortName;
-                if (normalizedShort.Contains("jozefa"))
+                var normalizedFull = ulica.NormalizedFullName;
+
+                if (normalizedShort.Contains("sucharskiego"))
                 {
                     int y = 1;
                 }
-                // Zwykłe porównanie nazw
 
-                var isCechaOk = sCecha == "" || sCecha == ulica.CechaUlicy.Skrot || sCecha == ulica.CechaUlicy.Nazwa;
-                if (!isCechaOk) continue;
+                var isCechaOk = sCecha == ulica.CechaUlicy.Skrot || sCecha == ulica.CechaUlicy.Nazwa;
 
-                if (normalizedShort == normalizedSearch)
-                    return ulica;
-                if (normalizedShort == parsedSearch)
-                    return ulica;
 
-                var normalizedFull = ulica.NormalizedFullName;
-                // Zwykłe porównanie nazw
-                if (normalizedFull == normalizedSearch)
-                    return ulica;
-                if (normalizedFull == parsedSearch)
-                    return ulica;
+
+                if (normalizedShort == normalizedSearch
+                 || normalizedShort == parsedSearch
+                 || normalizedFull == normalizedSearch
+                 || normalizedFull == parsedSearch
+                    )
+                {
+                    if (isCechaOk) return ulica;
+                    // Ulica różni się cechą
+                    listaPotencjalne.Add(new (ulica,0));
+                    continue;
+                }
+            }
+
+            if (listaPotencjalne.Count() == 1)
+            {
+                return listaPotencjalne[0].Ulica;
+            }
+            else
+               if (listaPotencjalne.Count() > 1)
+            {
+                info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha się nie zgadza";
+                // Mamy więcej niż jedną ulicę a cecha się nie zgadza
+                // Na razie zwracam null ale tu ma być niejednoznaczność
+                // Usunąłem sCecha=="" więc program może bardzo zwolnić
+                return null;
             }
 
             // Teraz z wyceną
@@ -83,40 +102,39 @@ namespace AddressLibrary.Services.AddressSearch
             int bestScore = 0;
             foreach (var ulica in ulice)
             {
-                var isCechaOk = sCecha == "" || sCecha == ulica.CechaUlicy.Skrot || sCecha == ulica.CechaUlicy.Nazwa;
-                if (!isCechaOk) continue;
 
                 var normalizedShort = ulica.NormalizedShortName;
-                if (normalizedShort.Contains("odrow"))
+                if (normalizedShort.Contains("sucharskiego"))
                 {
                     int y = 1;
                 }
                 var score = CalculateMatchScore(parsed, ulica);
 
-                if (score > bestScore)
+                if (score >= 70) listaPotencjalne.Add(new(ulica,score));
+
+            }
+            if (listaPotencjalne.Count() == 0) return null;
+
+            // Jeśli dobrze pasuje tylko jedna ulica to ją zwróć
+            if (listaPotencjalne.Count() == 1)
+            {
+                wasFuzzy = listaPotencjalne[0].Score != 100;
+                    return listaPotencjalne[0].Ulica;
+            }
+
+// Jeśli podano cechę ulicy to zwróć tę, która pasuje
+            if (sCecha != "")
+            {
+                var kandydaci = listaPotencjalne
+                     .Where(x => x.Ulica.CechaUlicy.Skrot == sCecha 
+                        || x.Ulica.CechaUlicy.Nazwa == sCecha).OrderByDescending(x=>x.Score).ToList();
+                if (kandydaci.Count() == 1)
                 {
-                    bestScore = score;
-                    bestMatch = ulica;
+                    wasFuzzy = kandydaci[0].Score != 100;
+                    return kandydaci[0].Ulica;
                 }
             }
-            if (bestMatch != null && bestScore > 70) return bestMatch;
-
-            //// Fuzzy matching dla ulic nie-osobowych (jeśli nie znaleziono osobowej)
-            //foreach (var ulica in ulice)
-            //{
-            //    var normalizedFull = ulica.GetFullNormalized();
-            //    // Częściowe dopasowanie (contains)
-            //    if (normalizedFull.Contains(normalizedSearch) || normalizedSearch.Contains(normalizedFull))
-            //    {
-            //        int distance = AddressLibrary.Utils.Levenshtein.CalculateLevenshteinDistance(normalizedSearch, normalizedFull);
-            //        if (distance <= 2)
-            //        {
-            //            wasFuzzy = true;
-            //            return ulica;
-            //        }
-            //    }
-            //}
-
+            info = "Więcej niż 1 nazwa ulicy pasuje (fuzzy), ale cecha się nie zgadza";
             return null;
         }
 
@@ -135,14 +153,14 @@ namespace AddressLibrary.Services.AddressSearch
             const int PSEUDONIM_WEIGHT = 5;
             const int IMIE2_WEIGHT = 5;
 
-// Dla nieosobowych zwróć zero
+            // Dla nieosobowych zwróć zero
             if (ulica.IsEmpty()) return 0;
 
             // 0. Dla królowej Jadwigi
 
             if (string.IsNullOrEmpty(search.Nazwisko) && !string.IsNullOrEmpty(search.Imie))
             {
-       
+
                 int score = 0;
 
                 if (ulica.Imie == search.Imie)
@@ -179,10 +197,10 @@ namespace AddressLibrary.Services.AddressSearch
                 }
             }
 
-            if (!string.IsNullOrEmpty(search.Pseudonim) && search.Pseudonim==ulica.Pseudonim)
+            if (!string.IsNullOrEmpty(search.Pseudonim) && search.Pseudonim == ulica.Pseudonim)
             {
-                if (search.Imie == ulica.Imie 
-                    && search.Nazwisko == ulica.Nazwisko 
+                if (search.Imie == ulica.Imie
+                    && search.Nazwisko == ulica.Nazwisko
                     && search.Postfiks == ulica.Postfiks
                     && search.Prefiks == ulica.Prefiks
                     )
@@ -190,14 +208,14 @@ namespace AddressLibrary.Services.AddressSearch
                     return 100;
             }
 
-            if (search.Pseudonim!=""
+            if (search.Pseudonim != ""
                 && search.Imie == ""
                 && search.Imie2 == ""
                 && search.Nazwisko == ""
                 && search.Nazwisko2 == ""
                 && search.Pseudonim == ulica.Nazwisko)
             {
-                if (ulica.Pseudonim=="" 
+                if (ulica.Pseudonim == ""
                     && search.Postfiks == ulica.Postfiks
                     && search.Prefiks == ulica.Prefiks
                     )
@@ -211,11 +229,11 @@ namespace AddressLibrary.Services.AddressSearch
                 totalWeight += IMIE_WEIGHT;
                 if (ulica.Imie == search.Imie) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
                 // Tu załatwiamy wzorzec: Marii Faustyny Kowalskiej z poszukiwaniem Faustyny Kowalskiej
-                if (ulica.Imie2!="" && ulica.Imie2 == search.Imie) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
-                 // Tu załatwiamy J. Hallera
-                if (SkrotImienia(ulica.Imie,search.Imie)) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
+                if (ulica.Imie2 != "" && ulica.Imie2 == search.Imie) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
+                // Tu załatwiamy J. Hallera
+                if (SkrotImienia(ulica.Imie, search.Imie)) { matchedWeight += IMIE_WEIGHT; goto po_imie; }
             }
-            po_imie:
+        po_imie:
             // 3. Tytuł
             if (!string.IsNullOrEmpty(search.Tytul))
             {

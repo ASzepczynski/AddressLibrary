@@ -16,6 +16,7 @@ namespace AddressLibrary.Services.AddressSearch
         public Miasto Miasto { get; set; } = null!;
         public string Dzielnica { get; set; } = string.Empty;
         public int? TypUlicyId { get; set; }
+        public TypUlicy? TypUlicy { get; set; }
 
         // 🚀 Pre-znormalizowane komponenty z TypUlicy
         public string Prefiks { get; set; } = string.Empty;        // np. "im", "imienia"

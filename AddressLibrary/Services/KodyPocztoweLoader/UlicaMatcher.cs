@@ -117,7 +117,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         /// <summary>
         /// Używa StreetMatcher.FindStreet do wyszukiwania ulic
         /// </summary>
-        public (Ulica? ulica, string ulicaNazwa) Match(
+        public (Ulica? ulica, string ulicaNazwa, string info) Match(
             string kodPocztowy,
             string sWojewodztwo,
             string sPowiat,
@@ -130,7 +130,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         {
             if (string.IsNullOrEmpty(sUlica))
             {
-                return (null, sUlica);
+                return (null, sUlica,"");
             }
 
             var currentUlica = sUlica;
@@ -145,7 +145,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (!_uliceCachedDict.TryGetValue(miasto.Id, out var uliceCachedList))
             {
-                return (null, currentUlica);
+                return (null, currentUlica,"");
             }
 
             // Filtruj po dzielnicy (jeśli podana)
@@ -155,18 +155,18 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             if (filteredUlice.Count == 0)
             {
-                return (null, currentUlica);
+                return (null, currentUlica,"");
             }
 
             //
             // Wywołanie kluczowej funkcji szukającej ulicy w mieście
             // Deleguj wyszukiwanie do StreetMatcher.FindStreet
             //          
-            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), out bool wasFuzzy);
+            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), out bool wasFuzzy,out string info);
 
             if (ulicaCached == null)
             {
-                return (null, currentUlica);
+                return (null, currentUlica, info);
             }
 
             // Konwertuj UlicaCached z powrotem na Ulica
@@ -191,13 +191,13 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                 _fuzzyLogger.LogInfo(matchMessage);
             }
 
-            return (ulica, currentUlica);
+            return (ulica, currentUlica,"");
         }
 
         /// <summary>
         /// Generuje diagnostyczny komunikat o braku ulicy
         /// </summary>
-        public string GetNotFoundMessage(string ulicaNazwa, Miasto miasto, string miastoNazwa, string sKorekcja)
+        public string GetNotFoundMessage(string ulicaNazwa, Miasto miasto, string miastoNazwa, string sKorekcja,string info)
         {
             var miastoInfo = $"{miastoNazwa} (MiastoId={miasto.Id})";
             var uliceCountInfo = _uliceDict.ContainsKey(miasto.Id)
@@ -207,7 +207,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var message = "";
 
             //message = $" Próbowano korekty: '{sKorekcja}'";
-            message += $" Brak ulicy: '{ulicaNazwa}' w {miastoInfo} ({uliceCountInfo})";
+            message += $" Brak ulicy({info}): [{ulicaNazwa}] w [{miastoInfo}] ({uliceCountInfo})";
 
             return message;
         }
