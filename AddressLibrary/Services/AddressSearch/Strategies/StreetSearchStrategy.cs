@@ -323,15 +323,14 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             string normalizedStreet,
             GeneralLogger? diagnostic)
         {
-            diagnostic?.Log($"✗ Nie znaleziono ulicy [{request.Ulica}]");
-            var totalStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var sUlica = $"Org:[{request.Ulica}] Conv:[{Prefix}][{normalizedStreet}]";
+
+            diagnostic?.Log($"✗ Nie znaleziono ulicy {sUlica}");
 
             var result = new AddressSearchResult
             {
                 Status = AddressSearchStatus.InvalidStreetName,
-                Message = AddressSearchStatusInfo.GetMessage(
-                        AddressSearchStatus.InvalidStreetName,
-                        $"'{request.Ulica}'"),
+                Message = AddressSearchStatusInfo.GetMessage(AddressSearchStatus.InvalidStreetName,sUlica),
                 Miasto = miasta.Count == 1 ? miasta[0] : null
             };
 
@@ -346,12 +345,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 // Ulica istnieje w Polsce ale nie w tym mieście
                 result.Status = AddressSearchStatus.UlicaNotFound;
             }
-            result.Message = AddressSearchStatusInfo.GetMessage(
-                    result.Status,
-                    $"'{request.Ulica}'");
+            result.Message = AddressSearchStatusInfo.GetMessage(result.Status,sUlica);
 
-            totalStopwatch.Stop();
-            diagnostic?.Log($"⏱ HandleStreetNotFound TOTAL: {totalStopwatch.ElapsedMilliseconds} ms");
             return result;
         }
 
