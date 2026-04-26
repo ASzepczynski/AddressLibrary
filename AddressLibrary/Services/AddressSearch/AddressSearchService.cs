@@ -137,43 +137,21 @@ namespace AddressLibrary.Services.AddressSearch
                 if (miastoNorm == ulicaNorm)
                 {
                     searchLogger?.Log($"⚠ UWAGA: Miasto i ulica są identyczne ('{request.Miasto}' == '{request.Ulica}'). Wyczyśzczono ulicę.");
-
-                    // Utwórz nowy request z wyczyszczoną ulicą
-                    request = new AddressSearchRequest
-                    {
-                        KodPocztowy = request.KodPocztowy,
-                        Miasto = request.Miasto,
-                        Ulica = string.Empty, // ✅ Wyczyść ulicę
-                        NumerDomu = request.NumerDomu,
-                        NumerMieszkania = request.NumerMieszkania
-                    };
+                    // wyczyścić ulicę
+                    request.Ulica = "";
                 }
             }
 
             if (_corrections.TryCorrect("M", request.Miasto, out string correctedCity))
             {
                 Console.WriteLine($"Skorygowano miasto: '{request.Miasto}' -> '{correctedCity}'");
-                request = new AddressSearchRequest
-                {
-                    KodPocztowy = request.KodPocztowy,
-                    Miasto = correctedCity,
-                    Ulica = request.Ulica,
-                    NumerDomu = request.NumerDomu,
-                    NumerMieszkania = request.NumerMieszkania
-                };
+                request.Miasto = correctedCity;
             }
 
             if (_corrections.TryCorrect("U", request.Ulica, out var correctedStreet))
             {
                 Console.WriteLine($"Skorygowano ulicę: '{request.Ulica}' -> '{correctedStreet}'");
-                request = new AddressSearchRequest
-                {
-                    KodPocztowy = request.KodPocztowy,
-                    Miasto = request.Miasto,
-                    Ulica = correctedStreet,
-                    NumerDomu = request.NumerDomu,
-                    NumerMieszkania = request.NumerMieszkania
-                };
+                request.Ulica = correctedStreet;
             }
 
             // Znajdź miasta o podanej nazwie

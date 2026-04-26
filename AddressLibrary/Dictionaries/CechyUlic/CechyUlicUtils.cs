@@ -119,14 +119,32 @@
         }
 
         /// <summary>
-        /// Zwraca listę wszystkich prefiksów ulic posortowaną malejąco po długości
+        /// Zwraca listę wszystkich prefiksów ulic posortowaną malejąco po długości.
+        /// Dla każdego skrótu z kropką (np. "ul.") dodaje również wariant bez kropki (np. "ul").
+        /// Dodaje też "oś" jako alias dla osiedla.
         /// </summary>
         public static List<string> GetAllStreetPrefixes()
         {
             EnsureInitialized();
-            return StreetPrefixes
-                .SelectMany(kv => kv.Value)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+
+            var wynik = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var wariant in StreetPrefixes.SelectMany(kv => kv.Value))
+            {
+                wynik.Add(wariant);
+                if (wariant.EndsWith("."))
+                    wynik.Add(wariant.TrimEnd('.'));
+            }
+
+            // "oś" i "oś." jako skróty dla osiedla (o ile nie ma go już w słowniku)
+            if (StreetPrefixes.ContainsKey("osiedle") || StreetPrefixes.Any(kv =>
+                    kv.Value.Any(v => v.Equals("osiedle", StringComparison.OrdinalIgnoreCase))))
+            {
+                wynik.Add("oś");
+                wynik.Add("oś.");
+            }
+
+            return wynik
                 .OrderByDescending(p => p.Length)
                 .ToList();
         }
@@ -151,9 +169,14 @@
                 var prefixWithSpace = prefix + " ";
                 if (streetName.StartsWith(prefixWithSpace, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Znajdź klucz słownika i zwróć PIERWSZY wariant (znormalizowany skrót)
+                    // Szukaj w słowniku: bezpośrednio po wariancie, lub po wariancie z kropką, lub "oś" → "osiedle"
                     var entry = StreetPrefixes.FirstOrDefault(kv =>
-                        kv.Value.Any(v => v.Equals(prefix, StringComparison.OrdinalIgnoreCase)));
+                        kv.Value.Any(v => v.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+                        || kv.Value.Any(v => v.Equals(prefix + ".", StringComparison.OrdinalIgnoreCase))
+                        || (( prefix.Equals("oś", StringComparison.OrdinalIgnoreCase)
+                                || prefix.Equals("oś.", StringComparison.OrdinalIgnoreCase))
+                            && (kv.Key.Equals("osiedle", StringComparison.OrdinalIgnoreCase)
+                                || kv.Value.Any(v => v.Equals("osiedle", StringComparison.OrdinalIgnoreCase)))));
 
                     if (!string.IsNullOrEmpty(entry.Key))
                     {

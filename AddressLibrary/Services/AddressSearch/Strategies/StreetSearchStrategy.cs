@@ -46,9 +46,10 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
             searchLogger?.Log("");
             searchLogger?.Log("--- STRATEGIA: Szukanie z ulicą ---");
 
-
+            var normalizedStreet = TextNormalizer.Normalize(request.Ulica);
+    
             // Wyodrębnij prefiks z ulicy
-            (var Prefix, var normalizedStreet) = CechyUlicUtils.SplitStreetPrefix(request.Ulica);
+            (var Prefix, normalizedStreet) = CechyUlicUtils.SplitStreetPrefix(normalizedStreet);
 
             (var Prefix2, var normalizedStreet2) = CechyUlicUtils.SplitStreetPrefix(normalizedStreet);
             if (Prefix2 != "")
@@ -57,9 +58,10 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 Prefix = Prefix2;
                 normalizedStreet = normalizedStreet2;
             }
-
-            normalizedStreet = TextNormalizer.Normalize(normalizedStreet);
+    
             searchLogger?.Log($"Normalizacja ulicy: '{request.Ulica}' -> '{Prefix}/{normalizedStreet}'");
+
+
 
             var combinedBuildingNumber = request.NumerDomu;
 

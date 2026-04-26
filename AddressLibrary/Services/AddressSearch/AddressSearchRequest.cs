@@ -10,26 +10,26 @@ namespace AddressLibrary.Services.AddressSearch
         /// <summary>
         /// Kod pocztowy (opcjonalny)
         /// </summary>
-        public string KodPocztowy { get; init; } = string.Empty;
+        public string KodPocztowy { get; set; } = string.Empty;
 
         /// <summary>
         /// Nazwa miejscowoœci (wymagana)
         /// </summary>
-        public string Miasto { get; init; } = string.Empty;
+        public string Miasto { get; set; } = string.Empty;
 
         /// <summary>
         /// Nazwa ulicy (opcjonalna)
         /// </summary>
-        public string Ulica { get; init; } = string.Empty;
+        public string Ulica { get; set; } = string.Empty;
 
         /// <summary>
         /// Numer domu (opcjonalny)
         /// </summary>
-        public string NumerDomu { get; init; } = string.Empty;
+        public string NumerDomu { get; set; } = string.Empty;
 
         /// <summary>
         /// Numer mieszkania (opcjonalny)
         /// </summary>
-        public string NumerMieszkania { get; init; } = string.Empty;
+        public string NumerMieszkania { get; set; } = string.Empty;
     }
 }

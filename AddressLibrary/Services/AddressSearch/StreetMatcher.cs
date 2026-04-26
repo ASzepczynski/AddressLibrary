@@ -15,6 +15,14 @@ namespace AddressLibrary.Services.AddressSearch
     {
         private readonly StreetParser _parser;
 
+        /// <summary>
+        /// Najczęstsze cechy ulic — kandydaci preferowani gdy cecha wyszukiwanej ulicy nie pasuje
+        /// </summary>
+        private static readonly List<string> NajczestszeCechy =
+        [
+            "ulica", "aleja", "osiedle", "aleje"
+        ];
+
         public StreetMatcher(StreetParser parser)
         {
             _parser = parser;
@@ -91,11 +99,17 @@ namespace AddressLibrary.Services.AddressSearch
                if (listaPotencjalne.Count() > 1)
             {
                 info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha się nie zgadza";
+                var kandydaci = listaPotencjalne
+                    .Where(x => NajczestszeCechy.Contains(x.Ulica.CechaUlicy.Nazwa, 
+                         StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+                if (kandydaci.Count() == 1)
+                {
+                    return kandydaci[0].Ulica;
+                }
                 // Mamy więcej niż jedną ulicę a cecha się nie zgadza
                 // Na razie zwracam null ale tu ma być niejednoznaczność
-                // Usunąłem sCecha=="" więc program może bardzo zwolnić
-                return null;
-            }
+                return null;        }
 
             // Teraz z wyceną
             UlicaCached? bestMatch = null;
