@@ -34,7 +34,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// Znajduje ulicę w liście UlicaCached 
         /// 
         /// </summary>
-        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName, out bool wasFuzzy,out string info)
+        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName, out bool wasFuzzy, out string info)
         {
             wasFuzzy = false;
             info = "";
@@ -60,7 +60,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             var parsedSearch = TextNormalizer.Normalize(nowaUlica.GetShortName());
 
-            var listaPotencjalne = new List<(UlicaCached Ulica,int Score)>();
+            var listaPotencjalne = new List<(UlicaCached Ulica, int Score)>();
 
             // Najpierw sprawdzamy wprost - po nazwie
             foreach (var ulica in ulice)
@@ -74,7 +74,6 @@ namespace AddressLibrary.Services.AddressSearch
                     int y = 1;
                 }
 
-                var isCechaOk = sCecha == ulica.CechaUlicy.Skrot || sCecha == ulica.CechaUlicy.Nazwa;
 
 
 
@@ -84,34 +83,28 @@ namespace AddressLibrary.Services.AddressSearch
                  || normalizedFull == parsedSearch
                     )
                 {
-                    if (isCechaOk) return ulica;
-                    // Ulica różni się cechą
-                    listaPotencjalne.Add(new (ulica,0));
+                    if (!listaPotencjalne.Any(x => x.Ulica.Id == ulica.Id))
+                        listaPotencjalne.Add(new(ulica, 0));
                     continue;
                 }
             }
 
-            if (listaPotencjalne.Count() == 1)
+            var kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha);
+            if (kandydaci.Count() == 1)
             {
-                return listaPotencjalne[0].Ulica;
+                return kandydaci[0].Ulica;
             }
             else
-               if (listaPotencjalne.Count() > 1)
             {
-                info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha się nie zgadza";
-                var kandydaci = listaPotencjalne
-                    .Where(x => NajczestszeCechy.Contains(x.Ulica.CechaUlicy.Nazwa, 
-                         StringComparer.OrdinalIgnoreCase))
-                    .ToList();
-                if (kandydaci.Count() == 1)
+                if (kandydaci.Count() > 1)
                 {
-                    return kandydaci[0].Ulica;
+                    info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha się nie zgadza";
+                    // Mamy więcej niż jedną ulicę a cecha się nie zgadza
+                    // Na razie zwracam null ale tu ma być niejednoznaczność
+                    return null;
                 }
-                // Mamy więcej niż jedną ulicę a cecha się nie zgadza
-                // Na razie zwracam null ale tu ma być niejednoznaczność
-                return null;        }
-
-            // Teraz z wyceną
+            }
+            // Teraz z wyceną, bo powyższe wyszukiwanie zwróciło zero
             UlicaCached? bestMatch = null;
             int bestScore = 0;
             foreach (var ulica in ulice)
@@ -124,32 +117,54 @@ namespace AddressLibrary.Services.AddressSearch
                 }
                 var score = CalculateMatchScore(parsed, ulica);
 
-                if (score >= 70) listaPotencjalne.Add(new(ulica,score));
+                if (score >= 70 && !listaPotencjalne.Any(x => x.Ulica.Id == ulica.Id))
+                    listaPotencjalne.Add(new(ulica, score));
 
             }
             if (listaPotencjalne.Count() == 0) return null;
 
             // Jeśli dobrze pasuje tylko jedna ulica to ją zwróć
+
+            kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha);
+            if (kandydaci.Count() == 1)
+            {
+                // Jeśli dobrze pasuje tylko jedna ulica to ją zwróć
+                wasFuzzy = kandydaci[0].Score != 100;
+                return kandydaci[0].Ulica;
+            }
+            if (kandydaci.Count() > 1)
+            {
+                info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha się nie zgadza";
+                // Mamy więcej niż jedną ulicę a cecha się nie zgadza
+                // Na razie zwracam null ale tu ma być niejednoznaczność
+                return null;
+            }
+            // Brak kandydatów
+            return null;
+        }
+
+        public List<(UlicaCached Ulica, int Score)> ZweryfikujKandydatow(List<(UlicaCached Ulica, int Score)> listaPotencjalne, string sCecha)
+        {
             if (listaPotencjalne.Count() == 1)
             {
-                wasFuzzy = listaPotencjalne[0].Score != 100;
-                    return listaPotencjalne[0].Ulica;
+                return listaPotencjalne;
             }
 
-// Jeśli podano cechę ulicy to zwróć tę, która pasuje
-            if (sCecha != "")
+            // Szukamy ulicy z właściwą cechą
+            var kandydaci = listaPotencjalne
+                 .Where(x => x.Ulica.CechaUlicy.Skrot == sCecha
+                    || x.Ulica.CechaUlicy.Nazwa == sCecha).OrderByDescending(x => x.Score).ToList();
+
+            if (kandydaci.Count() == 1)
             {
-                var kandydaci = listaPotencjalne
-                     .Where(x => x.Ulica.CechaUlicy.Skrot == sCecha 
-                        || x.Ulica.CechaUlicy.Nazwa == sCecha).OrderByDescending(x=>x.Score).ToList();
-                if (kandydaci.Count() == 1)
-                {
-                    wasFuzzy = kandydaci[0].Score != 100;
-                    return kandydaci[0].Ulica;
-                }
+                return kandydaci;
             }
-            info = "Więcej niż 1 nazwa ulicy pasuje (fuzzy), ale cecha się nie zgadza";
-            return null;
+
+            // Szukamy ulicy z najczęściej używaną cechą
+
+            kandydaci = listaPotencjalne.Where(x => NajczestszeCechy.Contains(x.Ulica.CechaUlicy.Nazwa,
+         StringComparer.OrdinalIgnoreCase)).ToList();
+            return kandydaci;
         }
 
         /// <summary>
@@ -172,21 +187,24 @@ namespace AddressLibrary.Services.AddressSearch
 
             // 0. Dla królowej Jadwigi
 
-            if (string.IsNullOrEmpty(search.Nazwisko) && !string.IsNullOrEmpty(search.Imie))
+            if (search.Nazwisko == ""
+                && ulica.Nazwisko == ""
+                && search.Nazwisko2 == ""
+                && ulica.Nazwisko2 == ""
+                && search.Imie != ""
+                && ulica.Postfiks == search.Postfiks
+                && ulica.Prefiks == search.Prefiks
+                && ulica.Pseudonim == search.Pseudonim
+                )
             {
-
                 int score = 0;
-
-                if (ulica.Imie == search.Imie)
+                if (ulica.Imie == search.Imie && ulica.Imie2 == search.Imie2)
                 {
-                    if (ulica.Postfiks == search.Postfiks && ulica.Prefiks == search.Prefiks)
-                    {
-                        score = 80;
-                    }
-                    if (TitleManager.TenSamTytul(ulica.Tytul, search.Tytul))
-                    {
-                        score += TYTUL_WEIGHT;
-                    }
+                    score = 80;
+                }
+                if (TitleManager.TenSamTytul(ulica.Tytul, search.Tytul))
+                {
+                    score += TYTUL_WEIGHT;
                 }
                 return score;
             }
