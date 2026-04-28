@@ -68,8 +68,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                             Miasto = ulica.Miasto,
                             Dzielnica = ulica.Dzielnica,
                             TypUlicyId = ulica.TypUlicyId,
-                            
-                            // 🚀 Pre-normalizuj komponenty z TypUlicy
+                            OriginalName = ((ulica.Nazwa2 ?? string.Empty) + " " + ulica.Nazwa1).Trim().ToLowerInvariant(),
                             // ✅ POPRAWKA: Sprawdzaj TypUlicyId != -1 zamiast null
                             Prefiks = ulica.TypUlicyId == -1 || ulica.TypUlicy == null || string.IsNullOrWhiteSpace(ulica.TypUlicy.Prefiks)
                                 ? string.Empty
@@ -149,9 +148,11 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             }
 
             // Filtruj po dzielnicy (jeśli podana)
-            var filteredUlice = string.IsNullOrEmpty(currentDzielnica)
-                ? uliceCachedList
-                : uliceCachedList.Where(u => u.Dzielnica == currentDzielnica).ToList();
+            //var filteredUlice = string.IsNullOrEmpty(currentDzielnica)
+            //    ? uliceCachedList
+            //    : uliceCachedList.Where(u => u.Dzielnica == currentDzielnica).ToList();
+
+            var filteredUlice = uliceCachedList;
 
             if (filteredUlice.Count == 0)
             {
@@ -162,7 +163,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             // Wywołanie kluczowej funkcji szukającej ulicy w mieście
             // Deleguj wyszukiwanie do StreetMatcher.FindStreet
             //          
-            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), out bool wasFuzzy,out string info);
+            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), sUlica.ToLower(), currentDzielnica, out bool wasFuzzy,out string info);
 
             if (ulicaCached == null)
             {

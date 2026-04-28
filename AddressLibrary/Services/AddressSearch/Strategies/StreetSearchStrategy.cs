@@ -196,7 +196,7 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 if (_cache.TryGetUlice(miasto.Id, out var ulice))
                 {
                     diagnostic?.Log($"Sprawdzam miejscowość: {miasto.Nazwa} (ID: {miasto.Id}), ulic: {ulice.Count}");
-                    var ulica = _streetMatcher.FindStreet(ulice, sUlica, out wasFuzzy,out string info);
+                    var ulica = _streetMatcher.FindStreet(ulice, sUlica, request.Ulica.ToLower(), "", out wasFuzzy,out string info);
                     if (ulica != null)
                     {
                         diagnostic?.Log($"  ✓ Znaleziono pasującą ulicę: ID:{ulica.Id} {_cache.GetOriginalStreetName(ulica)}");

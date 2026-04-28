@@ -34,7 +34,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// Znajduje ulicę w liście UlicaCached 
         /// 
         /// </summary>
-        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName, out bool wasFuzzy, out string info)
+        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName, string originalName, string dzielnica, out bool wasFuzzy, out string info)
         {
             wasFuzzy = false;
             info = "";
@@ -89,7 +89,7 @@ namespace AddressLibrary.Services.AddressSearch
                 }
             }
 
-            var kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha);
+            var kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha,originalName,dzielnica);
             if (kandydaci.Count() == 1)
             {
                 return kandydaci[0].Ulica;
@@ -123,9 +123,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
             if (listaPotencjalne.Count() == 0) return null;
 
-            // Jeśli dobrze pasuje tylko jedna ulica to ją zwróć
-
-            kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha);
+            kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha,originalName,dzielnica);
             if (kandydaci.Count() == 1)
             {
                 // Jeśli dobrze pasuje tylko jedna ulica to ją zwróć
@@ -143,28 +141,56 @@ namespace AddressLibrary.Services.AddressSearch
             return null;
         }
 
-        public List<(UlicaCached Ulica, int Score)> ZweryfikujKandydatow(List<(UlicaCached Ulica, int Score)> listaPotencjalne, string sCecha)
+        public List<(UlicaCached Ulica, int Score)> ZweryfikujKandydatow(List<(UlicaCached Ulica, int Score)> listaPotencjalne, string sCecha, string originalName, string dzielnica)
         {
             if (listaPotencjalne.Count() == 1)
             {
                 return listaPotencjalne;
             }
 
-            // Szukamy ulicy z właściwą cechą
+            // Szukamy ulicy z właściwą dzielnicą
             var kandydaci = listaPotencjalne
+                 .Where(x => x.Ulica.Dzielnica == dzielnica);
+            if (kandydaci.Count() == 1)
+            {
+                return kandydaci.OrderByDescending(x => x.Score).ToList();
+            }
+
+            // Szukamy ulicy z właściwą cechą
+            kandydaci = listaPotencjalne
                  .Where(x => x.Ulica.CechaUlicy.Skrot == sCecha
-                    || x.Ulica.CechaUlicy.Nazwa == sCecha).OrderByDescending(x => x.Score).ToList();
+                    || x.Ulica.CechaUlicy.Nazwa == sCecha);
 
             if (kandydaci.Count() == 1)
             {
-                return kandydaci;
+                return kandydaci.OrderByDescending(x => x.Score).ToList();
+            }
+
+            // Szukamy ulicy z prawidłową nazwą Sądowa/Sadowa Łąkowa/Lakowa
+            kandydaci = listaPotencjalne
+                 .Where(x => x.Ulica.OriginalName == originalName);
+
+            if (kandydaci.Count() == 1)
+            {
+                return kandydaci.OrderByDescending(x => x.Score).ToList();
+            }
+
+            // Szukamy trafienia 100%
+            kandydaci = listaPotencjalne.Where(x => x.Score==100);
+            if (kandydaci.Count() == 1)
+            {
+                return kandydaci.OrderByDescending(x => x.Score).ToList();
             }
 
             // Szukamy ulicy z najczęściej używaną cechą
-
             kandydaci = listaPotencjalne.Where(x => NajczestszeCechy.Contains(x.Ulica.CechaUlicy.Nazwa,
-         StringComparer.OrdinalIgnoreCase)).ToList();
-            return kandydaci;
+         StringComparer.OrdinalIgnoreCase));
+            if (kandydaci.Count() == 1)
+            {
+                return kandydaci.OrderByDescending(x => x.Score).ToList();
+            }
+
+            return kandydaci.OrderByDescending(x => x.Score).ToList();
         }
 
         /// <summary>
@@ -184,6 +210,10 @@ namespace AddressLibrary.Services.AddressSearch
 
             // Dla nieosobowych zwróć zero
             if (ulica.IsEmpty()) return 0;
+
+            if (ulica.Prefiks != search.Prefiks) return 0;
+            if (ulica.Postfiks != search.Postfiks) return 0;
+            if (ulica.Nazwisko != search.Nazwisko) return 0;
 
             // 0. Dla królowej Jadwigi
 

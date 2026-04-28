@@ -2,6 +2,7 @@
 
 using AddressLibrary.Cache;
 using AddressLibrary.Data;
+using AddressLibrary.Dictionaries.Pseudonimy;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
 
@@ -16,6 +17,7 @@ namespace AddressLibrary.Services.AddressSearch
         private readonly MiastaCache       _miasta;
         private readonly UliceCache        _ulice;
         private readonly KodyPocztoweCache _kodyPocztowe;
+        public Dictionary<string, string>  PseudonimiDict { get; }
 
         public bool IsInitialized =>
             _miasta.IsInitialized && _ulice.IsInitialized && _kodyPocztowe.IsInitialized;
@@ -25,6 +27,7 @@ namespace AddressLibrary.Services.AddressSearch
             _miasta       = new MiastaCache(context);
             _ulice        = new UliceCache(context);
             _kodyPocztowe = new KodyPocztoweCache(context);
+            PseudonimiDict = PseudonimiDictionary.Load(appDataPath);
         }
 
         public async Task InitializeAsync()

@@ -36,7 +36,7 @@ namespace AddressLibrary.Services.AddressSearch
         {
             await _cache.InitializeAsync();
 
-            var streetParser = new StreetParser(_context);
+            var streetParser = new StreetParser(_context, _cache);
             await streetParser.InitializeAsync();
 
             // ✅ POPRAWKA: Przekaż streetParser do StreetMatcher

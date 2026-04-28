@@ -1,9 +1,12 @@
 ﻿using AddressLibrary.Data;
+using AddressLibrary.Data;
 using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Helpers;
 using AddressLibrary.Models;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using UglyToad.PdfPig.Content;
 
 namespace AddressLibrary.Services.AddressSearch
@@ -15,6 +18,7 @@ namespace AddressLibrary.Services.AddressSearch
     public class StreetParser
     {
         private readonly AddressDbContext _context;
+        private readonly AddressSearchCache? _cache;
 
         // Słowniki (cache) - tylko dla danych NIE zarządzanych przez dedykowane managery
         // ❌ USUNIĘTE: private HashSet<string>? _cechy;    // DUPLIKAT CechyUlicUtils.StreetPrefixes
@@ -22,11 +26,13 @@ namespace AddressLibrary.Services.AddressSearch
         private HashSet<string>? _imiona;                   // tadeusza, krzysztofa, ...
         private HashSet<string>? _nazwiska;                 // ploskiego, fieldorfa, mickiewicza, ...
         private HashSet<string>? _pseudonimy;               // nila, zapory, ...
+        private Dictionary<string, string>? _pseudonimiDict; // mianownik → dopełniacz
         private bool _isInitialized;
 
-        public StreetParser(AddressDbContext context)
+        public StreetParser(AddressDbContext context, AddressSearchCache? cache = null)
         {
             _context = context;
+            _cache   = cache;
         }
 
         /// <summary>
@@ -86,6 +92,9 @@ namespace AddressLibrary.Services.AddressSearch
             }
           
             Console.WriteLine($"[StreetParser] Załadowano {_imiona.Count} imion, {_nazwiska.Count} nazwisk, {_pseudonimy.Count} pseudonimów");
+
+            _pseudonimiDict = _cache?.PseudonimiDict
+                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             _isInitialized = true;
         }
@@ -162,8 +171,22 @@ namespace AddressLibrary.Services.AddressSearch
 
             result.Postfiks = "";
             bool czyDopiszDrugieImie = false;
+            bool czyNastepnyPseudonim = false;
             foreach (var word in remainingWords)
             {
+                if (czyNastepnyPseudonim)
+                {
+                    result.Pseudonim = DopelniaczPseudonimu(word);
+                    czyNastepnyPseudonim = false;
+                    continue;
+                }
+
+                if (word == "ps" || word == "ps." || word == "pseudonim")
+                {
+                    czyNastepnyPseudonim = true;
+                    continue;
+                }
+
 
                 // Czy to jest Skłodowskiej-Curie?
                 var nazwiska = word.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
@@ -256,13 +279,31 @@ namespace AddressLibrary.Services.AddressSearch
 
             result.Postfiks = result.Postfiks.Trim();
 
+            // Gdy pseudonim jest w rzeczywiscości nazwiskiem
+            if (result.Nazwisko == "" && result.Pseudonim != "" && _nazwiska!.Contains(result.Pseudonim))
+            {
+                // Zamieniamy nazwisko z pseudonimem
+                result.Nazwisko = result.Pseudonim;
+                result.Pseudonim="";
+            }
+
             return Wyjatki(result);
+        }
+
+        public string DopelniaczPseudonimu(string mianownikPseudonimu)
+        {
+            if (_pseudonimiDict != null && _pseudonimiDict.TryGetValue(mianownikPseudonimu, out var dopelniacz))
+                return dopelniacz;
+
+            return mianownikPseudonimu;
         }
 
         public ParsedStreet Wyjatki(ParsedStreet result)
         {
             // Wyjątki!!!
             // księdza biskupa Konstantyna Dominika
+
+
             if (result.Prefiks == "" && (result.Tytul.Contains("bp") || result.Tytul.Contains("ks") || result.Tytul == "") && result.Imie == "dominika" && result.Nazwisko == "" && result.Nazwisko2 == "" && result.Pseudonim == "" && result.Postfiks == "")
             {
                 result.Tytul = "ks bp";

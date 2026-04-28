@@ -1,6 +1,7 @@
 ﻿using AddressLibrary.Data;
 using AddressLibrary.Dictionaries.CechyUlic;
 using AddressLibrary.Dictionaries.TytulyStopnie;
+using AddressLibrary.Dictionaries.Pseudonimy;
 using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Models;
@@ -90,6 +91,12 @@ namespace AddressLibrary.Services
 
             // Wyczyść cache słownika TytulyStopnie (aby wymusić odczyt świeżych danych z bazy)
             _tytulyDict.ClearCache();
+
+            // ✅ KROK 2b: Załaduj słownik Pseudonimy z Excel
+            _logger.LogInfo("KROK 2b: Ładowanie słownika Pseudonimy z Excel...");
+            progress?.Report(new ValidatorProgress { CurrentOperation = "Ładowanie słownika Pseudonimy..." });
+            var pseudonimy = PseudonimiDictionary.Load(_appDataPath, _logger);
+            _logger.LogInfo($"✓ Załadowano {pseudonimy.Count} pseudonimów");
 
             // ✅ KROK 3: Załaduj słownik tytułów do pamięci i zainicjalizuj TitleManager
             _logger.LogInfo("KROK 3: Inicjalizacja słownika tytułów w pamięci...");

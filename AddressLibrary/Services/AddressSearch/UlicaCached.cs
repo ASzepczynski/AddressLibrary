@@ -18,6 +18,12 @@ namespace AddressLibrary.Services.AddressSearch
         public int? TypUlicyId { get; set; }
         public TypUlicy? TypUlicy { get; set; }
 
+        /// <summary>
+        /// Oryginalna nazwa z diakrytykami (tylko lowercase): Nazwa2 + " " + Nazwa1.
+        /// Używana do rozróżnienia Sadowa vs Sądowa, Łąkowa vs Lakowa itp.
+        /// </summary>
+        public string OriginalName { get; set; } = string.Empty;
+
         // 🚀 Pre-znormalizowane komponenty z TypUlicy
         public string Prefiks { get; set; } = string.Empty;        // np. "im", "imienia"
         public string Tytul { get; set; } = string.Empty;         // np. "generala", "biskupa", "doktora"

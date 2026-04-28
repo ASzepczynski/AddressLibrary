@@ -53,6 +53,7 @@ namespace AddressLibrary.Cache
                 Nazwisko2 = Norm(u.TypUlicy?.Nazwisko2, u.TypUlicyId),
                 Pseudonim = Norm(u.TypUlicy?.Pseudonim, u.TypUlicyId),
                 Postfiks  = Norm(u.TypUlicy?.Postfiks,  u.TypUlicyId),
+                OriginalName = ((u.Nazwa2 ?? string.Empty) + " " + u.Nazwa1).Trim().ToLowerInvariant(),
             }).ToList();
 
             _dict = cached
