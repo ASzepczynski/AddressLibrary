@@ -221,12 +221,10 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 //
 //  I główne wywołanie - szukamy ulicy w znalezionym mieście
 //
-                    (var ulica, var ulicaNazwa,var info) = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sCecha, sUlica);
+                    var listaUlic = ulicaMatcher.Match(pna.Kod, pna.Wojewodztwo, pna.Powiat, miasto.Gmina.Nazwa, miasto, pna.Dzielnica, sCecha, sUlica,out string ulicaNazwa, out string info);
 
-                    if (!string.IsNullOrEmpty(pna.Ulica) && ulica == null)
+                    if (!string.IsNullOrEmpty(pna.Ulica) && listaUlic == null)
                     {
-                        // ✅ ZMIENIONO: Loguj do error loggera
-
                         var ulicaMsg = ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miasto.Nazwa, sKorekcja,info);
                         _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMsg}");
                         //                        _excelWriter.Add(pna, $"Brak ulicy: {ulicaMsg}");
@@ -237,6 +235,18 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         continue;
                     }
 
+                    if (!string.IsNullOrEmpty(pna.Ulica) && listaUlic.Count()>1)
+                    {
+                        var ulicaMsg = $"Zbyt wiele ulic (?info)";
+                        _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMsg}");
+                        _excelWriter.Add(pna, "Zbyt wiele ulic");
+                        stats.ErrorCount++;
+                        stats.SkippedCount++;
+                        stats.ProcessedCount++;
+                        continue;
+                    }
+
+                    var ulica = listaUlic != null ? listaUlic[0] : null;
                     string dzielnica = "";
                     if (miasto.Nazwa == "Warszawa" && pna.Dzielnica == "Wesoła")
                     {

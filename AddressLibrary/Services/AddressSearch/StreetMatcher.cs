@@ -34,7 +34,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// Znajduje ulicę w liście UlicaCached 
         /// 
         /// </summary>
-        public UlicaCached? FindStreet(List<UlicaCached> ulice, string streetName, string originalName, string dzielnica, out bool wasFuzzy, out string info)
+        public List<UlicaCached>? FindStreet(List<UlicaCached> ulice, string streetName, string originalName, string dzielnica, out bool wasFuzzy, out string info)
         {
             wasFuzzy = false;
             info = "";
@@ -92,7 +92,7 @@ namespace AddressLibrary.Services.AddressSearch
             var kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha,originalName,dzielnica);
             if (kandydaci.Count() == 1)
             {
-                return kandydaci[0].Ulica;
+                return kandydaci.Select(x=>x.Ulica).ToList();
             }
             else
             {
@@ -128,7 +128,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 // Jeśli dobrze pasuje tylko jedna ulica to ją zwróć
                 wasFuzzy = kandydaci[0].Score != 100;
-                return kandydaci[0].Ulica;
+                return kandydaci.Select(x => x.Ulica).ToList();
             }
             if (kandydaci.Count() > 1)
             {

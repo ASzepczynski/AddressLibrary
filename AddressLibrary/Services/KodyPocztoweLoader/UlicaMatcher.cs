@@ -116,7 +116,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
         /// <summary>
         /// Używa StreetMatcher.FindStreet do wyszukiwania ulic
         /// </summary>
-        public (Ulica? ulica, string ulicaNazwa, string info) Match(
+        public List<UlicaCached>?  Match(
             string kodPocztowy,
             string sWojewodztwo,
             string sPowiat,
@@ -124,16 +124,20 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             Miasto miasto,
             string sDzielnica,
             string sCecha,
-            string sUlica
+            string sUlica,
+            out string currentUlica,
+            out string info
         )
         {
+            currentUlica = sUlica;
+            var currentDzielnica = "";
+
+            info = "";
             if (string.IsNullOrEmpty(sUlica))
             {
-                return (null, sUlica,"");
+                return null;
             }
 
-            var currentUlica = sUlica;
-            var currentDzielnica = "";
 
             if (miasto.Nazwa == "Warszawa" && sDzielnica == "Wesoła")
             {
@@ -144,7 +148,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             // KROK 1: Sprawdź czy miejscowość ma jakiekolwiek ulice
             if (!_uliceCachedDict.TryGetValue(miasto.Id, out var uliceCachedList))
             {
-                return (null, currentUlica,"");
+                return null;
             }
 
             // Filtruj po dzielnicy (jeśli podana)
@@ -156,43 +160,15 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
 
             if (filteredUlice.Count == 0)
             {
-                return (null, currentUlica,"");
+                return null;
             }
 
             //
             // Wywołanie kluczowej funkcji szukającej ulicy w mieście
             // Deleguj wyszukiwanie do StreetMatcher.FindStreet
             //          
-            var ulicaCached = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), sUlica.ToLower(), currentDzielnica, out bool wasFuzzy,out string info);
-
-            if (ulicaCached == null)
-            {
-                return (null, currentUlica, info);
-            }
-
-            // Konwertuj UlicaCached z powrotem na Ulica
-            var ulica = new Ulica
-            {
-                Id = ulicaCached.Id,
-                MiastoId = ulicaCached.MiastoId,
-                CechaUlicy = ulicaCached.CechaUlicy,
-                Miasto = ulicaCached.Miasto,
-                Dzielnica = ulicaCached.Dzielnica
-            };
-
-            // Loguj matching
-            var matchMessage = $"[UlicaMatcher] ✓ MATCHED: Kod={kodPocztowy} | Miejscowość={miasto.Nazwa} | Szukano='{currentUlica}' | Znaleziono='{ulicaCached.GetDisplayName()}'";
-
-            if (!wasFuzzy)
-            {
-             //   _PostalCodesLogger.LogInfo(matchMessage);
-            }
-            else
-            {
-                _fuzzyLogger.LogInfo(matchMessage);
-            }
-
-            return (ulica, currentUlica,"");
+            var listaUlic = _streetMatcher.FindStreet(filteredUlice, (sCecha+" "+currentUlica).Trim(), sUlica.ToLower(), currentDzielnica, out bool wasFuzzy,out info);
+            return listaUlic;
         }
 
         /// <summary>
