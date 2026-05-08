@@ -124,7 +124,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-//              foreach (var pna_raw in pnaData.Where(x => x.Miasto=="Łódź" && x.Ulica.Contains("Katedralny")))
+       //      foreach (var pna_raw in pnaData.Where(x => x.Miasto=="Gdynia" && x.Ulica.Contains("Czernickiego")))
             foreach (var pna_raw in pnaData)
             {
                 try

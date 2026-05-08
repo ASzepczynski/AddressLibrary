@@ -136,13 +136,15 @@
                     wynik.Add(wariant.TrimEnd('.'));
             }
 
+            // !!! Muszę to zlikwidować, bo w Warszawie jest ulica "Oś Królewska"
+
             // "oś" i "oś." jako skróty dla osiedla (o ile nie ma go już w słowniku)
-            if (StreetPrefixes.ContainsKey("osiedle") || StreetPrefixes.Any(kv =>
-                    kv.Value.Any(v => v.Equals("osiedle", StringComparison.OrdinalIgnoreCase))))
-            {
-                wynik.Add("oś");
-                wynik.Add("oś.");
-            }
+//            if (StreetPrefixes.ContainsKey("osiedle") || StreetPrefixes.Any(kv =>
+  //                  kv.Value.Any(v => v.Equals("osiedle", StringComparison.OrdinalIgnoreCase))))
+    //        {
+      //          wynik.Add("oś");
+        //        wynik.Add("oś.");
+          //  }
 
             return wynik
                 .OrderByDescending(p => p.Length)

@@ -141,6 +141,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
             }).ToList();
 
             var brakujaceTytuly = new List<string>();
+            // Zbiór unikalnych brakujących cech ulicy z poprawek
+            var brakujaceCechy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var ulic in resultList)
             {
@@ -233,11 +235,14 @@ namespace AddressLibrary.Services.HierarchyBuilders
                         var cUlicy = await _cechyUlicDict.FindByNazwaAsync(sCecha);
                         if (cUlicy == null)
                         {
-                            if (sCecha != "inne") _logger.LogError($"Brak cechy ulicy w TerytUlicPoprawka [{sCecha}]");
+                            // Zbieramy brakujące cechy do unikalnego zbioru - logujemy je dopiero po przetworzeniu
+                            if (!string.IsNullOrWhiteSpace(sCecha) && sCecha != "inne")
+                                brakujaceCechy.Add(sCecha.Trim());
                         }
                         else
                         {
                             ulica.CechaUlicyId = cUlicy.Id;
+                            cechyUlicAssigned++;
                         }
                     }
 
@@ -277,6 +282,12 @@ namespace AddressLibrary.Services.HierarchyBuilders
             foreach (var elem in brakujaceTytuly.Distinct())
             {
                 _logger.LogError($"Brak stopnia/tytułu '{elem}'");
+            }
+
+            // Wypisz unikalne brakujące cechy ulicy (jeśli wystąpiły)
+            foreach (var cecha in brakujaceCechy.OrderBy(x => x))
+            {
+                _logger.LogError($"Brak cechy ulicy w TerytUlicPoprawka [{cecha}]");
             }
 
             _logger.LogInfo($"Zebrano {allUlice.Count} ulic");

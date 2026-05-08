@@ -36,6 +36,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public List<UlicaCached>? FindStreet(List<UlicaCached> ulice, string streetName, string originalName, string dzielnica, out bool wasFuzzy, out string info)
         {
+            var wzorek = "czernickiego";
             wasFuzzy = false;
             info = "";
             if (string.IsNullOrWhiteSpace(streetName))
@@ -69,7 +70,7 @@ namespace AddressLibrary.Services.AddressSearch
                 var normalizedShort = ulica.NormalizedShortName;
                 var normalizedFull = ulica.NormalizedFullName;
 
-                if (normalizedShort.Contains("sucharskiego"))
+                if (normalizedShort.Contains(wzorek))
                 {
                     int y = 1;
                 }
@@ -98,10 +99,8 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 if (kandydaci.Count() > 1)
                 {
-                    info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha się nie zgadza";
-                    // Mamy więcej niż jedną ulicę a cecha się nie zgadza
-                    // Na razie zwracam null ale tu ma być niejednoznaczność
-                    return null;
+                    info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha lub dzielnica się nie zgadza";
+                    return kandydaci.Select(x=>x.Ulica).ToList();
                 }
             }
             // Teraz z wyceną, bo powyższe wyszukiwanie zwróciło zero
@@ -111,7 +110,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
 
                 var normalizedShort = ulica.NormalizedShortName;
-                if (normalizedShort.Contains("sucharskiego"))
+                if (normalizedShort.Contains(wzorek))
                 {
                     int y = 1;
                 }
@@ -132,10 +131,8 @@ namespace AddressLibrary.Services.AddressSearch
             }
             if (kandydaci.Count() > 1)
             {
-                info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha się nie zgadza";
-                // Mamy więcej niż jedną ulicę a cecha się nie zgadza
-                // Na razie zwracam null ale tu ma być niejednoznaczność
-                return null;
+                info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha lub dzielnica się nie zgadza";
+                return kandydaci.Select(x => x.Ulica).ToList();
             }
             // Brak kandydatów
             return null;
@@ -148,8 +145,20 @@ namespace AddressLibrary.Services.AddressSearch
                 return listaPotencjalne;
             }
 
-            // Szukamy ulicy z właściwą dzielnicą
+            // Szukamy ulicy z właściwą cechą i dzielnicą
             var kandydaci = listaPotencjalne
+                 .Where(x => x.Ulica.Dzielnica==dzielnica && 
+                       (x.Ulica.CechaUlicy.Skrot == sCecha
+                    || x.Ulica.CechaUlicy.Nazwa == sCecha)
+            );
+
+            if (kandydaci.Count() == 1)
+            {
+                return kandydaci.OrderByDescending(x => x.Score).ToList();
+            }
+
+            // Szukamy ulicy z właściwą dzielnicą
+            kandydaci = listaPotencjalne
                  .Where(x => x.Ulica.Dzielnica == dzielnica);
             if (kandydaci.Count() == 1)
             {
@@ -213,7 +222,7 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (ulica.Prefiks != search.Prefiks) return 0;
             if (ulica.Postfiks != search.Postfiks) return 0;
-            if (ulica.Nazwisko != search.Nazwisko) return 0;
+//            if (ulica.Nazwisko != search.Nazwisko) return 0;
 
             // 0. Dla królowej Jadwigi
 
@@ -261,8 +270,8 @@ namespace AddressLibrary.Services.AddressSearch
 
             if (!string.IsNullOrEmpty(search.Pseudonim) && search.Pseudonim == ulica.Pseudonim)
             {
-                if (search.Imie == ulica.Imie
-                    && search.Nazwisko == ulica.Nazwisko
+                if ( (search.Imie == ulica.Imie || search.Imie=="")
+                    && (search.Nazwisko == ulica.Nazwisko || search.Nazwisko=="")
                     && search.Postfiks == ulica.Postfiks
                     && search.Prefiks == ulica.Prefiks
                     )

@@ -286,7 +286,21 @@ namespace AddressLibrary.Services.AddressSearch
                 result.Nazwisko = result.Pseudonim;
                 result.Pseudonim="";
             }
-
+            // Gdy postfiks to litera z kropką przyjmujemy, że to skrót imienia
+            if (result.Postfiks.Length==2 && result.Postfiks[1]=='.' )
+            {
+                if (result.Imie == "")
+                {
+                    result.Imie = result.Postfiks;
+                    result.Postfiks = "";
+                }
+                else
+                if (result.Imie2 == "")
+                {
+                    result.Imie2 = result.Postfiks;
+                    result.Postfiks = "";
+                }
+            }
             return Wyjatki(result);
         }
 
