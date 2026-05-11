@@ -157,6 +157,159 @@ namespace AddressLibrary.Services
         }
 
         /// <summary>
+        /// Eksportuje kolekcjê danych do pliku Excel (wariant dla IEnumerable).
+        /// Jeœli podana œcie¿ka jest katalogiem, plik zostanie utworzony z nazw¹ {tableName}_yyyyMMdd_HHmmss.xlsx
+        /// Jeœli podana œcie¿ka zawiera nazwê pliku, u¿yta zostanie ona bez zmian.
+        /// </summary>
+        public async Task<string> ExportToExcelAsync<T>(
+            IEnumerable<T> dataEnumerable,
+            string outputPath,
+            string tableName,
+            IProgress<ExportProgress>? progress = null) where T : class
+        {
+            // Przygotuj listê
+            var data = dataEnumerable.ToList();
+
+            progress?.Report(new ExportProgress
+            {
+                CurrentOperation = $"Pobrano {data.Count} rekordów. Tworzenie pliku Excel...",
+                TotalCount = data.Count,
+                Stage = "Creating"
+            });
+
+            // Pobierz w³aœciwoœci typu T
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanRead)
+                .ToList();
+
+            string fullPath = outputPath;
+            try
+            {
+                // Jeœli outputPath jest katalogiem, utwórz nazwê pliku
+                if (Directory.Exists(outputPath) || outputPath.EndsWith(Path.DirectorySeparatorChar) || outputPath.EndsWith(Path.AltDirectorySeparatorChar))
+                {
+                    var fileName = $"{tableName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                    fullPath = Path.Combine(outputPath, fileName);
+                }
+                else
+                {
+                    var dir = Path.GetDirectoryName(outputPath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                }
+
+                using (var document = SpreadsheetDocument.Create(fullPath, SpreadsheetDocumentType.Workbook))
+                {
+                    var workbookPart = document.AddWorkbookPart();
+                    workbookPart.Workbook = new Workbook();
+
+                    var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                    worksheetPart.Worksheet = new Worksheet(new SheetData());
+
+                    var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+                    var sheet = new Sheet()
+                    {
+                        Id = workbookPart.GetIdOfPart(worksheetPart),
+                        SheetId = 1,
+                        Name = tableName
+                    };
+                    sheets.Append(sheet);
+
+                    var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+
+                    // WIERSZ 1: Nag³ówki
+                    var headerRow = new Row { RowIndex = 1 };
+                    uint columnIndex = 1;
+
+                    foreach (var prop in properties)
+                    {
+                        var cell = new Cell
+                        {
+                            CellReference = GetColumnLetter(columnIndex) + "1",
+                            DataType = CellValues.String,
+                            CellValue = new CellValue(prop.Name)
+                        };
+                        headerRow.Append(cell);
+                        columnIndex++;
+                    }
+
+                    sheetData.Append(headerRow);
+
+                    progress?.Report(new ExportProgress
+                    {
+                        CurrentOperation = "Zapisywanie danych do pliku Excel...",
+                        TotalCount = data.Count,
+                        Stage = "Writing"
+                    });
+
+                    // WIERSZE 2+: Dane
+                    uint rowIndex = 2;
+                    int processedCount = 0;
+
+                    foreach (var item in data)
+                    {
+                        var dataRow = new Row { RowIndex = rowIndex };
+                        columnIndex = 1;
+
+                        foreach (var prop in properties)
+                        {
+                            var value = prop.GetValue(item);
+                            var cellValue = value?.ToString() ?? "";
+
+                            var cell = new Cell
+                            {
+                                CellReference = GetColumnLetter(columnIndex) + rowIndex.ToString(),
+                                DataType = CellValues.String,
+                                CellValue = new CellValue(cellValue)
+                            };
+                            dataRow.Append(cell);
+                            columnIndex++;
+                        }
+
+                        sheetData.Append(dataRow);
+                        rowIndex++;
+                        processedCount++;
+
+                        if (processedCount % 1000 == 0)
+                        {
+                            progress?.Report(new ExportProgress
+                            {
+                                CurrentOperation = $"Zapisano {processedCount}/{data.Count} wierszy...",
+                                TotalCount = data.Count,
+                                ProcessedCount = processedCount,
+                                Stage = "Writing"
+                            });
+                        }
+                    }
+
+                    progress?.Report(new ExportProgress
+                    {
+                        CurrentOperation = "Finalizowanie pliku Excel...",
+                        TotalCount = data.Count,
+                        ProcessedCount = data.Count,
+                        Stage = "Finalizing"
+                    });
+
+                    workbookPart.Workbook.Save();
+                }
+            }
+            catch
+            {
+                throw;
+            }
+
+            progress?.Report(new ExportProgress
+            {
+                CurrentOperation = $"Zakoñczono! Plik: {Path.GetFileName(fullPath)}",
+                TotalCount = data.Count,
+                ProcessedCount = data.Count,
+                IsCompleted = true,
+                OutputFileName = Path.GetFileName(fullPath)
+            });
+
+            return fullPath;
+        }
+
+        /// <summary>
         /// Konwertuje numer kolumny na literê (1 -> A, 2 -> B, ..., 27 -> AA)
         /// </summary>
         private string GetColumnLetter(uint columnNumber)

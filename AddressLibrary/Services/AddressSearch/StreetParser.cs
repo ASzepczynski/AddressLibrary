@@ -269,7 +269,7 @@ namespace AddressLibrary.Services.AddressSearch
             {
                 // Tutaj trzeba sprawdzić merytorycznie czy nie brakuje nazwiska i czy np. nie zastąpić nazwiska imieniem2
                 // Ale trzeba uważać na Mieszka II i podobnych
-                var krolewskie = new List<string>() { "I", "II", "III" };
+                var krolewskie = new List<string>() { "i", "ii", "iii", "iv","v" };
                 if (!krolewskie.Contains(result.Imie2))
                 {
                     result.Nazwisko = result.Imie2;
@@ -314,9 +314,14 @@ namespace AddressLibrary.Services.AddressSearch
 
         public ParsedStreet Wyjatki(ParsedStreet result)
         {
+            if (result.Prefiks == "" && result.Postfiks == "fort")
+            {
+                (result.Prefiks, result.Postfiks) = (result.Postfiks, result.Prefiks);
+                return result;
+            }
+
             // Wyjątki!!!
             // księdza biskupa Konstantyna Dominika
-
 
             if (result.Prefiks == "" && (result.Tytul.Contains("bp") || result.Tytul.Contains("ks") || result.Tytul == "") && result.Imie == "dominika" && result.Nazwisko == "" && result.Nazwisko2 == "" && result.Pseudonim == "" && result.Postfiks == "")
             {

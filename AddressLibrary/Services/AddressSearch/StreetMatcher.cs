@@ -36,7 +36,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public List<UlicaCached>? FindStreet(List<UlicaCached> ulice, string streetName, string originalName, string dzielnica, out bool wasFuzzy, out string info)
         {
-            var wzorek = "czernickiego";
+            var wzorek = "baud";
             wasFuzzy = false;
             info = "";
             if (string.IsNullOrWhiteSpace(streetName))
@@ -138,69 +138,68 @@ namespace AddressLibrary.Services.AddressSearch
             return null;
         }
 
+// Metoda próbuje rozstrzygnąć o jaką ulicę chodziło w przypadku niejednoznaczności
+
         public List<(UlicaCached Ulica, int Score)> ZweryfikujKandydatow(List<(UlicaCached Ulica, int Score)> listaPotencjalne, string sCecha, string originalName, string dzielnica)
         {
+
             if (listaPotencjalne.Count() == 1)
             {
                 return listaPotencjalne;
             }
 
+            List<(UlicaCached Ulica, int Score)> wynik;
             // Szukamy ulicy z właściwą cechą i dzielnicą
             var kandydaci = listaPotencjalne
                  .Where(x => x.Ulica.Dzielnica==dzielnica && 
                        (x.Ulica.CechaUlicy.Skrot == sCecha
                     || x.Ulica.CechaUlicy.Nazwa == sCecha)
             );
-
-            if (kandydaci.Count() == 1)
-            {
-                return kandydaci.OrderByDescending(x => x.Score).ToList();
-            }
+            if (PasujeJeden(kandydaci, out wynik))return wynik;
 
             // Szukamy ulicy z właściwą dzielnicą
             kandydaci = listaPotencjalne
                  .Where(x => x.Ulica.Dzielnica == dzielnica);
-            if (kandydaci.Count() == 1)
-            {
-                return kandydaci.OrderByDescending(x => x.Score).ToList();
-            }
+            if (PasujeJeden(kandydaci, out wynik)) return wynik;
 
             // Szukamy ulicy z właściwą cechą
             kandydaci = listaPotencjalne
                  .Where(x => x.Ulica.CechaUlicy.Skrot == sCecha
                     || x.Ulica.CechaUlicy.Nazwa == sCecha);
-
-            if (kandydaci.Count() == 1)
-            {
-                return kandydaci.OrderByDescending(x => x.Score).ToList();
-            }
+            if (PasujeJeden(kandydaci, out wynik)) return wynik;
 
             // Szukamy ulicy z prawidłową nazwą Sądowa/Sadowa Łąkowa/Lakowa
             kandydaci = listaPotencjalne
                  .Where(x => x.Ulica.OriginalName == originalName);
+            if (PasujeJeden(kandydaci, out wynik)) return wynik;
 
-            if (kandydaci.Count() == 1)
-            {
-                return kandydaci.OrderByDescending(x => x.Score).ToList();
-            }
+            // Szukamy ulicy z prawidłową nazwą Sądowa/Sadowa Łąkowa/Lakowa i pasującą dzielnicą
+            kandydaci = listaPotencjalne
+                 .Where(x => x.Ulica.OriginalName == originalName && x.Ulica.Dzielnica == dzielnica);
+            if (PasujeJeden(kandydaci, out wynik)) return wynik;
 
             // Szukamy trafienia 100%
             kandydaci = listaPotencjalne.Where(x => x.Score==100);
-            if (kandydaci.Count() == 1)
-            {
-                return kandydaci.OrderByDescending(x => x.Score).ToList();
-            }
+            if (PasujeJeden(kandydaci, out wynik)) return wynik;
 
             // Szukamy ulicy z najczęściej używaną cechą
-            kandydaci = listaPotencjalne.Where(x => NajczestszeCechy.Contains(x.Ulica.CechaUlicy.Nazwa,
-         StringComparer.OrdinalIgnoreCase));
-            if (kandydaci.Count() == 1)
-            {
-                return kandydaci.OrderByDescending(x => x.Score).ToList();
-            }
+            kandydaci = listaPotencjalne.Where(x => NajczestszeCechy.Contains(x.Ulica.CechaUlicy.Nazwa, StringComparer.OrdinalIgnoreCase));
+            if (PasujeJeden(kandydaci, out wynik)) return wynik;
 
             return kandydaci.OrderByDescending(x => x.Score).ToList();
         }
+
+        public bool PasujeJeden(IEnumerable<(UlicaCached Ulica, int Score)> kandydaci, out List<(UlicaCached Ulica, int Score)> wynik)
+        {
+            wynik = kandydaci.Where(x=>x.Score!=2*x.Score).ToList(); // specjalnie żeby lista była pusta
+            if (kandydaci.Count() == 1)
+            {
+                wynik = kandydaci.ToList();
+                return true;
+            }
+            return false;
+        }
+
 
         /// <summary>
         /// Oblicza score dopasowania (0-100) porównując komponenty

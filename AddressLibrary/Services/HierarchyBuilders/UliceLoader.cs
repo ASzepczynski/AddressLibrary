@@ -144,6 +144,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
             // Zbiór unikalnych brakujących cech ulicy z poprawek
             var brakujaceCechy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            var brakujaceUlice = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var ulic in resultList)
             {
                 przetworzono++;
@@ -273,10 +275,18 @@ namespace AddressLibrary.Services.HierarchyBuilders
                         ulica.TypUlicyId = typUlicyId.Value;
                         typUlicyAssigned++;
                     }
+                } else
+                {
+                    _logger.LogError($"Nie znaleziono w TerytLoadPoprawki: '{original}'");
+                    // Dodaj oryginalny ciąg do zbioru braków
+                    if (!string.IsNullOrWhiteSpace(original))
+                        brakujaceUlice.Add(original);
                 }
 
                 allUlice.Add(ulica);
             }
+
+
 
 
             foreach (var elem in brakujaceTytuly.Distinct())
@@ -321,6 +331,44 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _logger.LogInfo($"  - Przypisano CechaUlicyId: {cechyUlicAssigned}");
             _logger.LogInfo($"Pominięto (brak miejscowości): {brakujacych}");
             _logger.LogInfo($"Pominięto (duplikaty): {duplikaty}");
+
+            // Eksport unikalnych brakujących wpisów do pliku Excel obok oryginalnego słownika
+            try
+            {
+                if (brakujaceUlice != null && brakujaceUlice.Count > 0)
+                {
+                    var dictDir = Path.Combine(appDataPath, "AppData", "Dictionaries");
+                    var outPath = Path.Combine(dictDir, "TerytUlicPoprawki_braki.xlsx");
+
+                    var brakiList = new List<TerytUlicPoprawka>();
+                    foreach (var original in brakujaceUlice)
+                    {
+                        (string cecha, string ulica) = CechyUlicUtils.SplitStreetPrefix(original);
+
+                        var tuPoprawka = new TerytUlicPoprawka
+                        {
+                            Cecha = cecha,
+                            Prefiks = null,
+                            Tytul = null,
+                            Imie = null,
+                            Imie2 = null,
+                            Nazwisko = null,
+                            Nazwisko2 = null,
+                            Pseudonim = null,
+                            Postfiks = ulica,
+                            TerytId = original
+                        };
+                        brakiList.Add(tuPoprawka);
+                    }
+                    var exporter = new AddressLibrary.Services.ExcelExportService();
+                    await exporter.ExportToExcelAsync(brakiList, outPath, "TerytUlicPoprawki");
+                    _logger.LogInfo($"Zapisano {brakiList.Count} unikalnych braków do: {outPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Błąd zapisu TerytUlicPoprawki_braki.xlsx: {ex.Message}");
+            }
         }
 
         public void Dispose()

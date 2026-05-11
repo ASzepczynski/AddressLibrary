@@ -124,20 +124,19 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
             var pendingRecords = new List<KodPocztowy>();
             const int reportInterval = 500;
 
-       //      foreach (var pna_raw in pnaData.Where(x => x.Miasto=="Gdynia" && x.Ulica.Contains("Czernickiego")))
+     //        foreach (var pna_raw in pnaData.Where(x => x.Miasto=="Głogów" && x.Ulica.Contains("Plac Mieszka I")))
             foreach (var pna_raw in pnaData)
             {
                 try
                 {
-                    var pna_src = pna_raw;
-                    // Odłączam, bo inaczej updatetuje bazę
-                    _context.Entry(pna_src).State = EntityState.Detached;
+                    // Skopiuj dane PNA przez wartość, żeby modyfikacje nie wpływały na źródłowy obiekt
+                    var pna_src = CloneHelper.Klonuj(pna_raw) ?? new Pna();
 
                     pna_src.Miasto = UliceUtils.RemoveQuote(pna_src.Miasto);
                     pna_src.Ulica = UliceUtils.RemoveQuote(pna_src.Ulica);
                     pna_src.Numery = UliceUtils.RemoveQuote(pna_src.Numery);
-                    sKorekcja = "";
-                    Pna pna = pna_src;
+                    sKorekcja = string.Empty;
+                    var pna = CloneHelper.Klonuj(pna_src) ?? new Pna();
 
                     if (KorektaPna(pna, out var pnaCorrected))
                     {
@@ -228,7 +227,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                         var ulicaMsg = ulicaMatcher.GetNotFoundMessage(pna.Ulica, miasto, miasto.Nazwa, sKorekcja,info);
                         _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMsg}");
                         //                        _excelWriter.Add(pna, $"Brak ulicy: {ulicaMsg}");
-                        _excelWriter.Add(pna, "Brak ulicy");
+                        _excelWriter.Add(pna_src, "Brak ulicy");
                         stats.ErrorCount++;
                         stats.SkippedCount++;
                         stats.ProcessedCount++;
@@ -239,7 +238,7 @@ namespace AddressLibrary.Services.KodyPocztoweLoader
                     {
                         var ulicaMsg = $"Zbyt wiele ulic (?info)";
                         _errorLogger.LogError($"{FormatPnaRecord(pna)}|{ulicaMsg}");
-                        _excelWriter.Add(pna, "Zbyt wiele ulic");
+                        _excelWriter.Add(pna_src, "Zbyt wiele ulic");
                         stats.ErrorCount++;
                         stats.SkippedCount++;
                         stats.ProcessedCount++;
