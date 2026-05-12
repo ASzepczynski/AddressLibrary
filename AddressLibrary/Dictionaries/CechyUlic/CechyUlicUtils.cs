@@ -90,6 +90,30 @@
             return text;
         }
 
+        public static string GetFullName(string text)
+        {
+            EnsureInitialized();
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            var normalized = text.Trim();
+
+            // Znajdź klucz w słowniku, który zawiera podany wariant
+            foreach (var entry in StreetPrefixes)
+            {
+                if (entry.Value.Any(v => v.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
+                {
+                    // Zwróć pełną nazwę
+                    return entry.Key;
+                }
+            }
+
+            // Nie znaleziono - zwróć oryginalny
+            return text;
+        }
+
+
+
         /// <summary>
         /// Usuwa prefiksy ulic z tekstu (np. "ul. Główna" → "Główna")
         /// </summary>
@@ -157,7 +181,7 @@
         /// </summary>
         /// <param name="streetName">Pełna nazwa ulicy (np. "aleja Jana Pawła II", "pl. Wolności")</param>
         /// <returns>Tuple (znormalizowany prefiks (pierwszy ze słownika) lub pusty string, nazwa bez prefiksu)</returns>
-        public static (string Prefix, string Name) SplitStreetPrefix(string? streetName)
+        public static (string Prefix, string Name) SplitStreetPrefix(string? streetName,bool isFull = false)
         {
             EnsureInitialized();
             if (string.IsNullOrWhiteSpace(streetName))
@@ -182,11 +206,20 @@
 
                     if (!string.IsNullOrEmpty(entry.Key))
                     {
-                        var normalizedPrefix = entry.Value[0]; // ✅ Pierwszy wariant (np. "al.", "ul.", "pl.")
+                        string normalizedPrefix = "";
+                        if (isFull)
+                        {
+                            // Zwracamy pełną nazwę cechy (klucz słownika), nie token prefiksu.
+                            normalizedPrefix = entry.Key; // np. "aleja", "plac"
+                        }
+                        else
+                        {
+                            // Domyślne zachowanie: zwróć preferowany skrót (pierwszy wariant)
+                            normalizedPrefix = entry.Value[0]; // np. "al.", "ul.", "pl."
+                        }
                         return (normalizedPrefix, streetName.Substring(prefixWithSpace.Length).TrimStart());
                     }
                 }
-                // Nie chcemy zostawiać nazwy ulicy pustej czyli przypadku "Rynek" czy "Osiedle"
             }
             return ("", streetName);
         }

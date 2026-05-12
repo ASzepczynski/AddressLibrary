@@ -7,6 +7,7 @@ using AddressLibrary.Models;
 using AddressLibrary.Structures;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using AddressLibrary.Cache;
 
 namespace AddressLibrary.Services.HierarchyBuilders
 {
@@ -63,6 +64,18 @@ namespace AddressLibrary.Services.HierarchyBuilders
             var cechyUlicMapping = await _cechyUlicDict.GetSkrotToIdMappingAsync();
             _logger.LogInfo($"Załadowano {cechyUlicMapping.Count} wpisów ze słownika CechyUlic");
 
+            // Inicjalizuj globalny słownik CechyUlicUtils z bazy, żeby narzędzia pomocnicze mogły działać
+            try
+            {
+                var cechyCache = new CechyUlicCache(_context);
+                await cechyCache.InitializeAsync();
+                _logger.LogInfo($"CechyUlicUtils zainicjalizowane: {CechyUlicUtils.IsInitialized}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Błąd inicjalizacji CechyUlicUtils: {ex.Message}");
+            }
+
             int przetworzono = 0;
             int brakujacych = 0;
             int cityWithRightsProcessed = 0;
@@ -103,7 +116,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     if (!miastaNaPrawachPowiatuDict.ContainsKey(kodPowiatu))
                     {
                         miastaNaPrawachPowiatuDict[kodPowiatu] = miasto;
-//                        _logger.LogInfo($"Zarejestrowano miasto na prawach powiatu: {miasto.Nazwa} (MiastoId={miasto.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
+                        //                        _logger.LogInfo($"Zarejestrowano miasto na prawach powiatu: {miasto.Nazwa} (MiastoId={miasto.Id}), Gmina: {gmina.Nazwa} (GminaId={gmina.Id}), Powiat: {kodPowiatu}");
                     }
                 }
                 else
@@ -144,7 +157,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
             // Zbiór unikalnych brakujących cech ulicy z poprawek
             var brakujaceCechy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            var brakujaceUlice = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var brakujaceUlice = new List<TerytUlicPoprawka>();
 
             foreach (var ulic in resultList)
             {
@@ -216,8 +229,8 @@ namespace AddressLibrary.Services.HierarchyBuilders
                     originalParts.Add(tempNazwa1.Trim());
 
                 var original = string.Join(" ", originalParts);
-              
-                 
+
+
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
@@ -229,7 +242,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 if (terytUlicPoprawkiDict.TryGetValue(original, out var terytUlicPoprawka))
                 {
-   
+
                     // ✅ ZMIENIONO: Użyj CechyUlicDictionary dla cechy z poprawek
                     string sCecha = terytUlicPoprawka.Cecha;
                     if (!string.IsNullOrWhiteSpace(sCecha))
@@ -275,19 +288,31 @@ namespace AddressLibrary.Services.HierarchyBuilders
                         ulica.TypUlicyId = typUlicyId.Value;
                         typUlicyAssigned++;
                     }
-                } else
+                }
+                else
                 {
                     _logger.LogError($"Nie znaleziono w TerytLoadPoprawki: '{original}'");
                     // Dodaj oryginalny ciąg do zbioru braków
+                    var elem = new TerytUlicPoprawka();
+                    elem.Cecha = CechyUlicUtils.GetFullName(Cecha);
+                    elem.TerytId = original;
+                    tempNazwa1 = CechyUlicUtils.RemoveStreetTypeDuplication(elem.Cecha, tempNazwa1);
+                    if (tempNazwa2 != "")
+                    {
+                        elem.Nazwisko = tempNazwa1;
+                        elem.Imie = tempNazwa2;
+                    }
+                    else
+                    {
+                        elem.Postfiks = tempNazwa1;
+                    }
+
                     if (!string.IsNullOrWhiteSpace(original))
-                        brakujaceUlice.Add(original);
+                        brakujaceUlice.Add(elem);
                 }
 
                 allUlice.Add(ulica);
             }
-
-
-
 
             foreach (var elem in brakujaceTytuly.Distinct())
             {
@@ -333,37 +358,15 @@ namespace AddressLibrary.Services.HierarchyBuilders
             _logger.LogInfo($"Pominięto (duplikaty): {duplikaty}");
 
             // Eksport unikalnych brakujących wpisów do pliku Excel obok oryginalnego słownika
+            brakujaceUlice = brakujaceUlice.Distinct().ToList();
             try
             {
-                if (brakujaceUlice != null && brakujaceUlice.Count > 0)
-                {
-                    var dictDir = Path.Combine(appDataPath, "AppData", "Dictionaries");
-                    var outPath = Path.Combine(dictDir, "TerytUlicPoprawki_braki.xlsx");
+                var dictDir = Path.Combine(appDataPath, "AppData", "Dictionaries");
+                var outPath = Path.Combine(dictDir, "TerytUlicPoprawki_braki.xlsx");
 
-                    var brakiList = new List<TerytUlicPoprawka>();
-                    foreach (var original in brakujaceUlice)
-                    {
-                        (string cecha, string ulica) = CechyUlicUtils.SplitStreetPrefix(original);
-
-                        var tuPoprawka = new TerytUlicPoprawka
-                        {
-                            Cecha = cecha,
-                            Prefiks = null,
-                            Tytul = null,
-                            Imie = null,
-                            Imie2 = null,
-                            Nazwisko = null,
-                            Nazwisko2 = null,
-                            Pseudonim = null,
-                            Postfiks = ulica,
-                            TerytId = original
-                        };
-                        brakiList.Add(tuPoprawka);
-                    }
-                    var exporter = new AddressLibrary.Services.ExcelExportService();
-                    await exporter.ExportToExcelAsync(brakiList, outPath, "TerytUlicPoprawki");
-                    _logger.LogInfo($"Zapisano {brakiList.Count} unikalnych braków do: {outPath}");
-                }
+                var exporter = new AddressLibrary.Services.ExcelExportService();
+                await exporter.ExportToExcelAsync(brakujaceUlice, outPath, "TerytUlicPoprawki");
+                _logger.LogInfo($"Zapisano {brakujaceUlice.Count} unikalnych braków do: {outPath}");
             }
             catch (Exception ex)
             {
