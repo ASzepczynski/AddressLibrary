@@ -319,10 +319,28 @@ namespace AddressLibrary.Services.AddressSearch
                 (result.Prefiks, result.Postfiks) = (result.Postfiks, result.Prefiks);
                 return result;
             }
+            // króla Stanisława Augusta
+            if (result.Imie == "stanislawa" && 
+                  (
+                      (result.Imie2=="augusta" && result.Nazwisko=="") 
+                      ||
+                      (result.Imie2 == "" && result.Nazwisko == "augusta")
+                  )
+               )
+            {
+                result.Imie2 = "augusta";
+                result.Nazwisko = "poniatowskiego";
+                return result;
+            }
 
-            // Wyjątki!!!
+            // księcia Józefa
+            if (result.Tytul=="ksiecia" && result.Imie == "jozefa" && result.Imie2 == "" && result.Nazwisko == "")
+            {
+                result.Nazwisko = "poniatowskiego";
+                return result;
+            }
+
             // księdza biskupa Konstantyna Dominika
-
             if (result.Prefiks == "" && (result.Tytul.Contains("bp") || result.Tytul.Contains("ks") || result.Tytul == "") && result.Imie == "dominika" && result.Nazwisko == "" && result.Nazwisko2 == "" && result.Pseudonim == "" && result.Postfiks == "")
             {
                 result.Tytul = "ks bp";
@@ -330,7 +348,6 @@ namespace AddressLibrary.Services.AddressSearch
                 result.Nazwisko = "dominika";
                 return result;
             }
-            // Wyjątki!!!
             // dr Henryka Jordana
             if (result.Prefiks == "" && (result.Tytul.Contains("dr") || result.Tytul == "") && result.Imie == "jordana" && result.Nazwisko == "" && result.Nazwisko2 == "" && result.Pseudonim == "" && result.Postfiks == "")
             {
