@@ -103,7 +103,8 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 Miasto     = foundUlica.Miasto,
                 TypUlicyId = foundUlica.TypUlicyId.GetValueOrDefault(),
                 TypUlicy   = foundUlica.TypUlicy,
-                Dzielnica  = foundUlica.Dzielnica
+                Dzielnica  = foundUlica.Dzielnica,
+                NazwaTeryt = foundUlica.NazwaTeryt
             };
 
             // Krok 1: szukaj kodów przypisanych bezpośrednio do tej ulicy

@@ -4,6 +4,7 @@ using AddressLibrary.Helpers;
 using AddressLibrary.Logging;
 using AddressLibrary.Services.AddressSearch.Filters;
 using AddressLibrary.Services.AddressSearch.Strategies;
+using AddressLibrary.Dictionaries.CechyUlic;
 
 namespace AddressLibrary.Services.AddressSearch
 {
@@ -168,15 +169,36 @@ namespace AddressLibrary.Services.AddressSearch
                 return result;
             }
 
+
+            AddressSearchResult res;
             // Wybierz strategię wyszukiwania
-            if (!string.IsNullOrWhiteSpace(request.Ulica))
-            {
-                return _streetSearch!.Execute(request, miasta, searchLogger);
-            }
-            else
+            if (string.IsNullOrWhiteSpace(request.Ulica))
             {
                 return _noStreetSearch!.Execute(request, miasta, searchLogger);
             }
+            res = _streetSearch!.Execute(request, miasta, searchLogger);
+
+            if (res.Status != AddressSearchStatus.InvalidStreetName && res.Status != AddressSearchStatus.UlicaNotFound)
+            {
+                return res;
+            }
+            // Jeśli nie znaleziono ulicy
+            // Sprawdź czy ulica nie jest przypadkiem miejscowością
+            var noweMiasto = request.Ulica;
+            // Usunięcie prefiksu ul. czy os.
+            (var cecha,noweMiasto) = CechyUlicUtils.SplitStreetPrefix(noweMiasto);
+            var noweMiasta = CityUtils.FindAllMiasta(_cache, noweMiasto, request.KodPocztowy, searchLogger, out method);
+            if (noweMiasta!=null && noweMiasta.Count >= 0)
+            {
+                var nowyRequest = CloneHelper.Klonuj(request);
+                nowyRequest.Miasto = noweMiasto;
+                nowyRequest.Ulica = "";
+
+                var res2 = _noStreetSearch!.Execute(nowyRequest, noweMiasta, searchLogger);
+                if (res2 != null) res = res2;
+            }
+
+            return res;
         }
 
         public async Task<List<AddressSearchResult>> SearchBatchAsync(IEnumerable<AddressSearchRequest> requests)

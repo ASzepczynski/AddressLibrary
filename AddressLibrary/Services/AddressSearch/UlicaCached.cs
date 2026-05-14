@@ -33,6 +33,7 @@ namespace AddressLibrary.Services.AddressSearch
         public string Nazwisko2 { get; set; } = string.Empty;     // np. "reymonta"
         public string Pseudonim { get; set; } = string.Empty;     // np. "nila", "zapory"
         public string Postfiks { get; set; } = string.Empty;      // np. "agawy", "sloneczna" (dla ulic nie-osobowych)
+        public string NazwaTeryt { get; set; } = string.Empty;      // pełna nazwa z Teryt wraz z prefiksem
 
         /// <summary>
         /// Zwraca pełną znormalizowaną nazwę (wszystkie komponenty bez cechy)

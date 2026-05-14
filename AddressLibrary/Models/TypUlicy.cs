@@ -67,6 +67,39 @@ namespace AddressLibrary.Models
         /// </summary>
         public int Id { get; set; }
 
-        public string Opis() => $"{Prefiks} {Tytul} {Imie} {Imie2} {Nazwisko} {Nazwisko2} {Pseudonim} {Postfiks}".Trim();
+        public string Opis()
+        {
+            // Buduj listê czêœci, pomijaj¹c puste wartoœci
+            var parts = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(Prefiks)) parts.Add(Prefiks);
+            if (!string.IsNullOrWhiteSpace(Tytul)) parts.Add(Tytul);
+            if (!string.IsNullOrWhiteSpace(Imie)) parts.Add(Imie);
+            if (!string.IsNullOrWhiteSpace(Imie2)) parts.Add(Imie2);
+
+            // Jeœli istnieje Nazwisko2, po³¹cz je ³¹cznikiem z Nazwisko
+            string lastName = string.Empty;
+            if (!string.IsNullOrWhiteSpace(Nazwisko))
+            {
+                if (!string.IsNullOrWhiteSpace(Nazwisko2))
+                    lastName = Nazwisko + "-" + Nazwisko2;
+                else
+                    lastName = Nazwisko;
+            }
+            else if (!string.IsNullOrWhiteSpace(Nazwisko2))
+            {
+                lastName = Nazwisko2;
+            }
+
+            if (!string.IsNullOrWhiteSpace(lastName)) parts.Add(lastName);
+            if (!string.IsNullOrWhiteSpace(Pseudonim)) parts.Add(Pseudonim);
+            if (!string.IsNullOrWhiteSpace(Postfiks)) parts.Add(Postfiks);
+
+            var result = string.Join(" ", parts);
+
+            // Usuñ nadmiarowe spacje (wiele spacji -> jedna) i przytnij
+            result = System.Text.RegularExpressions.Regex.Replace(result, "\\s+", " ").Trim();
+            return result;
+        }
     }
 }

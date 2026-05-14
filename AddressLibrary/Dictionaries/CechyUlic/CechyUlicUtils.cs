@@ -190,6 +190,10 @@
             // Pobierz wszystkie możliwe prefiksy, posortowane malejąco po długości (żeby najpierw sprawdzić najdłuższe)
             var allPrefixes = GetAllStreetPrefixes();
 
+
+            streetName = streetName.Replace(".", ". ");
+            streetName = streetName.Replace("  ", " ");
+
             foreach (var prefix in allPrefixes)
             {
                 var prefixWithSpace = prefix + " ";

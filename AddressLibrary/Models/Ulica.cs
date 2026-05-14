@@ -63,14 +63,18 @@ namespace AddressLibrary.Models
 
                 var parts = new List<string>();
 
-                // Jeśli jest nazwisko, Nazwa2 = Prefiks + Tytuł + Imię + Imię2 + Nazwisko2 + Pseudonim + Postfiks
+                // Jeśli jest nazwisko, Nazwa2 = Prefiks + Tytuł + Imię + Imię2 + Nazwisko + (ewentualnie minus) + Nazwisko2 + Pseudonim + Postfiks
                 if (!string.IsNullOrWhiteSpace(TypUlicy.Nazwisko))
                 {
                     if (!string.IsNullOrWhiteSpace(TypUlicy.Prefiks)) parts.Add(TypUlicy.Prefiks);
                     if (!string.IsNullOrWhiteSpace(TypUlicy.Tytul)) parts.Add(TypUlicy.Tytul);
                     if (!string.IsNullOrWhiteSpace(TypUlicy.Imie)) parts.Add(TypUlicy.Imie);
                     if (!string.IsNullOrWhiteSpace(TypUlicy.Imie2)) parts.Add(TypUlicy.Imie2);
-                    if (!string.IsNullOrWhiteSpace(TypUlicy.Nazwisko2)) parts.Add(TypUlicy.Nazwisko2);
+                    if (!string.IsNullOrWhiteSpace(TypUlicy.Nazwisko2))
+                    {
+                        parts.Add("-");
+                        parts.Add(TypUlicy.Nazwisko2);
+                    }
                     if (!string.IsNullOrWhiteSpace(TypUlicy.Pseudonim)) parts.Add(TypUlicy.Pseudonim);
                     if (!string.IsNullOrWhiteSpace(TypUlicy.Postfiks)) parts.Add(TypUlicy.Postfiks);
                 }
@@ -110,6 +114,12 @@ namespace AddressLibrary.Models
         [MaxLength(10)]
         [MemberParam(Desc = "Symbol TERYT")]
         public string Symbol { get; set; } = string.Empty;
+
+        // Pole przechowujące identyfikator ulicy z pliku TERYT` (TerytId)
+        [Required]
+        [MaxLength(100)]
+        [MemberParam(Desc = "TerytId (nazwa z TERYT)")]
+        public string NazwaTeryt { get; set; } = string.Empty;
 
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

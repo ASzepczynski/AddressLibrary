@@ -234,6 +234,7 @@ namespace AddressLibrary.Services.HierarchyBuilders
                 var ulica = new Ulica
                 {
                     Symbol = ulic.Ulica.SymbolUlicy,
+                    // Zapisz identyfikator z TERYT (Id) do pola NazwaTeryt
                     CechaUlicyId = -1,
                     MiastoId = miasto.Id,
                     Dzielnica = dzielnica,
@@ -242,6 +243,9 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                 if (terytUlicPoprawkiDict.TryGetValue(original, out var terytUlicPoprawka))
                 {
+
+                    // Ustaw NazwaTeryt na wartość kolumny Id z pliku TerytUlicPoprawki
+                    ulica.NazwaTeryt = original;
 
                     // ✅ ZMIENIONO: Użyj CechyUlicDictionary dla cechy z poprawek
                     string sCecha = terytUlicPoprawka.Cecha;
@@ -309,6 +313,21 @@ namespace AddressLibrary.Services.HierarchyBuilders
 
                     if (!string.IsNullOrWhiteSpace(original))
                         brakujaceUlice.Add(elem);
+                }
+
+                // Jeżeli nie ustawiono NazwaTeryt podczas dopasowania, spróbuj pobrać ją ze słownika TerytUlicPoprawki
+                if (string.IsNullOrWhiteSpace(ulica.NazwaTeryt))
+                {
+                    if (terytUlicPoprawkiDict.TryGetValue(original, out var tup))
+                    {
+                        ulica.NazwaTeryt = tup.TerytId ?? string.Empty;
+                    }
+                    else
+                    {
+                        // Dla debugowania, zostaw puste i zaloguj (pierwsze 10 przypadków)
+                        if (brakujaceUlice.Count < 10)
+                            _logger.LogInfo($"Brak NazwaTeryt dla ulicy: '{original}' (Symbol={ulica.Symbol})");
+                    }
                 }
 
                 allUlice.Add(ulica);
