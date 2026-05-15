@@ -73,6 +73,7 @@ namespace AddressLibrary.Services.AddressSearch
             searchLogger?.Log($"{Environment.NewLine}==== Rozpoczynam poszukiwanie ====");
             searchLogger?.Log($"  Kod: ({request.KodPocztowy})");
             searchLogger?.Log($"  Miasto: ({request.Miasto})");
+            searchLogger?.Log($"  Dzielnica: ({request.Dzielnica})");
             searchLogger?.Log($"  Ulica: ({request.Ulica})");
             searchLogger?.Log($"  Nr domu: ({request.NumerDomu})");
             searchLogger?.Log($"  Lokal: ({request.NumerMieszkania})");
@@ -86,6 +87,10 @@ namespace AddressLibrary.Services.AddressSearch
                     Message = "Nazwa miejscowości jest wymagana"
                 };
             }
+
+            // Zachowaj oryginalną dzielnicę przed rekonstrukcją request
+            var originalDzielnica = request.Dzielnica;
+
             (string sMiasto, string sNumer1) = UliceUtils.ExtractHouseNumberFromStreet(request.Miasto);
             (string sUlica, string sNumer2) = UliceUtils.ExtractHouseNumberFromStreet(request.Ulica);
 
@@ -120,10 +125,14 @@ namespace AddressLibrary.Services.AddressSearch
                 };
             }
 
+
+
+
             request = new AddressSearchRequest
             {
                 KodPocztowy = request.KodPocztowy,
                 Miasto = sMiasto,
+                Dzielnica = originalDzielnica,
                 Ulica = sUlica,
                 NumerDomu = NumerDomu,
                 NumerMieszkania = NumerMieszkania

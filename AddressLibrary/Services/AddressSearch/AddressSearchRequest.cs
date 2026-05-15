@@ -18,6 +18,11 @@ namespace AddressLibrary.Services.AddressSearch
         public string Miasto { get; set; } = string.Empty;
 
         /// <summary>
+        /// Dzielnica / czêœæ miejscowoœci (opcjonalna)
+        /// </summary>
+        public string Dzielnica { get; set; } = string.Empty;
+
+        /// <summary>
         /// Nazwa ulicy (opcjonalna)
         /// </summary>
         public string Ulica { get; set; } = string.Empty;

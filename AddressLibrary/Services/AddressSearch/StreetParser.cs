@@ -319,6 +319,19 @@ namespace AddressLibrary.Services.AddressSearch
                 (result.Prefiks, result.Postfiks) = (result.Postfiks, result.Prefiks);
                 return result;
             }
+            // Halszki
+            if (result.Prefiks == "" && result.Postfiks == "" && result.Imie == "halszki" && (result.Tytul == "por." || result.Tytul=="porucznika"))
+            {
+                (result.Imie, result.Pseudonim) = (result.Pseudonim, result.Imie);
+                return result;
+            }
+            // Też Halszki
+            if (result.Prefiks == "" && result.Postfiks == "" && result.Imie == "halszki" && result.Tytul == "" && result.Nazwisko=="")
+            {
+                (result.Imie, result.Pseudonim) = (result.Pseudonim, result.Imie);
+                return result;
+            }
+
             // króla Stanisława Augusta
             if (result.Imie == "stanislawa" && 
                   (
