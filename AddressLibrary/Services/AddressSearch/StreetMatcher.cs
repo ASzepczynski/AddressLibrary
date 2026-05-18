@@ -36,7 +36,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public List<UlicaCached>? FindStreet(List<UlicaCached> ulice, string streetName, string originalName, string dzielnica, out bool wasFuzzy, out string info)
         {
-            var wzorek = "halszki";
+            var wzorek = "serkowskiego";
             wasFuzzy = false;
             info = "";
             if (string.IsNullOrWhiteSpace(streetName))
@@ -74,9 +74,6 @@ namespace AddressLibrary.Services.AddressSearch
                 {
                     int y = 1;
                 }
-
-
-
 
                 if (normalizedShort == normalizedSearch
                  || normalizedShort == parsedSearch
@@ -130,7 +127,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
             if (kandydaci.Count() > 1)
             {
-                info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha lub dzielnica się nie zgadza";
+                info = "Więcej niż 1 nazwa ulicy pasuje, nie mogę zdecydować";
                 return kandydaci.Select(x => x.Ulica).ToList();
             }
 
@@ -138,50 +135,38 @@ namespace AddressLibrary.Services.AddressSearch
             // Wszystko przepadło — spróbujmy znaleźć najlepsze dopasowanie używając odległości Levenshteina
             wasFuzzy = true;
 
-            var bestMatches = new List<(UlicaCached Ulica, int Score)>();
-            int bestPercent = 0;
-
+            listaPotencjalne.Clear();
+            
             foreach (var ulica in ulice)
             {
                 var candidateShort = ulica.NormalizedShortName ?? string.Empty;
                 var candidateFull = ulica.NormalizedFullName ?? string.Empty;
+                var onlyLastname = TextNormalizer.Normalize(ulica.Nazwisko);
 
-                if (parsedSearch.Contains(wzorek))
+                if (candidateFull.Contains(wzorek))
                 {
                     int y = 1;
                 }
 
-
                 int pShort = GetLevenshteinPercent(parsedSearch, candidateShort);
                 int pFull = GetLevenshteinPercent(parsedSearch, candidateFull);
+                int pNazwisko = 0;
+                if(!parsedSearch.Contains(" ") && ulica.Nazwisko!="")
+                {
+                    // Dla ulic jednosłowowowych
+                    pNazwisko = GetLevenshteinPercent(parsedSearch, onlyLastname);
 
-                int score = Math.Max(pShort, pFull);
+                }
+
+                int score = Math.Max(Math.Max(pShort, pFull),pNazwisko);
 
                 if (score < 80) continue;
-
-
-
-
-                if (score > bestPercent)
-                {
-                    bestPercent = score;
-                    bestMatches.Clear();
-                    bestMatches.Add((ulica, score));
-                }
-                else if (score == bestPercent)
-                {
-                    bestMatches.Add((ulica, score));
-                }
+                listaPotencjalne.Add(new (ulica, score));
             }
 
-            if (bestMatches.Count == 0) return null;
+            if (listaPotencjalne.Count == 0) return null;
 
             // Ustawiamy listaPotencjalne na najlepsze dopasowania znalezione przez Levenshteina
-            listaPotencjalne.Clear();
-            foreach (var m in bestMatches)
-            {
-                listaPotencjalne.Add(m);
-            }
 
             kandydaci = ZweryfikujKandydatow(listaPotencjalne, sCecha,originalName,dzielnica);
 
@@ -192,7 +177,7 @@ namespace AddressLibrary.Services.AddressSearch
             }
             if (kandydaci.Count() > 1)
             {
-                info = "Więcej niż 1 nazwa ulicy pasuje, ale cecha lub dzielnica się nie zgadza";
+                info = "Więcej niż 1 nazwa ulicy pasuje, niejednonzaczność";
                 return kandydaci.Select(x => x.Ulica).ToList();
             }
 
