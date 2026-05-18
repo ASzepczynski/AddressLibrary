@@ -319,16 +319,25 @@ namespace AddressLibrary.Services.AddressSearch
                 (result.Prefiks, result.Postfiks) = (result.Postfiks, result.Prefiks);
                 return result;
             }
+
             // Halszki
             if (result.Prefiks == "" && result.Postfiks == "" && result.Imie == "halszki" && (result.Tytul == "por." || result.Tytul=="porucznika"))
             {
                 (result.Imie, result.Pseudonim) = (result.Pseudonim, result.Imie);
                 return result;
             }
+
             // Też Halszki
             if (result.Prefiks == "" && result.Postfiks == "" && result.Imie == "halszki" && result.Tytul == "" && result.Nazwisko=="")
             {
                 (result.Imie, result.Pseudonim) = (result.Pseudonim, result.Imie);
+                return result;
+            }
+
+            // Seweryna
+            if (result.Prefiks == "" && result.Postfiks == "" && result.Imie == "seweryna" && result.Tytul == "" && result.Nazwisko == "")
+            {
+                (result.Imie, result.Nazwisko) = (result.Nazwisko, result.Imie);
                 return result;
             }
 

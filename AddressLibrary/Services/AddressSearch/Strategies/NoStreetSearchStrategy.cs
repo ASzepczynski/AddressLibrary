@@ -193,8 +193,20 @@ namespace AddressLibrary.Services.AddressSearch.Strategies
                 diagnostic?.Log($"✓ Wybrano miasto po dokładnym kodzie pocztowym: {miastaZKodem[0].Nazwa} (woj. {miastaZKodem[0].Gmina?.Powiat?.Wojewodztwo?.Nazwa})");
                 return (miastaZKodem[0], false); // ✅ Nie jest fuzzy
             }
-            else if (miastaZKodem.Count > 1)
+            if (miastaZKodem.Count > 1)
             {
+                var miastaZKodemFiltr = miastaZKodem
+                    .Where(m => m.RodzajMiasta?.Nazwa != null &&
+                                (m.RodzajMiasta.Nazwa.Equals("miasto", StringComparison.OrdinalIgnoreCase) ||
+                                 m.RodzajMiasta.Nazwa.Equals("wieś", StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+
+                if (miastaZKodemFiltr.Count == 1)
+                {
+                    diagnostic?.Log($"✓ Po filtrze miasto/wieś wybrano: {miastaZKodemFiltr[0].Nazwa} (woj. {miastaZKodemFiltr[0].Gmina?.Powiat?.Wojewodztwo?.Nazwa})");
+                    return (miastaZKodemFiltr[0], false);
+                }
+
                 diagnostic?.Log($"✗ Znaleziono {miastaZKodem.Count} miast z dokładnym kodem {kodNorm}");
                 return (null, false);
             }
