@@ -36,7 +36,7 @@ namespace AddressLibrary.Services.AddressSearch
         /// </summary>
         public List<UlicaCached>? FindStreet(List<UlicaCached> ulice, string streetName, string originalName, string dzielnica, out bool wasFuzzy, out string info)
         {
-            var wzorek = "serkowskiego";
+            var wzorek = "jezioranskiego";
             wasFuzzy = false;
             info = "";
             if (string.IsNullOrWhiteSpace(streetName))
@@ -46,6 +46,11 @@ namespace AddressLibrary.Services.AddressSearch
             normalizedSearch = TextNormalizer.Normalize(normalizedSearch);
 
             var parsed = _parser.Parse(normalizedSearch);
+
+            if (streetName.Contains(wzorek))
+            {
+                int a = 1;
+            }
 
             var nowaUlica = new UlicaCached
             {
