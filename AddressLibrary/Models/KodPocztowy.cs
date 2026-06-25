@@ -1,4 +1,5 @@
 using AddressLibrary.Attributes;
+using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -11,9 +12,10 @@ namespace AddressLibrary.Models
         /// <summary>
         /// Kod pocztowy w formacie XX-XXX
         /// </summary>
+        [TableVisible(true)]
         [Required]
-        [MaxLength(6)]
-        [MemberParam(Desc = "Kod pocztowy")]
+        [StringLength(6)]
+        [Display(Name = "Kod pocztowy")]
         public string Kod { get; set; } = string.Empty;
 
         /// <summary>
@@ -23,23 +25,27 @@ namespace AddressLibrary.Models
         public string Numery { get; set; } = string.Empty;
 
         // Klucz obcy do miejscowoœci
+        [TableVisible(false)]
         [Required]
         [ForeignKey(nameof(Miasto))]
-        [MemberParam(Desc = "Miasto")]
         public int MiastoId { get; set; }
+        [TableVisible(true)]
+        [Display(Name = "Miasto")]
         public Miasto Miasto { get; set; } = null!;
         //        public string Dzielnica { get; set; } = string.Empty;
 
 
         // Klucz obcy do ulicy (opcjonalny - niektóre kody dotycz¹ ca³ych miejscowoœci bez konkretnej ulicy)
+        [TableVisible(false)]
         [ForeignKey(nameof(Ulica))]
-        [MemberParam(Desc = "Ulica")]
         public int UlicaId { get; set; }
+        [TableVisible(true)]
+        [Display(Name = "Ulica")]
         public Ulica? Ulica { get; set; }
 
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [MemberParam(Desc = "ID")]
+        [TableVisible(false)]
         public int Id { get; set; }
 
     }

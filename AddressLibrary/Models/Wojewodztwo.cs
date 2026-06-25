@@ -1,25 +1,28 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using AddressLibrary.Attributes;
+using DbView;
 
 namespace AddressLibrary.Models
 {
     [TableParam(Choice = ChoiceMode.Standard, Description = "Województwo")]
     public class Wojewodztwo
     {
+        [TableVisible(true)]
         [Required]
-        [MaxLength(100)]
-        [MemberParam(Desc = "Nazwa województwa")]
+        [StringLength(100)]
+        [Display(Name = "Nazwa województwa")]
         public string Nazwa { get; set; } = string.Empty;
 
+        [TableVisible(true)]
         [Required]
-        [MaxLength(2)]
-        [MemberParam(Desc = "Kod TERYT województwa")]
+        [StringLength(2)]
+        [Display(Name = "Kod TERYT województwa")]
         public string Kod { get; set; } = string.Empty;
 
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [MemberParam(Desc = "ID")]
+        [TableVisible(false)]
         public int Id { get; set; }
 
         // Relacja 1:N - jedno województwo ma wiele powiatów

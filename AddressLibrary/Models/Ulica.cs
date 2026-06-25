@@ -1,4 +1,5 @@
 ﻿using AddressLibrary.Attributes;
+using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -8,24 +9,32 @@ namespace AddressLibrary.Models
     public class Ulica
     {
         [NotMapped]
-        [MemberParam(Desc = "Miasto")]
+        [TableVisible(true)]
+        [Display(Name = "Miasto")]
         public string NazwaMiasta => Miasto?.Nazwa ?? string.Empty;
 
+        [TableVisible(false)]
         [ForeignKey(nameof(CechaUlicy))]
-        [MemberParam(Desc = "Cecha ulicy")]
         public int CechaUlicyId { get; set; }
+
+        [TableVisible(true)]
+        [Display(Name = "Cecha ulicy")]
         public CechaUlicy CechaUlicy { get; set; } = null!;
 
         // ✅ Klucz obcy do TypUlicy (opcjonalny - nullable)
+        [TableVisible(false)]
         [ForeignKey(nameof(TypUlicy))]
-        [MemberParam(Desc = "Typ ulicy")]
         public int TypUlicyId { get; set; }
+
+        [TableVisible(true)]
+        [Display(Name = "Typ ulicy")]
         public TypUlicy TypUlicy { get; set; } = null!;
 
 
         // Nazwa1 i Nazwa2 są teraz computed properties (nie mapowane do bazy)
         [NotMapped]
-        [MemberParam(Desc = "Nazwa 1", Visible = false)]
+        [TableVisible(false)]
+        [Display(Name = "Nazwa 1")]
         public string Nazwa1
         {
             get
@@ -53,7 +62,8 @@ namespace AddressLibrary.Models
         }
 
         [NotMapped]
-        [MemberParam(Desc = "Nazwa 2", Visible = false)]
+        [TableVisible(false)]
+        [Display(Name = "Nazwa 2")]
         public string Nazwa2
         {
             get
@@ -98,32 +108,38 @@ namespace AddressLibrary.Models
         }
 
         // ✅ DODANO: Pole dzielnica
-        [MaxLength(200)]
-        [MemberParam(Desc = "Dzielnica")]
+        [TableVisible(true)]
+        [StringLength(200)]
+        [Display(Name = "Dzielnica")]
         public string Dzielnica { get; set; } = string.Empty;
 
         // Klucz obcy do miejscowości
+        [TableVisible(false)]
         [Required]
         [ForeignKey(nameof(Miasto))]
-        [MemberParam(Desc = "Miasto")]
         public int MiastoId { get; set; }
+
+        [TableVisible(true)]
+        [Display(Name = "Miasto")]
         public Miasto Miasto { get; set; } = null!;
 
         
+        [TableVisible(true)]
         [Required]
-        [MaxLength(10)]
-        [MemberParam(Desc = "Symbol TERYT")]
+        [StringLength(10)]
+        [Display(Name = "Symbol TERYT")]
         public string Symbol { get; set; } = string.Empty;
 
         // Pole przechowujące identyfikator ulicy z pliku TERYT` (TerytId)
+        [TableVisible(true)]
         [Required]
-        [MaxLength(100)]
-        [MemberParam(Desc = "TerytId (nazwa z TERYT)")]
+        [StringLength(100)]
+        [Display(Name = "TerytId (nazwa z TERYT)")]
         public string NazwaTeryt { get; set; } = string.Empty;
 
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [MemberParam(Desc = "ID")]
+        [TableVisible(false)]
         public int Id { get; set; }
 
         // Relacja 1:N - jedna ulica ma wiele kodów pocztowych

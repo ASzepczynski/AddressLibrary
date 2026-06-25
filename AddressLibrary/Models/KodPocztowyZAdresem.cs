@@ -1,5 +1,8 @@
 // Copyright (c) 2025-2026 Andrzej Szepczyñski. All rights reserved.
 using AddressLibrary.Attributes;
+using DbView;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {

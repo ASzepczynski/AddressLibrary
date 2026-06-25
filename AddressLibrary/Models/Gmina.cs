@@ -1,36 +1,45 @@
+using AddressLibrary.Attributes;
+using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using AddressLibrary.Attributes;
 
 namespace AddressLibrary.Models
 {
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Gmina")]
+    [Display(Name = "Gminy")]
     public class Gmina
     {
+        [TableVisible(true)]
         [Required]
-        [MaxLength(100)]
-        [MemberParam(Desc = "Pe³na nazwa gminy")]
+        [StringLength(100)]
+        [Display(Name = "Pe³na nazwa gminy")]
         public string Nazwa { get; set; } = string.Empty;
 
-        [Required]
-        [ForeignKey(nameof(Powiat))]
-        [MemberParam(Desc = "Powiat, do którego nale¿y gmina")]
+        [TableVisible(false)]
         public int PowiatId { get; set; }
+
+        [TableVisible(true)]
+        [Required]
+        [Display(Name = "Powiat do którego nale¿y gmina")]
         public Powiat Powiat { get; set; } = null!;
 
+        [TableVisible(false)]
         [Required]
         [ForeignKey(nameof(RodzajGminy))]
-        [MemberParam(Desc = "Rodzaj gminy")]
         public int RodzajGminyId { get; set; }
+
+        [TableVisible(true)]
+        [Display(Name = "Rodzaj gminy")]
         public RodzajGminy RodzajGminy { get; set; } = null!;
 
+        [TableVisible(true)]
         [Required]
-        [MaxLength(7)]
-        [MemberParam(Desc = "Kod TERYT gminy")]
+        [StringLength(7)]
+        [Display(Name = "Kod TERYT gminy")]
         public string Kod { get; set; } = string.Empty;
+
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [MemberParam(Desc = "ID")]
+        [TableVisible(false)]
         public int Id { get; set; }
 
         public ICollection<Miasto> Miasta { get; set; } = new List<Miasto>();

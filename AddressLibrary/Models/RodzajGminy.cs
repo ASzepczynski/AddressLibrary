@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using AddressLibrary.Attributes;
+using DbView;
 
 namespace AddressLibrary.Models
 {

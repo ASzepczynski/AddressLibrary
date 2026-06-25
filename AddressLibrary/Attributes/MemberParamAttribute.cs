@@ -3,28 +3,21 @@ using System;
 namespace AddressLibrary.Attributes
 {
     /// <summary>
-    /// Parametry konfiguracyjne dla w³aœciwoœci/cz³onka klasy
+    /// Kompatybilny atrybut zastÄ™pczy. UÅ¼ywany tymczasowo dla kompatybilnoÅ›ci
+    /// z kodem oczekujÄ…cym MemberParam. Preferowane: TableVisible + Display.
     /// </summary>
+    [Obsolete("MemberParam is deprecated. Use TableVisible and Display instead.")]
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
     public class MemberParamAttribute : Attribute
     {
-        /// <summary>
-        /// Pe³ny opis kolumny wyœwietlany w interfejsie u¿ytkownika
-        /// </summary>
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Skrócony alias dla Description
-        /// </summary>
         public string? Desc
         {
             get => Description;
             set => Description = value;
         }
 
-        /// <summary>
-        /// Czy kolumna jest widoczna w tabelkach i formularzach (domyœlnie true)
-        /// </summary>
         public bool Visible { get; set; } = true;
     }
 }
