@@ -1,11 +1,12 @@
-using AddressLibrary.Attributes;
+
 using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {
-    [TableParam(Choice = ChoiceMode.Huge)]
+
+    [Display(Name = "Teryt Ulic")]
     public class TerytUlic
     {
         [TableVisible(false)]

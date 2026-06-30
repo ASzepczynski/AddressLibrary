@@ -1,4 +1,3 @@
-using AddressLibrary.Attributes;
 using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,7 +7,7 @@ namespace AddressLibrary.Models
     /// <summary>
     /// S³ownik tytu³ów i stopni (gen., p³k., dr., prof., itp.)
     /// </summary>
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Tytu³ lub stopieñ")]
+    [Display(Name = "Tytu³/Stopieñ")]
     public class TytulStopien
     {
         /// <summary>

@@ -1,11 +1,10 @@
-﻿using AddressLibrary.Attributes;
-using DbView;
+﻿using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Ulica w mieście")]
+    [Display(Name = "Ulica w mieście")]
     public class Ulica
     {
         [NotMapped]
@@ -143,6 +142,7 @@ namespace AddressLibrary.Models
         public int Id { get; set; }
 
         // Relacja 1:N - jedna ulica ma wiele kodów pocztowych
+        [TableVisible(false)]
         public ICollection<KodPocztowy> KodyPocztowe { get; set; } = new List<KodPocztowy>();
 
         public string Opis()

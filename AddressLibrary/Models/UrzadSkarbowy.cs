@@ -1,4 +1,3 @@
-using AddressLibrary.Attributes;
 using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,7 +7,7 @@ namespace AddressLibrary.Models
     /// <summary>
     /// Reprezentuje urz¹d skarbowy
     /// </summary>
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Urz¹d skarbowy")]
+    [Display(Name = "Urz¹d skarbowy")]
     public class UrzadSkarbowy
     {
         /// <summary>

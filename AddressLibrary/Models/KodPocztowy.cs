@@ -1,11 +1,10 @@
-using AddressLibrary.Attributes;
 using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Kod pocztowy")]
+    [Display(Name = "Kod pocztowy")]
     public class KodPocztowy
     {
 
@@ -21,7 +20,7 @@ namespace AddressLibrary.Models
         /// <summary>
         /// Numery domów obs³ugiwane przez ten kod pocztowy
         /// </summary>
-        [MemberParam(Desc = "Numery domów")]
+        [Display(Name = "Numery domów")]
         public string Numery { get; set; } = string.Empty;
 
         // Klucz obcy do miejscowoœci

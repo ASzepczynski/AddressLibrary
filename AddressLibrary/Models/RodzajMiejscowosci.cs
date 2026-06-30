@@ -1,4 +1,4 @@
-using AddressLibrary.Attributes;
+
 using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -6,21 +6,22 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {
-    [TableParam(Choice = ChoiceMode.Standard, Description = "Rodzaj miasta")]
-    public class RodzajMiasta
+    [Display(Name = "Rodzaj miasta")]
+	public class RodzajMiasta
     {
         
-        [MemberParam(Desc = "Kod")]
+        [Display(Name = "Kod")]
         public string Kod { get; set; } = string.Empty; // Kod z TerytWmRodz
         
-        [MemberParam(Desc = "Nazwa")]
+        [Display(Name = "Nazwa")]
         public string Nazwa { get; set; } = string.Empty;
 
-        [MemberParam(Desc = "ID")]
+        [Display(Name = "ID")]
         public int Id { get; set; }
 
-        // Relacja 1:N - jeden rodzaj miejscowoœci mo¿e byæ przypisany do wielu miejscowoœci
-        public ICollection<Miasto> Miasta { get; set; } = new List<Miasto>();
+		// Relacja 1:N - jeden rodzaj miejscowoœci mo¿e byæ przypisany do wielu miejscowoœci
+		[TableVisible(false)]
+		public ICollection<Miasto> Miasta { get; set; } = new List<Miasto>();
 
         public string Opis() => $"{Nazwa} {Kod}";
     }

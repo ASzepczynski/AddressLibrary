@@ -1,4 +1,3 @@
-using AddressLibrary.Attributes;
 using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,7 +7,7 @@ namespace AddressLibrary.Models
     /// <summary>
     /// Model reprezentuj¹cy typy ulic osobowych z pe³n¹ dekompozycj¹ nazwy
     /// </summary>
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Typ ulicy")]
+    [Display(Name = "Typ ulicy")]
     public class TypUlicy
     {
         /// <summary>
@@ -129,5 +128,13 @@ namespace AddressLibrary.Models
             result = System.Text.RegularExpressions.Regex.Replace(result, "\\s+", " ").Trim();
             return result;
         }
+
+        // Provide legacy/display property expected by RecordHandler/UI
+        // RecordHandler prefers a 'Nazwa' property on navigation objects; without it
+        // ToString() falls back to type name which looks odd in UI.
+        [NotMapped]
+        [TableVisible(true)]
+        [Display(Name = "Nazwa")]
+        public string Nazwa => Opis();
     }
 }

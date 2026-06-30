@@ -1,11 +1,10 @@
-﻿using AddressLibrary.Attributes;
-using DbView;
+﻿using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AddressLibrary.Models
 {
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Pocztowy numer adresowy")]
+    [Display(Name = "Pocztowy numer adresowy")]
     public class Pna
     {
         [TableVisible(false)]

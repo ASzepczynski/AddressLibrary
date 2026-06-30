@@ -1,4 +1,3 @@
-using AddressLibrary.Attributes;
 using DbView;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -42,6 +41,7 @@ namespace AddressLibrary.Models
         [TableVisible(false)]
         public int Id { get; set; }
 
+        [TableVisible(false)]
         public ICollection<Miasto> Miasta { get; set; } = new List<Miasto>();
         
         public string Opis() => $"{Nazwa} pow. {Powiat.Nazwa} woj. {Powiat.Wojewodztwo.Nazwa}";

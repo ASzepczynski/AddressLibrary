@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using AddressLibrary.Attributes;
 using DbView;
 
 namespace AddressLibrary.Models
@@ -8,7 +7,8 @@ namespace AddressLibrary.Models
     /// <summary>
     /// Model reprezentuj¹cy typy ulic osobowych z pe³n¹ dekompozycj¹ nazwy
     /// </summary>
-    [TableParam(Choice = ChoiceMode.Huge, Description = "Poprawka nazwy ulicy z TERYT")]
+
+    [Display(Name = "Teryt Ulic Poprawka")]
     public class TerytUlicPoprawka
     {
 

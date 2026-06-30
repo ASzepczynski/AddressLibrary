@@ -1,11 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using AddressLibrary.Attributes;
 using DbView;
 
 namespace AddressLibrary.Models
 {
-    [TableParam(Choice = ChoiceMode.Standard, Description = "Województwo")]
+    [Display(Name = "Województwo")]
     public class Wojewodztwo
     {
         [TableVisible(true)]
@@ -26,6 +25,7 @@ namespace AddressLibrary.Models
         public int Id { get; set; }
 
         // Relacja 1:N - jedno województwo ma wiele powiatów
+        [TableVisible(false)]
         public ICollection<Powiat> Powiaty { get; set; } = new List<Powiat>();
 
         public string Opis() => Nazwa;
